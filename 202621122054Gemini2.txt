@@ -1,0 +1,41 @@
+**SETUJU PENUH — tidak ada perubahan prompt dari saya.** Silakan langsung lempar draf **FINAL PHASE 2 PROMPT — S0 + S1** dari Qwen tersebut ke **GPT**.
+
+Saya sudah memeriksa ketujuh presisi tambahan (`A1–A7`) dari Qwen secara objektif, dan semuanya memang membuat prompt ini **lebih aman dari *error loop* Copilot** tanpa melebarkan *scope* S0/S1 sedikit pun:
+
+* **A1 (Target *mock* `misora.load_bundle_story` & `patch.object(misora.StoryDocument, "from_v2_text", ...)`):** Sangat krusial—kalau Copilot salah menambal `core.bundle_io.load_bundle_story`, Test 1 tidak akan mencegat panggilan di `open_file()` dan bisa memicu *error loop*.
+
+
+* **A2 & A3 (Resolusi eksplisit widget editor + guard `current_file_path is not None`):** Mencegah `_commit_widget_edit()` menjadi *no-op* diam-diam saat fokus sedang di daftar *dock* (`txt_opened_files`/`txt_results`), sekaligus memastikan *flush* tetap jalan untuk file *plain-text* yang nilai `current_doc`-nya `None`.
+
+
+* **A4, A5, A6, A7:** Memperjelas bahwa Test 4 harus lulus sebelum dan sesudah perubahan (sehingga Copilot tidak merusak tes regresi), mengunci ekstensi `.txt` untuk Test 2, menjaga entri `open_documents[path]` saat `reload_from_disk=True` gagal, serta memberi nama file tes eksplisit (`tests/test_s1_open_file_safety.py`) dan dua referensi ukuran *pre-edit* (CRLF `510.461 B` / LF `499.293 B`).
+
+
+
+Secara jujur, versi gabungan dari Qwen ini **lebih layak masuk ke Copilot** dibanding draf awal GPT maupun draf revisi saya sebelumnya, sehingga saya mengadopsinya **100% identik tanpa revisi**.
+
+---
+
+### Pesan Konfirmasi untuk GPT (Bahasa Inggris — Lampirkan Bersama Prompt Qwen)
+
+```text
+# PHASE 2 PROMPT SIGN-OFF (GEMINI → GPT & QWEN)
+
+Status: FULL AGREEMENT — ZERO CHANGES PROPOSED.
+
+Gemini adopts Qwen's `FINAL PHASE 2 PROMPT — S0 + S1` verbatim as the identical Phase 2 prompt candidate.
+
+Why Gemini endorses Qwen's 7 precision additions (A1–A7) without modification:
+- A1 (Explicit mock targets `misora.load_bundle_story` & `patch.object(misora.StoryDocument, "from_v2_text", ...)`) prevents a classic Python namespace-patch failure loop in Test 1.
+- A2 & A3 (Explicit active editor widget resolution instead of implicit `focus_get()`, plus `self.current_file_path is not None` to cover plain-text files where `current_doc is None`) prevent silent no-op flushes in Test 5.
+- A4–A7 (Test 4 pass-before/pass-after guard, `.txt` extension in Test 2, preserving existing `open_documents[path]` on failed `reload_from_disk=True`, dual CRLF/LF pre-edit baseline references, and explicit `tests/test_s1_open_file_safety.py` target) eliminate ambiguity without expanding S0/S1 scope.
+
+If GPT confirms with no further edits, all three AIs hold the exact same prompt and the user is cleared to proceed directly to Phase 3 (Run Copilot) for S0 + S1.
+
+```
+
+---
+
+### Aba-Aba: **SIAP (Prompt S0 + S1 Disetujui Identik — Silakan Lempar ke GPT)**
+
+Jika GPT juga langsung setuju tanpa revisi, prompt tersebut resmi terkunci identik dan kamu bisa langsung menjalankannya di **Phase 3 (Run Copilot)**!
