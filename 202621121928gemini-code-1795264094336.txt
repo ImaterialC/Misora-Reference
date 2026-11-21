@@ -1,0 +1,121 @@
+# MISORA EDITOR — PHASE 1f CONVERGENCE, NEW USER SPECS & FINAL BRAINSTORM
+
+Reviewer: Gemini (Synthesizing Grok Round 2/3, GPT Round 2, Qwen Round 3, new user requests, and final unmentioned traps before locking Phase 1 -> Phase 2).
+
+======================================================================
+PART 1 — CONVERGENCE ON BASELINE & ROUND 2/3 FINDINGS
+======================================================================
+
+1. BASELINE DISPUTE CLOSED:
+   - All reviewers now inspected the authoritative local 510,461-byte `misora.py` and confirmed the exact same defect set as GitHub `main` (`499,293 B` + `11,168` CRLF `\r` bytes = `510,461 B`).
+   - Pre-flight is now a 10-second sanity check: ensure Copilot runs on local `D:\Misora-Editor`, add `.gitattributes` (`*.py text eol=lf`, `*.bat text eol=crlf`, `*.unity3d binary`), and strip conflict markers from `PROJECT_STATE.md`.
+
+2. VERDICTS ON NEW ROUND 2/3 FINDINGS:
+   - [AGREE — HIGH PRIORITY] Grok `N-G` (`MTL-TEXT-IS-A-FAKE-EDITOR`): CRITICAL catch. `_get_active_text_widget()` returning any focused `tk.Text` would let Ribbon formatting/commits hijack the editable MTL scratchpad. Must explicitly exclude the MTL scratchpad from `_get_active_text_widget()`, `MisoraShortcuts` doc bindings, and save-from-widget, while keeping `Ctrl+S` saving the story and local `Ctrl+Z/Y` inside the scratchpad.
+   - [AGREE — HIGH PRIORITY] Grok `N-H` (`open_file` lossy `errors="replace"` decode), `N-I` (`open_file` mutating path/title/recent_files/locks/dirty before load succeeds), `N-J` (`open_file` missing `_commit_widget_edit()` flush before switch — vital for IME users), `N-D` (UID-keyed locks), `N-E` (atomic UTF-8 write helper across plain-text save, v2 save, and bulk replace).
+   - [AGREE — HIGH PRIORITY] GPT Round 2 `F8` (`V2-RESERVED-CATEGORY-ARG-ROUNDTRIP`): Self-round-trip bug in local `core/story_ast.py` where bare `System`/`Motion`/`Effect` arguments are parsed as category terminators and dropped, plus cross-tool v2 escape mismatch with `advscript.py`.
+   - [AGREE — CORRECTION ACCEPTED] GPT Round 2 `F11`: `MTLConfig.timeout_sec = 12.0` already exists and is passed to HTTP calls. Do NOT add a duplicate timeout setting; focus on explicit RTO/429/Auth UI classification and reliable Refresh recovery.
+   - [AGREE] GPT Round 2 `F19` (compare UIDs only when both non-null in `MasterUndoJournal`), and Section 7 anti-overengineering pushback: use **batched multi-select open with a single final UI render/list refresh** in v1 (keeping `open_documents` loaded and invariant-safe) instead of `{doc: None, loaded: False}` placeholders unless profiling proves bundle parsing is a bottleneck.
+   - [AGREE — HIGH PRIORITY] Qwen Round 3 `NEW-1` (paste-box undo delta recorded inside loop -> N*N over-deletion!), `NEW-2` (ribbon dead in Continuous View because `_insert_text_wrapper` targets hidden `txt_continuous`!), `NEW-3` (F8 cross-file stale apply), `NEW-4` (non-contiguous box-cut undo positions), `NEW-5` (clear skeleton bypasses lock), `NEW-6` (re-entrant `<Return>` spawning double search workers), `NEW-8` (Current File search misses unsaved plain-text edits).
+   - [AGREE — DOMINANT PERF WINS] Qwen Round 3 `NEW-9` (heavy per-keystroke rebuilds -> debounce raw-view/list/highlight/search-highlight while preserving instant central commit), `NEW-10` (O(N^2) search result re-render -> render once per poll tick), `NEW-11` (O(1) lock-badge toggle in Continuous View), `NEW-12` (per-char gradient Tk tag explosion -> clean/cap tags), `NEW-25` (`http`/`https` URL scheme allowlist before `urlopen`).
+   - [AGREE — CONSOLE DECISION] User chose Option A (in-app dockable hideable console panel, F12 + Debug "Show Console"). Confirmed as a dedicated FEATURE slice (RUN 3b/4), NOT RUN 1.
+
+======================================================================
+PART 2 — TWO NEW USER REQUIREMENTS (SPEC & GUARDRAILS)
+======================================================================
+
+1. PLAYER PLACEHOLDER BUTTON (UX CLARITY):
+   - Requirement: Remove `{0}` from the Insert Player Placeholder button label (too confusing for translators); explain `{0}` exclusively inside its **tooltip**.
+   - Proposed Spec:
+     * Button label: `Player Name` (or `+ Player`).
+     * Tooltip: `"Insert player name placeholder ({0} in script — replaced with the player's name in-game)"`.
+     * Implementation guardrails: Must insert `{0}` via the fixed Continuous-View active-card target (`NEW-2`), refuse MTL scratchpad (`N-G`), honor Translation Lock, and record undo with `source="ribbon"`.
+     * Optional verify: Confirm whether Compiled Preview renders `{0}` cleanly (e.g., visual badge/name without mutating raw text).
+
+2. USER WATERMARK (SPLASH SCREEN + ABOUT DIALOG):
+   - Exact text required on BOTH Splash Screen and About dialog:
+       Project Priconne Re:TL
+       Cornelia
+   - Proposed Spec:
+     * Single source of truth: Define `WATERMARK_LINES = ("Project Priconne Re:TL", "Cornelia")` (or `WATERMARK_TITLE` / `WATERMARK_AUTHOR`) alongside `__version__` in `__init__.py` so Splash and About never drift.
+     * Splash (`assets/splash.py`): Render cleanly in a consistent corner away from the progress bar, with a subtle dark scrim/pill or drop-shadow so text stays legible across bright and dark `Splash_N.jpg` images.
+     * About dialog (`misora.py`): Display the watermark credit cleanly alongside dynamic `__version__`.
+
+======================================================================
+PART 3 — BRAND-NEW UNMENTIONED BUGS, TRAPS & ANTI-OVERENGINEERING TRIMS
+======================================================================
+
+1. [NEW TRAP — HIGH] `box_uid` LIFECYCLE ON RELOAD & CLOSE:
+   - `box.uid` / `Record.uid` is generated via in-memory `itertools.count(1)`.
+   - On `reload_from_disk=True` (or close + reopen), every box receives brand-new UIDs!
+   - Risk: Once locks (`N-D`), JP keys (`F7`), and async targets (`F10`, `NEW-3`) use `box.uid`, stale UIDs left in `sync_manager` or lock sets will leak memory across a long session and silently break locks/JP lookup after a reload.
+   - Rule for RUN 2/3: Scope or clear/re-register UID-keyed registries on `reload_from_disk` and prune them on `close_file`.
+
+2. [NEW SECURITY/HYGIENE RISK] TRACKED `misora_config.json` IN PUBLIC REPO:
+   - `misora_config.json` (2,286 B) is currently tracked in the repo. Writing user prefs, local paths (`D:\...`), recent files, or MTL settings directly to a tracked file risks accidental public git commits or `git pull` clobbering user settings.
+   - Verify what `misora_config.json` holds today; consider keeping a tracked `misora_config.example.json` and ignoring runtime user config (or storing user prefs outside tracked files).
+
+3. [NEW WINDOWS BUG — NEEDS-VERIFY] FILE ASSOCIATION `cwd` & QUOTING (`*.bat`):
+   - Repo ships `misora.bat`, `register_association.bat`, `unregister_association.bat`.
+   - When Windows Explorer opens a `.unity3d` file via file association, `cwd` is often NOT `D:\Misora-Editor`, and paths may contain spaces or Japanese characters.
+   - Audit whether config/assets/backup lookups resolve relative to `Path(__file__).resolve().parent` (safe) vs `Path.cwd()` (breaks on double-click launch!), and verify `"%*"` quoting in `misora.bat`.
+
+4. [NEW PERF TRAP] IN-APP CONSOLE (OPTION A) UNBOUNDED TEXT GROWTH:
+   - An in-app `tk.Text` console fed by async `core/logger.py` during a 300k-line XUAT scan or bulk search will freeze Tk if unbounded.
+   - Mandatory guardrails when building Console (Option A):
+     * Ring-buffer line cap (e.g., max 2,500 lines; trim oldest lines on insert).
+     * Drain in bounded batches (e.g., <=100 lines per existing 100ms UI poll tick — no extra timer).
+     * Smart auto-scroll: follow bottom ONLY when scrollbar is already near bottom (`yview()[1] >= 0.98`).
+
+5. [NEW MEMORY GUARD] `BulkFileDelta` BUNDLE UNDO RAM CAP:
+   - Journaling multi-file Replace All for 50–200 `.unity3d` bundles (`F5`) must NOT hoard raw bundle bytes or huge v2 strings in RAM indefinitely.
+   - Store pre-replace bundle backups in a managed temp/backup dir referenced by path in the delta (or cap bulk undo entries), ensuring atomic restore on Undo and cleanup on exit/prune.
+
+6. [ANTI-OVERENGINEERING TRIMS]:
+   - Drop premature lazy-loading placeholders `{doc: None, loaded: False}` in RUN 3b -> use batched multi-select with single final UI render/list refresh (GPT Round 2 §7).
+   - Drop disk sidecar index cache in XUAT v1 -> start with background in-memory scan and measure first (GPT Round 2 §6).
+   - Trim low-ROI churn from Qwen Round 3 (`NEW-19` getter refactor, `NEW-24` background-close refactor unless directly needed by F2/F3, `NEW-22` CLI multi-arg optional).
+
+7. [LEAN PRICONNE FANSUB QA INNOVATIONS — LOW LOC, HIGH VALUE]:
+   - **Placeholder `{0}` Parity + Unclosed NGUI Tag Check (<20 LOC):** Flag if original JP has `{0}` (or NGUI color/style open tag) and EN drops `{0}` or leaves tags unbalanced. Fits neatly into Editor status bar + MTL Drawer + Import from XUAT.
+   - **3-Line In-Game Overflow Indicator (`Lines: X/3`):** Companion to existing char-count badge so translators catch Priconne 3-line clipping early.
+   - **Next Untranslated / Next QA-Issue Jump:** Fast proofreading navigation after XUAT import.
+   - **Copy Missing Lines + Surrounding Context (RUN 5):** 1-click export of unmatched story lines with speaker + 2 lines before/after for contextual AI translation.
+
+======================================================================
+PART 4 — PROPOSED FINAL RUN ROADMAP (COMPACT, COPILOT-SAFE SLICES)
+======================================================================
+
+- **PRE-FLIGHT (1-time tiny hygiene):** Verify local `D:\Misora-Editor`, add `.gitattributes`, clean `PROJECT_STATE.md` conflict markers, check `misora_config.json` tracking status.
+- **RUN 1 — Acute Data Loss & Save Safety:**
+  * `F1`/`N-H`/`N-I`: Staged `open_file()` + strict UTF-8 plain-text load (zero partial state mutation on failure).
+  * `F2`/`F3`: `on_save()` explicit success bool; Close & Exit abort on save failure; save ALL dirty open docs on Exit.
+  * `F4`: Plain-text save always reads raw model, never Compiled Preview widget.
+  * `N-E`: Shared `write_atomic_utf8` helper for plain-text save & v2 save.
+  * `NEW-1` + `F6`: Fix paste-box undo delta duplication (1 delta outside loop) + preserve internal `BoxSnapshot` segments/voice/extra_args.
+  * `NEW-5`: Clear-dialogue-skeleton honors Translation Lock.
+  * `F23`/`N-A`: Complete `destroy()` after-job cancellation sweep.
+- **RUN 2 — Replace-All Integrity (Dedicated Single Focus):**
+  * Structured bundle prefilter (no raw byte count), bundle undo journaling (disk-backed backup ref, not RAM bloat), strict UTF-8 + BOM/EOL preservation + `write_atomic_utf8` forward/undo, honor Translation Lock, protect/reconcile dirty & cached open docs, deduplicate overlapping roots (`F5`/`F15`).
+- **RUN 3a — Thread-Safety, Identity & Format Correctness:**
+  * `F7`/`N-D`/`F16`/`F17`/`F18`/`F19` + UID reload/close lifecycle cleanup + `N-J` flush-before-switch.
+  * `F10`/`F11`/`F12`/`NEW-3`/`NEW-6`/`NEW-8`: Search immutable snapshots + re-entrant guard + plain-text snapshot; Batch & MTL queue-marshaled main-thread apply + `journal.batch()` + `(file, box_uid, seq)` stale guard.
+  * `F8`: Fix v2 reserved-category (`System`/`Motion`/`Effect`) self-round-trip + external ADV escape compatibility.
+  * `F13`/`F14`: Search skipped-path reporting + halfwidth kana (`ｶﾞ`/`ﾊﾟ`/`ｳﾞ`) span-preserving fix.
+- **RUN 3b — Core UX Fixes, Perf Wins, Branding & Left Sidebar:**
+  * `NEW-2` (ribbon targets active Continuous card) + `NEW-4` (non-contiguous box-cut undo) + `NEW-7` + `F20`/`F21`/`F22`/`F25`/`F26`/`F27`.
+  * Dominant perf fixes: `NEW-9` (debounce heavy keystroke side-effects), `NEW-10` (O(N) per-tick search render), `NEW-11` (O(1) Continuous lock/highlight update), `NEW-12` (gradient tag cleanup), `NEW-13` (prefs save debounce).
+  * **Player Name button** (drop `{0}` from label, explain in tooltip) + **Watermark (`Project Priconne Re:TL` / `Cornelia`)** on Splash (with readable scrim/shadow) & About + Splash `perf_counter` measurement.
+  * **Left Sidebar Workspace:** Default `Open Project` tab, Empty State dropzone (native Win32 DnD), `askopenfilenames` multi-select with single batched render, multi-folder drop warning, quick filename filter.
+  * **In-App Console Panel (Option A):** Dockable bottom panel, F12 + Debug menu toggle, bounded ring-buffer (<=2,500 lines) + batched poll drain.
+- **RUN 4 — MTL Drawer:**
+  * Add 3rd drawer tab (`Customize | NGUI Glossary | MTL`), retire floating `TranslatorAssistantDialog` & F8 silent overwrite, `N-G` scratchpad exclusion from story widget/ribbon routing + local `Ctrl+Z/Y`, editable scratchpad + cache-bypassing `Refresh` + explicit RTO/429/Auth status + `NEW-25` URL scheme allowlist, UID-triggered 400ms debounced `Live Translation` (default OFF), bounded session cache, `{0}` parity & 3-line overflow badge, auto-close + auto-reopen hook for Import window.
+- **RUN 5 — `Import from XUAT`:**
+  * `core/xuat_index.py` (reusing `xunity_sync.split_xuat_line`, fixing legacy L1–L7 hazards, no `conflict_manager`), background in-memory index scan populating `xuat_entries`, hybrid Treeview + per-box candidate inspector + status filter bar + 3-tier conflict scope + separate dialogue/speaker completion meters + "Copy Missing + Context" export, wired to MTL Drawer auto-close/auto-reopen.
+
+======================================================================
+QUESTIONS TO CLOSE PHASE 1 (FINAL CHECK BEFORE PHASE 2)
+======================================================================
+1. Do all counterparts confirm the 6 newly surfaced traps (UID reload/close lifecycle, `misora_config.json` public tracking check, Windows file-association `cwd`/quoting audit, Console Option A ring-buffer cap, `BulkFileDelta` disk-backed backup, and Player/Watermark spec guardrails)?
+2. Does everyone approve the 6-slice RUN roadmap (RUN 1 -> RUN 2 -> RUN 3a -> RUN 3b -> RUN 4 -> RUN 5) — or should RUN 3b be split into `3b-CorePerf/Branding` and `3c-Sidebar/Console` so no single Copilot prompt exceeds safe token/diff size?
+3. Ready to lock Phase 1 and draft identical **Phase 2 Copilot Prompt for RUN 1** once the user approves?

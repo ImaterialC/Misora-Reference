@@ -1,0 +1,96 @@
+# MISORA — PHASE 1 BRAINSTORM ROUND 3 (Assistant A): NEW FINDINGS
+Baseline: attached LOCAL misora.py (510,461 B authoritative). Verified by structural/control-flow
+reading of the local source (escape-independent). GitHub main still 499,293 B (sync pending).
+All slugs below are NEW — not in F1–F27 / N1–N20 / C1–C11 / L1–L7 / N-A..N-J. Do not refile known items.
+
+## USER DECISION
+Console = the external black Windows console was the user's mental model; user CHOOSES OPTION A
+(build an in-app hideable console panel). Treat as a FEATURE (RUN 3b/4), NOT RUN 1. Wire F12 + Debug
+"Show Console" to it; remove the misleading toast stub. Optional sub-decision (ask user): also suppress
+the external black console via launcher (pythonw/FreeConsole) once in-app console exists.
+
+## A. CORRECTNESS / DATA (verified on local)
+NEW-1 BOX-PASTE-UNDO-DELTA-DUPLICATION (P0/P1): on_box_paste records BoxStructuralDelta INSIDE the
+  insert loop with constant box_index=ins_idx and snapshots=snaps_to_ins (full list) each iteration.
+  N boxes -> N identical deltas each describing N insertions at ins_idx. Undo deletes N boxes N times
+  (over-deletion/wrong boxes); redo inserts N*N. Fix: ONE delta outside the loop.
+NEW-2 RIBBON-CONTINUOUS-HIDDEN-TARGET (P1): _insert_text_wrapper (ribbon B/I/U/Color/Grad/Ruby/Glossary)
+  targets self.txt_continuous when Continuous View is on — but txt_continuous is pack_forget'd (hidden)
+  in bundle card-stream mode. Ribbon edits the hidden fallback, not the active card -> no visible effect.
+  Keyboard Ctrl+B/I/U uses _card_shortcut_wrap(w) correctly (inconsistent). on_insert_ruby + glossary
+  insert also affected. Fix: target active card widget in continuous. Ledger CONTINUOUS-RIBBON-TARGET-STALE
+  "resolved" is contradicted by _insert_text_wrapper still hardcoding txt_continuous.
+NEW-3 F8-CROSS-FILE-STALE-APPLY (P0/P1): on_translate_current_box captures b_idx at request; update_ui
+  checks only b_idx bounds, NOT file/doc identity. Switching files mid-translate applies the result to
+  the NEW file's box at the same index. Fix: capture (file_path, box_uid), verify before apply.
+NEW-4 BOX-CUT-NONCONTIGUOUS-UNDO-LOSS (P1): on_box_cut records one delete delta box_index=targets[0];
+  undo restores contiguously (box_index+offset). Non-contiguous cut (e.g. 2 & 5) restores at 2 & 3.
+  Fix: preserve original per-snapshot indices.
+NEW-5 CLEAR-SKELETON-BYPASSES-LOCK (P1, D8): on_clear_dialogue_skeleton clears ALL boxes with no
+  is_box_locked check. Fix: skip locked + report preserved count.
+NEW-6 SEARCH-REENTRANT-DOUBLE-WORKER (P1): on_start_search has no running guard; search_entry and
+  folder_path_entry bind <Return> directly, bypassing disabled btn_find. Return during an active search
+  spawns a second worker, resets results, interleaves two queries in one queue. Fix: _search_running guard.
+NEW-7 PLAINTEXT-CONTINUOUS-CUT-PASTE-NO-COMMIT (P2 conditional, Rule 11): txt_continuous <<Cut>>/<<Paste>>
+  bound to no-op shims; plain-text fallback cut/paste never commits to model/journal (only KeyRelease
+  flushes). Fix: explicit commit on virtual events for plain text.
+NEW-8 SEARCH-CURRENT-PLAINTEXT-STALE (P2): mem_docs only includes entry["doc"] (None for plain text),
+  so "Current File(s)" search reads disk and misses unsaved plain-text edits. Fix: include plain-text
+  snapshot.
+
+## B. EFFICIENCY / REDUNDANT
+NEW-9 KEYSTROKE-HANDLER-HEAVY (P2): _on_dialogue_edited per keystroke does inject_box + full raw-view
+  rebuild + full opened-files-list rebuild + NGUI regex on 2 widgets + search-match compile/scan +
+  update_idletasks auto-resize + char count. Typing lag on large stories. Fix: debounce raw/list/highlight.
+NEW-10 SEARCH-RESULTS-QUADRATIC-RENDER (P2): _process_search_queue calls _render_search_results() (full
+  Text rebuild) on EVERY batch -> O(N^2) for many batches. Fix: render once per poll tick / on finished.
+NEW-11 LOCK-TOGGLE-FULL-REBUILD (P3): on_toggle_lock_current_box -> _update_views rebuilds all cards
+  just to flip one lock icon. Fix: update that card's badge only.
+NEW-12 COMPILED-GRADIENT-TAG-EXPLOSION (P2): _insert_compiled_ngui_text creates a Tk tag PER CHARACTER
+  for gradients -> thousands of unique tags per widget. Fix: cap stops / clean tags on re-render.
+NEW-13 PREFS-SAVE-ON-EVERY-UI-CHANGE (P3): _save_user_prefs (DPAPI + atomic write) fires on many small
+  UI actions (spinbox/entry FocusOut, theme, scope). Fix: debounce / save only on change.
+NEW-14 DEAD-NOOP-HELPERS (P3): _push_undo = pass; _on_continuous_* no-op shims still bound. Clean or wire.
+
+## C. UX / LABEL / MINOR
+NEW-15 MENU-LABEL-TRIPLE-ENTER-STALE: menu says "Triple Enter" but alias emits CSIF.
+NEW-16 SELECT-WHOLE-STORY-SELECTS-ONE: continuous selects first card only; Ctrl+Alt+A advertised as whole story.
+NEW-17 DOCK-COLLAPSE-MINSIZE-CONFLICT: left_frame minsize=160 vs sash_place(0,20) -> collapse ineffective.
+NEW-18 CTRL-SHIFT-C-TOGGLE-DEAD: root <Control-C> (=Ctrl+Shift+C) continuous-toggle shadowed by router
+  Ctrl+Shift+C=Copy Script on editors. Conflicting leftover binding.
+NEW-19 GETTER-MUTATES-PROJECT-FOLDER: _get_project_display_path mutates project_folder as a side effect.
+NEW-20 HARDCODED-ENV-CANDIDATES: _detect_environment still hardcodes C:\[Gacha]\... in source.
+NEW-21 MTL-SETTINGS-NUMERIC-VALIDATION: float(timeout) can raise unhandled in _on_save.
+NEW-22 CLI-MULTI-FILE-IGNORED: main() opens only first file arg.
+NEW-23 DND-REENTRANT: _handle_dropped_paths resets _dnd_in_progress at start -> concurrent drops interleave.
+NEW-24 CLOSE-BACKGROUND-SWITCHES-ACTIVE: closing a non-active dirty file forces it active to save.
+NEW-25 MTL-URL-SCHEME-UNVALIDATED (minor, needs byte-verify): user MTL URL -> urlopen without http/https
+  allowlist. Recommend scheme validation (NOT an SSL-bypass).
+
+## D. LEAN FEATURE IDEAS (for debate; not approved)
+- In-app console panel (user chose A): dockable bottom panel fed by existing logger queue, reuse
+  category/level filters, F12 + Debug checkbutton. No new deps. FEATURE run, not RUN 1.
+- Per-box "Needs Review" flag + filter (uid set + badge) for proofreading.
+- Consistency checker: same JP -> different EN within a story (report only, reuse normalization).
+- "Find Untranslated" filter (reuse batch JP regex) in search bar.
+- Changed-vs-original diff badge (depends on N8 uid JP registry).
+- Box navigator/minimap for long stories (measure first).
+STILL OUT: Prompt Studio, persistent TM sidecar, compare-all engines, dual card streams, module split,
+second splash process.
+
+## RUN PLACEMENT (proposal)
+- RUN 1 (data safety): add NEW-1 (paste undo delta), NEW-5 (clear-skeleton lock). NEW-3 needs uid/file
+  guard -> RUN 2/3 with identity work. NEW-6 search guard -> RUN 2 (search).
+- RUN 2 (thread/identity/search): NEW-3, NEW-6, NEW-8, NEW-7.
+- RUN 3a (integrity leftovers): NEW-2 (ribbon target), NEW-4 (cut undo positions).
+- RUN 3b (workspace/UI): NEW-9..NEW-13 efficiency, NEW-15..NEW-24 UX/minor, console panel (A).
+- NEW-25 security hardening: small, with MTL work.
+
+## QUESTIONS TO COUNTERPARTS
+Q1 Verify NEW-1/2/3/4/5/6 on the authoritative local tree; challenge any with counter-evidence.
+Q2 Agree NEW-2 is a real visible bug (ribbon dead in continuous bundle mode) vs ledger "resolved"?
+Q3 Agree NEW-9/10 are the dominant typing/search perf costs; propose minimal debounce without breaking
+   central-commit-per-key (Rule 11).
+Q4 Console = option A confirmed by user. Agree it is a FEATURE run (not RUN 1)? Should the external black
+   console also be suppressed (launcher change) or left as-is?
+Q5 Any of NEW-15..24 better dropped as over-engineering? Which feature ideas (D) are worth keeping lean?
