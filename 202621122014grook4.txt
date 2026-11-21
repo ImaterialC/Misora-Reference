@@ -1,0 +1,71 @@
+MISORA — PHASE 1 FOLLOW (after GPT3 + Assistant A 20:01)
+Verified this turn, not from chat paste:
+- local misora.py = 510,461 B, SHA-256 2188eab968e031d4d5469f117f3cfb8403dc27622b5b6009d38b3880dd97babe
+- GitHub main raw = 499,293 B
+- LF-normalized bytes are identical. main-as-CRLF hashes to the same SHA-256.
+Baseline blocker is closed. Copilot tree = local D:\Misora-Editor == main content.
+PROJECT_STATE.md conflict markers are still a doc fix, not a code divergence.
+
+Q1 NEW-1: RETRACT. Agree with GPT.
+on_box_paste() records one BoxStructuralDelta AFTER the insert loop
+(misora.py ~6883–6897). Do not put "undo delta duplicated inside the loop" in any prompt.
+F-GPT-06 remains: the loop inserts flattened snapshots (voice_cue="", seg_texts=[one string]).
+
+Q2 Split RUN 1: AGREE.
+
+Q3 Save All before per-doc dirty: NO.
+_dirty_state_changed() sets open_documents[current]["dirty"] from
+undo_journal.is_clean(current_file_path) (misora.py ~6684–6690).
+That is one global journal asked about one path. It is not a per-file revision.
+S2 must land before S3. on_save() must return bool. Save All / exit may only trust that bool
+plus an entry dirty flag that S2 stopped clobbering.
+
+Q4 F6 vs F12: YES, separate.
+F6 = paste rebuilds a lossy snapshot (misora.py ~6839–6880).
+F12 = cut stores box_index=targets[0] only (~6809–6813); undo puts every snapshot in a row.
+Different tests. Do not merge the fixes.
+
+Q5 Performance E-01/E-02/E-03: DEFER. Measure first.
+E-04 stays warn-and-open-first on native WM_DROPFILES. No tkinterdnd2.
+
+Q6 Semantic delta beyond CRLF: NO. Hash-proven above.
+
+Q7 Gemini "final sign-off": NOT a lock. Independent Qwen confirmation was not in that pack.
+This turn is the agreement on the corrected plan, still waiting on the user.
+
+SLICE PLAN — APPROVE, WITH ONE CUT
+S0  Workspace is proven. Still: strip PROJECT_STATE conflict markers; confirm local
+    misora_config.json is untracked; run the Windows suite and record the real count.
+S1  Staged open_file. Commit path/doc/locks/JP-cache/title/recent only after load succeeds.
+    Strict UTF-8. No errors="replace" on open.
+S2  Stop dirty clobber. Per-entry dirty follows that file's own edit/save.
+    on_save() returns True/False. No full per-file journal rewrite in this slice.
+S3  close_file and exit abort when save returns False.
+    Exit saves every entry with dirty==True.
+    Plain-text save reads _plain_text_content, never the compiled widget.
+    One atomic UTF-8 helper, used by text save (bundle save already uses tmp+replace).
+S4  Internal paste inserts the original BoxSnapshot list, not flattened DialogueBlocks.
+    Cut undo stores each original index.
+    Clear-skeleton skips locked boxes and reports the skipped count.
+    NEW-1 is not in this slice.
+S5  Replace-All only. Structured bundle match, journal bundles, strict decode,
+    atomic text write, respect locks, do not reload a dirty open doc, dedupe roots.
+S6  UID JP key + UID locks + search snapshot + batch/MTL results applied on the UI
+    thread only + stale (file, uid) check + source= on non-typing deltas.
+    Scratchpad exclusion (N-G) waits for S9, but S6 must not add another tk.Text
+    that _get_active_text_widget() will treat as the story.
+S7  Keep, but one prompt each if the diff grows: continuous ribbon must target the
+    visible card, not the hidden txt_continuous; shortcut holes; DPI call removal;
+    halfwidth NFKC only with a failing test first; destroy() after-cancel sweep.
+S8  Open Project default, empty state, askopenfilenames, lazy register with
+    load-on-demand before search/save/replace. Native DnD only.
+    CUT the in-app console from S8. F12 already tells the truth (logs go to the
+    Windows console). Building a docked console is Option A and was never confirmed
+    by the user in this pack. Do not spend a Copilot slice on it unless the user says A.
+S9  MTL drawer. Live OFF. Retire the floating dialog. Scratchpad is not a story widget.
+S10 XUAT import. No conflict_manager. No advscript parser port.
+
+PHASE STATUS
+Finding set: converged.
+Phase 1: NOT locked until the user accepts this slice list (including console cut).
+Phase 2: do not generate the Copilot prompt in this turn.
