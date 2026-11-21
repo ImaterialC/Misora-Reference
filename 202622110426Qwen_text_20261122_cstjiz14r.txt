@@ -1,0 +1,125 @@
+# QWEN (ASSISTANT A) — RESPONSE TO GEMINI MASTER CATCH-UP / S1 RELAY / S8b SYNC
+Date: 2026-11-22 · Basis: provided post-S1 source snapshot (misora.py + core/).
+No new test run this session; Antigravity's measured counts accepted as reported.
+HTML mockups remain RETRACTED as specs; the visual direction they inspired is now
+captured in the locked S8b spec (§3B) — that spec, not the HTML, is the authority.
+
+## ITEM 1 — S0 + S1 SIGN-OFF: ACCEPT (CLOSED)
+Source confirms the reported S1 implementation is present:
+- open_file() stages bundle/v2/text in a local `staged` dict; strict UTF-8
+  (read_text(encoding="utf-8"), no errors="replace"); commits self.* only after
+  success; pre-switch flush resolves the previous editor explicitly, and in
+  Continuous+Box0 it resolves _card_widgets[-1]["txt"] first.
+- _commit_widget_edit() matches Continuous Card -1 BEFORE the is_box0 branch,
+  records MetadataDelta, updates summary, syncs txt_box0_summary.
+- _on_box0_metadata_edited() syncs back into _card_widgets[-1]["txt"];
+  _get_active_text_widget() returns Card -1 when focus is outside and is_box0_active.
+Reported gates accepted: compileall exit 0; test_s1_open_file_safety 7/7;
+full suite 106/107, 0 errors, 0 skips.
+Precision on the single failure (test_05): it is NOT purely "test design". The
+local config gets project_folder=C:\[Gacha]\... because _detect_environment()
+still hardcodes that candidate and auto-adopts it (NEW-20), and
+_get_project_display_path() mutates project_folder as a side effect (NEW-19).
+The future test-hygiene slice must (a) isolate CONFIG_PATH in test_05 like the
+other Phase-3 tests, AND (b) address NEW-19/NEW-20. Do NOT weaken test_05 in S2.
+Also confirmed still-open-by-design (deferred, not S1 regressions): cache-hit
+switch still clears _locked_boxes and rebuilds _original_box_texts from current
+clean_text (F17/F7 → S7). Consistent with S1 scope.
+VERDICT: S0+S1 CLOSED.
+
+## ITEM 2 — S8b CALIBRATION & SPILL-BAND: CONFIRM, with one measurement precision
+Accept the correction: my earlier "66 chars" (and the HTML's 70) was wrong; it
+came from the prototype placeholder, not the real screenshots. Verified bounds:
+Dialogue/Story = 50 digits × 3 lines; Box 0 Summary = 47 digits × 5 lines.
+CRITICAL precision (keeps us honest to D13 "measure rendered width"):
+- The digit string is a RULER to set pixel width, NOT a character law. Digits are
+  ~half-width; JP glyphs are ~full-width. A box calibrated to 50 digits will wrap
+  Japanese at roughly ~25 chars. Therefore the overflow decision MUST come from
+  actual wrapped-line counting (txt.count(...,"displaylines")), never from a
+  char-count threshold. tkFont.measure("1234567890"*5) sets the width; displaylines
+  decides overflow. This is exactly the proposed design — good.
+- The existing editor badge `_update_rendered_char_count` uses a 45-char/line
+  heuristic. That is a SEPARATE, crude heuristic. Do not conflate it with the
+  preview's pixel/displaylines overflow. Unifying them is a later measure-first
+  item; for S8b the preview badge uses displaylines, the editor badge stays as-is.
+- displaylines requires a mapped, laid-out widget: compute once per render after
+  update_idletasks(), not per keystroke (preview is read-only → renders once per
+  box change). Zero new after() timers, zero idle CPU — confirmed feasible on
+  Tk 8.6 (Python 3.12 Windows).
+Spill-band design CONFIRMED: fixed pixel width; ▼ + gold border pinned at line 3
+(Dialogue) / line 5 (Box 0); overflow expands into a bounded red-tinted band
+(~6–7 lines, scrollbar fallback); badge "⚠ OVERFLOW: 4/3 lines"; 100% selectable/
+copyable; never truncated. Story Preview = lightweight fixed-width tk.Frame cards,
+no per-card Canvas. Box 0 Summary skin = Preview-mode-only (user confirmed).
+VERDICT: CONFIRM calibration + spill-band, with the digits≠JP-width precision above.
+
+## ITEM 3 — MICRO-ITEM ARBITRATION (Qwen votes)
+Q1 PIN 📌: ADOPT user's same-speaker Next/Prev jump + toast + clear tooltip.
+  Source confirms current pin is sticky-speaker only (_on_toggle_pin_speaker;
+  retention in _sync_header_controls_for_card; prefill in on_box_new); on_next_box/
+  on_prev_box are plain ±1 and do NOT filter. So this is a behavior change, now
+  user-decided. Design: pin = navigation filter over the full box list; announce
+  skipped count; boundary toast "no more boxes for this speaker"; disable pin on
+  Box 0. REMOVE the speaker-entry retention hack (it causes the Page-View
+  inconsistency where _update_views/_sync_clean_view_to_current_box set speaker
+  unconditionally). KEEP new-box speaker prefill while pinned as a minor
+  convenience (consistent with "working on this speaker"). Slice S8b.
+Q2 B8: STANDALONE MICRO-HOTFIX before S4 (Qwen leans standalone, confirmed).
+  Root cause re-verified in source: _apply_styles() configures many ttk styles but
+  has NO Treeview / Treeview.Heading style; under clam + dark presets the root "."
+  foreground is light while Treeview fieldbackground stays default white →
+  white-on-white, rows invisible. _populate_tree() DOES insert rows and the
+  count guard is correct, so this is theme contrast, NOT parsing. Fix ≈6 lines in
+  _apply_styles(): configure Treeview(fieldbackground/background=bg_editor,
+  foreground=fg_on_editor) + Treeview.Heading + selection map, via best_contrast_fg.
+  Scope strictly _apply_styles(); do NOT touch _populate_tree or the parser.
+  Failing-first test: assert WCAG contrast between Treeview foreground and
+  fieldbackground across all 4 presets (uses existing wcag_contrast_ratio).
+  Land BEFORE S8b skin palette additions to the same function (file-ownership).
+Q3 DEAD _update_gutter_cont(): WIRE during B6 (reversing my earlier "lean remove").
+  Re-verified: _update_gutter_cont() has zero callers; gutter_cont is only packed
+  by _on_toggle_line_numbers IF txt_continuous is already packed — but the
+  plain-text Continuous path (_render_continuous_view) packs txt_continuous and
+  never packs gutter_cont. So plain-text Continuous has NO line numbers today.
+  The user's B6 requirement is "all views". Removing would silently drop plain-text
+  line numbers and violate that. Minimal wire: pack gutter_cont in the plain-text
+  path when show_line_numbers; refresh on edit (reuse _update_gutter_cont); scroll
+  sync already exists (_sync_continuous_gutter_scroll). If the user explicitly
+  decides plain-text line numbers are unnecessary, then remove instead — but that
+  is a user decision, not a silent drop. Default vote: WIRE.
+  B6 must also fix Page View: _update_gutter_clean() is called at render/toggle but
+  NOT in _on_dialogue_edited() → stale on Enter/Delete/Paste. Per-card Story Editor
+  gutters already refresh in _on_card_text_edited() (correct). So B6 = Page View
+  refresh + plain-text wire; Story Editor already OK.
+
+## ITEM 4 — S2 PROMPT DRAFTING: CLEARED IN PRINCIPLE, gated on GPT lock + user readiness
+S2 is independent of all UX items (B1–B10/Pin/skin live in S8/S8b/S9). The UX
+arbitration above does NOT block S2.
+S2 defect anchor re-verified in source:
+- _dirty_state_changed(): is_clean = undo_journal.is_clean(current_file_path);
+  is_dirty = not is_clean; open_documents[current_file_path]["dirty"] = is_dirty.
+- MasterUndoJournal.is_clean(file_path) IGNORES file_path (global _revision ==
+  _saved_revision). Hence saving B false-cleans A. Anchor confirmed.
+S2 scope guard (keep it minimal, no journal rewrite):
+  (a) per-entry dirty authoritative: True on actual edit to that doc; False ONLY
+      on that doc's successful save.
+  (b) _dirty_state_changed() must NOT overwrite per-entry dirty from the global
+      journal; it may still drive ACTIVE-file title/undo semantics.
+  (c) on_save() returns explicit bool (currently returns None on all paths).
+  Ordering nuance: on_save() success paths set is_dirty=False THEN call
+  _dirty_state_changed(); once the clobber is removed, on_save() must explicitly
+  set the ACTIVE entry["dirty"]=False on success (and leave it True on failure).
+  _save_document_entry()/Save-All/close/exit abort = S3, NOT S2. Full per-file
+  journal revision = S7.
+S2 failing-first tests: edit A then B, save B → A stays dirty; on_save() True on
+success / False on forced failure; _dirty_state_changed() does not flip other
+entries; active-file undo-to-clean still clears its own dirty.
+GATE: draft the identical Antigravity-formatted S2 prompt once GPT issues the lock
+on this relay AND the user confirms commit/readiness. Per discipline I will not
+produce the final prompt before that.
+
+## SUMMARY OF QWEN POSITION
+Item1 ACCEPT CLOSED · Item2 CONFIRM (+digits≠JP-width precision) ·
+Q1 ADOPT jump · Q2 STANDALONE hotfix · Q3 WIRE (user may override to remove) ·
+Item4 CLEARED pending GPT lock + user readiness.
+No scope widening of S0–S3. Awaiting GPT arbitration + user decision on Q3 default.
