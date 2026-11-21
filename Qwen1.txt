@@ -1,0 +1,175 @@
+# MISORA EDITOR — PHASE 0 INDEPENDENT RESEARCH BRIEF (FOR CROSS-AI DEBATE)
+
+Author: Research Assistant A (static + runtime audit)
+Target repo: github.com/ImaterialC/Misora-Editor, branch main, commit 49cb3d1 (2026-11-21)
+Source of truth: byte-exact repository tarball (NOT chat paste). misora.py = 499,293 bytes / 11,169 lines.
+Your role: Critically cross-check every claim below. Agree only with evidence; challenge with file:line or a minimal repro. Do not invent fixtures or platform behavior.
+
+## 0. GROUND RULES (from AGENTS.md — binding)
+- Classify each item: CONFIRMED / CONDITIONAL / DESIGN INVARIANT / RETRACTED.
+- Use stable slugs (no new B-numbers). The canonical ledger is PROJECT_STATE.md, but it is a CLAIM to verify, not authority.
+- Respect invariants: one Tk root; Seg.record direct reference; Box.clean_text/.text/.raw read-only; BoxSnapshot preserves seg_texts; central edit commit; first-position whitelist shortcut router; workers never touch Tk/doc/journal; revision-based dirty; immutable JP keys per Box uid; atomic bundle save; TLS verification on; NGUI single source in core/ngui_tags.py; CSIF headers never inside Box.clean_text.
+- Scope discipline (Rule 24): no premature CSIF/MTL/PromptStudio/LRU/splash redesign. Minimal diffs.
+
+## 1. VERIFICATION ENVIRONMENT & LIMITATIONS (honest)
+- Sandbox: Python 3.10.9 / Linux. `compileall misora.py core assets tests` => PASS (exit 0). Caveat: user target is Python 3.12 on Windows.
+- RUNTIME repros executed for pure-Python core modules (undo_journal, story_ast, script_codec, ngui_tags, search_engine, xunity_sync). Evidence tagged [REPRO] below is real executed output.
+- NOT run: the official 100-test unittest suite (requires Tk display + UnityPy + storydata_1001005.unity3d fixture on the user's Windows machine). Manual Windows tests (Rule 29) remain the user's responsibility.
+- Transport note: chat-pasted code and naive web extraction MANGLE backslash escapes and indentation. All findings below were verified against the byte-exact tarball. Do not reason from paste.
+
+## 2. META-FINDING — LEDGER-DRIFT (highest process priority)
+Several PROJECT_STATE.md "RESOLVED" claims are CONTRADICTED by current main. The ledger overstates completion. Phase 1 MUST reconcile ledger-vs-code before new feature work. Specific contradictions are items N1, N3, N4, N17 below. Proposed action: a ledger-reconciliation pass that re-tests each RESOLVED slug against disk and downgrades false ones.
+
+## 3. NEW CONFIRMED FINDINGS (not in ledger, or ledger falsely resolved)
+
+N1. CTRL-ALT-HOTKEYS-BLOCKED — REOPEN (ledger says RESOLVED; code contradicts)
+  Severity: P1. Evidence [CODE]: misora.py:5764 is_alt = (state & 0x0008) or (state & 0x0020); :5767-5768 `if is_ctrl and is_alt: return None` (blocks ALL Ctrl+Alt). NO 0x20000/MOD2_MASK anywhere; NO <Control-Alt-*> bindings anywhere. Yet tooltips advertise Ctrl+Alt+A/X/C/V (misora.py:3686,3729,3737,3745).
+  Impact: advertised box cut/copy/paste/select accelerators are dead; Rule 12 ("every advertised accelerator must have a real binding") violated. Ledger's claimed MOD2_MASK fix + whitelist + root bindings are absent.
+  Minimal fix direction: add the documented Ctrl+Alt whitelist branch (distinguish real Alt from AltGr via 0x20000) OR add explicit root <Control-Alt-x/c/v/a> bindings; align router. Add a binding-presence test.
+  Question: Was this fix lost in the stash-pop merge that produced the conflict markers, or never applied? Verify against local D:\Misora-Editor.
+
+N2. SHORTCUT-CTRL-T-CONFLICT — NEW
+  Severity: P2. Evidence [CODE]: router misora.py:5808-5810 plain Ctrl+T -> on_copy_ai_prompt(); root :6043 <Control-t> -> on_open_translator_assistant(); menu advertises "Translator Assistant... Ctrl+T".
+  Impact: inside editor widgets (MisoraShortcuts bindtag first) Ctrl+T performs the WRONG action vs menu/root. Inconsistent accelerator.
+  Minimal fix: router plain Ctrl+T should open Translator Assistant; keep Ctrl+Shift+T = Copy AI Prompt.
+
+N3. AFTER-TEARDOWN-SWEEP-MISSING — REOPEN (ledger claims full sweep)
+  Severity: P2. Evidence [CODE]: MisoraApp.destroy (misora.py:1375-1384) cancels ONLY _search_poll_job. NO cancellation of _cont_resize_job/_toast_after_id/_eyedropper_after_id; NO tk.call("after","info") sweep (grep: absent).
+  Impact: "invalid command name" Tcl errors after close — the exact symptom ledger Phase 2 claims fixed.
+  Minimal fix: cancel known after-jobs + anonymous sweep in destroy(), guarded.
+
+N4. STARTUP-RESTORE-NOT-DEFERRED — REOPEN (ledger claims after_idle deferral)
+  Severity: P2 (perf-claim drift). Evidence [CODE]: misora.py:1268-1289 restores initial_path/_saved_opened_files INLINE in __init__ (with splash _rpt), NOT via after_idle. Ledger Phase 3 / Rule 22 claims deferral until root displayed.
+  Impact: startup blocks during session restore; the claimed deferral is not implemented as described. Measure before claiming improvement (Rule 22).
+  Question: Is inline-with-splash acceptable, or must it be after_idle per ledger? Reconcile claim vs intent.
+
+N5. BOX-PASTE-FLATTEN-SEGMENTS — NEW (data integrity)
+  Severity: P0/P1. Evidence [CODE+REPRO]: on_box_paste (misora.py:6839-6881) converts internal _box_clipboard BoxSnapshots -> DialogueBlock(text=snap.clean_text) -> BoxSnapshot(seg_texts=[b.text], voice_cue=""). [REPRO] BoxSnapshot.from_box preserves seg_texts=['NEW','']; the GUI round-trip collapses to 1 seg and drops voice_cue.
+  Impact: Copy Box -> Paste Box loses multi-segment boundaries AND voice cues (game audio desync). Violates Rule 5 (preserve seg_texts) and Rule 26/29 zero-drift round-trip. Note: external CSIF paste inherently flattens (format limitation, see N5b), but the INTERNAL clipboard could insert snapshots directly.
+  Minimal fix: when _box_clipboard is valid, insert the original BoxSnapshot objects directly (preserve seg_texts/voice_cue/extra_args); only flatten for external CSIF.
+  N5b [REPRO]: serialize->parse merges a 2-seg box into one block 's1s2'. CSIF is per-box; multi-seg loss is inherent to the interchange format. Debate: document this limitation explicitly; do not claim CSIF round-trip is seg-lossless.
+
+N6. SPEAKER-EDIT-BYPASSES-COMMIT — NEW
+  Severity: P1/P2. Evidence [CODE]: entry_speaker.bind("<KeyRelease>", -> _on_speaker_edited) (misora.py:3526) bypasses _commit_widget_edit. _on_speaker_edited uses speaker_var.get() (NO .strip()), records BoxEditDelta WITHOUT box_uid, sets is_dirty=True unconditionally (even arrow keys), and does NOT call _dirty_state_changed. The central path's speaker branch DOES strip + pass box_uid.
+  Impact: Rule 11 central-commit violation; false-dirty on non-edit keystrokes; inconsistent speaker normalization and undo identity between two paths.
+  Minimal fix: route entry_speaker through _commit_widget_edit; remove the duplicate direct binding; only mark dirty on actual change.
+
+N7. DOC-SWITCH-STATE-BLEED — NEW
+  Severity: P1. Evidence [CODE]: open_file cache-hit branch (misora.py:6083-6099) does NOT clear/restore _locked_boxes or _modified_boxes, resets current_box_idx=0, and rebuilds _original_box_texts from CURRENT doc text. Fresh-open path (:6105-6107) clears them.
+  Impact: switching tabs leaks file A's lock/modified indices into file B; per-document view state/selection not saved/restored (Rule 16). Wrong boxes may be locked/synced.
+  Minimal fix: store per-document state (locks, modified, box_idx, view, JP snapshots) in open_documents entry; save on switch-away, restore on switch-in.
+
+N8. XUAT-JP-KEY-DRIFT — NEW (data integrity)
+  Severity: P1. Evidence [CODE+REPRO]: on_save (misora.py:7933,7943) uses positional _original_box_texts as japanese_key, then OVERWRITES it with box_obj.clean_text (English). [REPRO] XUnitySyncManager.find_and_update: 1st call with JP key -> 1 match (dict updated); 2nd call with drifted EN key -> 0 matches. Core ALREADY provides register_jp_key(box_uid)/get_jp_key(box_uid) (xunity_sync.py:79,84) but misora.py NEVER calls them (grep: absent).
+  Impact: after first save, XUAT sync silently stops; positional indices shift after structural edits -> wrong JP keys paired with wrong boxes (Rule 10: immutable JP keys per uid).
+  Minimal fix: wire GUI to sync_manager.register_jp_key on load (uid-keyed, immutable) and get_jp_key on save; stop overwriting baseline with English.
+
+N9. CLOSE-FILE-IGNORES-SAVE-FAILURE — NEW (data loss)
+  Severity: P1. Evidence [CODE]: close_file (misora.py:9037-9046) calls on_save() then UNCONDITIONALLY deletes open_documents entry + prunes undo. No success check. (App-exit path :1357 DOES check is_dirty.)
+  Impact: user chooses "Save", save fails (disk/verify error), file still closed and edits discarded. Rule 16: "Failed save aborts close."
+  Minimal fix: after on_save(), if still dirty -> abort close.
+
+N10. EXIT-SAVES-ONLY-ACTIVE — NEW (data loss)
+  Severity: P1. Evidence [CODE]: _on_app_exit (misora.py:1351-1358) prompts if ANY doc dirty but on_save() saves only the ACTIVE file; checks only active is_dirty.
+  Impact: other dirty open documents are silently discarded on exit.
+  Minimal fix: iterate dirty docs (save each, abort exit on any failure) or prompt per-file.
+
+N11. PLAINTEXT-SAVE-COMPILED-CORRUPTION — NEW (data loss)
+  Severity: P1. Evidence [CODE]: _update_views plain-text branch (misora.py:6190-6203) inserts COMPILED rendered text + disables widget when Preview Compiled ON. on_save plain branch (:7869) reads widget content directly -> writes rendered text.
+  Impact: saving a plain .txt while compiled preview is active strips/transforms NGUI markup permanently (backup mitigates). Bundle/v2 paths are safe (use model).
+  Minimal fix: plain-text save must use _plain_text_content (model), never the compiled widget; or force raw mode before save.
+
+N12. BULK-REPLACE-CLOBBERS-DIRTY-CURRENT — NEW (data loss + lock bypass)
+  Severity: P1. Evidence [CODE]: on_replace_all multi-file loop (misora.py:8762-8798): bundle branch has NO is_box_locked check and NO per_file_deltas; :8797-8798 reloads current file from disk (reload_from_disk=True) discarding unsaved in-memory edits.
+  Impact: unsaved edits of the active file lost; Translation Lock bypassed for the active file; bundle replacements not undoable.
+  Minimal fix: flush/merge active doc edits before bulk op; honor active-file locks; journal bundle deltas; avoid clobbering dirty current doc.
+
+N13. REPLACE-ALL-TEXT-DESTRUCTIVE-DECODE — NEW
+  Severity: P1/P2. Evidence [CODE]: misora.py:8776 reads .txt with errors="replace" then rewrites whole file (:8783). Also open_file plain read :6138 errors="replace".
+  Impact: non-UTF8 bytes permanently replaced (U+FFFD) on rewrite — violates Rule 10 strict decode for dictionaries (backup mitigates).
+  Minimal fix: strict decode; on failure skip+report rather than lossy rewrite; preserve BOM/EOL.
+
+N14. BATCH-TRANSLATE-THREAD-UNSAFE — NEW
+  Severity: P1. Evidence [CODE]: BatchTranslateDialog.worker (misora.py:11089-11145) runs in threading.Thread and calls undo_journal.begin_batch/record/end_batch, doc.inject_box, _modified_boxes.add, and self.after_idle(...) — all from the worker thread. end_batch (:11128) NOT in finally; box=doc.boxes[b_idx] (:11096) captured pre-translate with no uid guard.
+  Impact: Rule 15 violation (workers mutate doc/journal + call Tk); race with UI; if an exception escapes the per-box try, journal stuck batching -> undo dead; structural edits during batch mis-target boxes.
+  Minimal fix: worker computes translations only; post results via main-thread queue; apply doc/journal mutations on UI thread; begin_batch/end_batch in finally; validate box uid before apply.
+
+N15. MTL-CALLBACK-TK-FROM-WORKER — NEW
+  Severity: P2. Evidence [CODE]: translate_async (mtl_engine.py:345-351) invokes on_success/on_error IN the worker thread; misora.py callbacks call self.after_idle(...) from that thread (e.g., test connection :10512). Tk is not thread-safe.
+  Impact: Rule 15 violation; potential crash/corruption on some Tk builds.
+  Minimal fix: marshal callbacks through the existing main-thread queue pattern (as search does), not after_idle from workers.
+
+N16. DIRTY-STATE-GLOBAL-NOT-PER-FILE — NEW
+  Severity: P2. Evidence [REPRO]: MasterUndoJournal.mark_saved/is_clean accept file_path but IGNORE it (global _revision/_saved_revision). Repro: edit B -> is_clean(A)=False (A falsely dirty); save B -> is_clean(A)=True (A falsely clean). prune_file removes ops but does not reconcile _revision/_saved_revision.
+  Impact: with multiple files open, dirty indicators and undo-to-clean are wrong across files (Rule 13 intent is per-document).
+  Minimal fix: per-file revision tracking (key by path) or per-document journals; reconcile counters on prune.
+
+N17. VERSION-HARDCODED-PICKER — NEW (Rule 21 drift)
+  Severity: P3. Evidence [CODE]: NguiColorPickerPopup title "NGUI Color & Gradient Picker (v1.3.3)" (misora.py:488) hardcoded; ledger claims version unified dynamically incl. picker.
+  Minimal fix: use __version__/_get_app_version().
+
+N18. GRADIENT-LABEL-COMMA — NEW (cosmetic)
+  Severity: P3. Evidence [CODE]: button label f"Insert [{c0_code},{c1_code}]" (misora.py:907) shows COMMA, but _commit_gradient_color inserts HYPHEN [c0-c1]. Misleading UI (Rule 19: comma accepted on input, normalized; display should show hyphen).
+  Minimal fix: label uses hyphen.
+
+N19. EYEDROPPER-DPI-RUNTIME — NEW (Rule 23 violation)
+  Severity: P2. Evidence [CODE]: ctypes.windll.shcore.SetProcessDpiAwareness(1) in _toggle_eyedropper (misora.py:957). Rule 23: do not change process DPI awareness at runtime.
+  Impact: can rescale all windows / break coordinate mapping mid-session.
+  Minimal fix: remove runtime DPI change; rely on process manifest / existing awareness; sample coordinates accordingly.
+
+N20. UNDO-COALESCE-CROSS-SOURCE — REFINE ledger (core fixed, GUI untagged)
+  Severity: P2. Evidence [CODE+REPRO]: undo_journal.record compares delta.source (default "keyboard"); BoxEditDelta.source default="keyboard". misora.py passes source= ONLY at paste_caret (:6954,6976). [REPRO] ribbon-cut delta + typing delta (both default source) coalesce into 1 op (coalesced=True).
+  Impact: ledger claims source tracking added, but because GUI callers don't tag source, ribbon cuts still merge with typing. Effectively OPEN at GUI layer.
+  Minimal fix: tag source at call sites (ribbon/mtl/replace/speaker) so coalescing respects boundaries.
+
+## 4. LEDGER-OPEN ITEMS RE-VERIFIED (still accurate)
+- REPLACE-ALL-BUNDLE-PREFILTER: OPEN [CODE] raw.count(find_text.encode) on bundle bytes (misora.py:8725-8726).
+- REPLACE-ALL-UNDO-GAP: OPEN [CODE] bundle branch records no per_file_deltas (:8764-8774).
+- SEARCH-RACE: OPEN [CODE] on_start_search passes LIVE doc refs mem_docs[fp]=entry["doc"] (:8032) to worker. Phase 2 roadmap checkbox "[x] immutable snapshots" is FALSE.
+- FOLDER-DROP-EXTRA-IGNORED: OPEN [CODE] dirs[0] only (:2287).
+- BULK-DELTA-NONATOMIC: ledger-CONFIRMED; consistent with non-atomic text writes in on_replace_all. (Revert path _apply_delta BulkFileDelta fp.write_text — confirm exact line in Phase 1.)
+
+## 5. RETRACTIONS / CORRECTIONS (do NOT spend time here)
+- SPAN-NFKC-PER-CHAR: RETRACT as current bug. [REPRO] _TOKEN_RE groups base+combining marks (.[\u0300-\u036f\u3099\u309a]*); per-token NFKC composes か+゙ -> が; matcher returns True. Whole-string norm_search agrees. (Minor sub-token span granularity exists for ligature/casefold expansion, but not the claimed dakuten failure.)
+- STALE-CARD-REGISTRY: RESOLVED. [CODE] _card_widgets.clear() at :7049 BEFORE plain-text early return :7051. (Residual: old card widgets not destroyed in plain-text path linger hidden until next story render — minor, bounded.)
+- Glossary "Explicit Line Break": CORRECT. Source is "tag":"\\n" (literal backslash-n token). Earlier "n" appearance was a transport artifact. Not a bug.
+- mark_saved/is_clean "TypeError -> no-arg fix": journal signatures are mark_saved(file_path=None)/is_clean(file_path=None); calls with args are VALID (param ignored). No TypeError. Ledger wording misleading; real issue is N16 (global state).
+- Empty binary arg ""->" ": INTENTIONAL. to_binary (:723-725) documents length-0 terminates arg list; single space preserves arity. Not a bug (format constraint).
+- Record.uid serialization: NOT serialized. uid is itertools.count(1) small ints; to_v2_text renders cmd/args only. Earlier "uid in v2=True" was small-int substring coincidence. Rule 4 satisfied.
+- TLS-VERIFICATION-DISABLED: RESOLVED confirmed. ssl.create_default_context() used for all urlopen (mtl_engine.py:111,182,...).
+- INJECT-EXTRA-ARGS / NARRATION-EMPTY-PHANTOM / inject ownership: RESOLVED confirmed via [REPRO] (extra arg preserved; print->tag on empty speaker; foreign record rejected).
+
+## 6. EFFICIENCY OBSERVATIONS (no premature refactor — Rule 24)
+- misora.py is an 11,169-line monolith; maintainability risk. Note only; do not split prematurely.
+- safe_clipboard_get runs on EVERY Ctrl+V in router (up to 5x50ms retry = 250ms UI stall if clipboard locked). Consider caching/async.
+- _render_continuous_view rebuilds ALL cards on navigation/lock toggle (O(N) widget churn). Card virtualization remains a valid P2 (THEME-RAW-PERF).
+- Search has no snapshot/cache (SEARCH-CACHE design) and passes live docs (race, see SEARCH-RACE).
+
+## 7. FEATURE / WORKFLOW IDEAS (deferred; for debate, low priority)
+- Add .github/copilot-instructions.md distilling AGENTS.md invariants + build/test commands so Phase 2 prompts stay lean (avoid repeating rules every prompt; anti-overengineering).
+- Refresh README Project Structure (stale: omits docs/, new core/tests, Splash_4..8; references nonexistent banner.jpg/misora_chibi.png).
+- Formalize the Rule 29 manual Windows test checklist (Ctrl+H, ribbon Cut survive navigation, Paste Box both views, Copy->Notepad++->Paste round-trip) as a repeatable script the user runs.
+- Per-document dirty + uid-keyed JP registry are FIXES (N8/N16), not new features.
+
+## 8. PROPOSED WORK PACKAGES FOR PHASE 1 (prioritized, minimal-diff)
+WP-A (Data-loss cluster, P0/P1): N5, N8, N9, N10, N11, N12, N13.
+WP-B (Thread safety, P1): N14, N15, SEARCH-RACE.
+WP-C (Shortcut/commit integrity, P1/P2): N1, N2, N6, N20.
+WP-D (State/lifecycle, P1/P2): N7, N16, N3, N4, N19.
+WP-E (Ledger reconciliation + docs, process): Section 2, Section 5 retractions, README, copilot-instructions.
+WP-F (Cosmetic, P3): N17, N18.
+Sequencing proposal: reconcile ledger first (WP-E partial), then WP-A, WP-B, WP-C, WP-D, WP-F. Each WP must ship with regression tests + updated PROJECT_STATE.md (Rule 25) and must not break the 100-test baseline.
+
+## 9. QUESTIONS TO THE COUNTERPART AI (answer with evidence)
+Q1. Do you confirm N1/N3/N4/N17 ledger-drift against main, or is your local tree different? Provide file:line.
+Q2. For N5, do you agree internal Copy Box->Paste Box should insert BoxSnapshot directly (preserve segs/voice), and that CSIF external paste flattening is an acceptable documented limitation?
+Q3. For N8, do you agree wiring register_jp_key/get_jp_key (uid) is the correct minimal fix vs patching the positional dict?
+Q4. For N14/N15, do you agree the queue-based main-thread apply pattern (already used by search) is the right template, rather than after_idle from workers?
+Q5. Do you accept the Section 5 retractions (SPAN-NFKC-PER-CHAR, STALE-CARD-REGISTRY, glossary, mark_saved, empty-arg, uid)? Challenge any with a repro.
+Q6. Is the WP sequencing acceptable, or should thread-safety (WP-B) precede data-loss (WP-A)? Justify.
+Q7. Any ADDITIONAL defects you can confirm from disk that this brief missed? Provide file:line + repro; no speculation.
+
+## 10. RULES OF ENGAGEMENT
+- Reply point-by-point: AGREE / DISAGREE / NEEDS-EVIDENCE, each with file:line or executed repro.
+- No hallucinated line numbers, no invented fixture outcomes, no overengineered rewrites.
+- Keep proposed fixes minimal and invariant-preserving. Converge on a shared, identical Phase 2 prompt only after the user approves.

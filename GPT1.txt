@@ -1,0 +1,1098 @@
+# MISORA EDITOR — PHASE 0 INDEPENDENT TECHNICAL RESEARCH
+## Initial Findings for Independent AI Cross-Review
+
+Repository:
+https://github.com/ImaterialC/Misora-Editor
+
+Primary branch inspected: main
+Local project archive: Misora-Editor.zip
+Project state document: PROJECT_STATE.md
+Architecture and invariants: AGENTS.md
+
+Audit stage: Phase 0 — Independent Research
+Status: RESEARCH ONLY
+No source code has been modified.
+No GitHub files or commits have been changed.
+
+==========================================================
+1. PURPOSE AND REVIEW REQUIREMENTS
+==========================================================
+
+This report contains findings from an independent review of
+Misora Editor.
+
+The reviewer must independently challenge these findings.
+
+Do not automatically accept this report as correct.
+Do not automatically trust the existing PROJECT_STATE.md
+defect classifications either.
+
+The objective is to establish an accurate technical baseline
+before deciding what should be fixed, optimized, or developed.
+
+The review should focus on:
+
+1. Data integrity and save reliability.
+2. Thread safety and Tkinter lifecycle safety.
+3. Undo/redo correctness.
+4. Search and replacement accuracy.
+5. Encoding and localization text preservation.
+6. Security and credential handling.
+7. UI consistency and workflow reliability.
+8. Test coverage and regression prevention.
+9. Documentation accuracy.
+10. Opportunities for useful, low-complexity improvements.
+
+For every finding:
+
+- Verify the current source code.
+- Verify whether the issue is reproducible.
+- Identify the actual root cause.
+- Distinguish a confirmed defect from a theoretical risk.
+- Challenge the proposed severity.
+- Look for existing fixes that may not be recorded.
+- Avoid proposing a large architectural rewrite when a
+  targeted correction would be sufficient.
+
+Do not implement anything.
+
+Do not write a Copilot execution prompt yet.
+
+==========================================================
+2. PROJECT ARCHITECTURE OVERVIEW
+==========================================================
+
+Misora Editor is a Python desktop application built around
+Tkinter.
+
+Its primary purpose is editing and localizing dialogue
+content in Princess Connect! Re:Dive Unity3D story bundles.
+
+Important project components include:
+
+- misora.py
+  Main application, GUI, interaction handlers, file
+  operations, editing workflows, and translation tools.
+
+- core/story_ast.py
+  StoryDocument, Record, Box, AST projection, structural
+  editing, binary conversion, and metadata handling.
+
+- core/bundle_io.py
+  Unity3D bundle loading, TextAsset selection, and
+  integrity-verified bundle saving.
+
+- core/undo_journal.py
+  Undo/redo operations, batch operations, and edit deltas.
+
+- core/xunity_sync.py
+  XUnity Auto Translator dictionary synchronization.
+
+- core/script_codec.py
+  CSIF import/export and script interchange.
+
+- core/search_engine.py
+  Search across bundle dialogue, metadata, speakers,
+  and plain-text files.
+
+- core/mtl_engine.py
+  Multiple translation engines and asynchronous translation.
+
+- core/ngui_tags.py
+  Centralized NGUI rich-text tag handling.
+
+- core/security.py
+  DPAPI credential protection and secret redaction.
+
+- core/logger.py
+  Asynchronous logging.
+
+- tests/
+  Core, integration, UI, import/export, security,
+  performance, and codec test suites.
+
+The project already contains meaningful architectural
+invariants in AGENTS.md.
+
+These rules should be treated as the intended design
+contract, not merely optional style recommendations.
+
+Particularly important:
+
+- Rule 10: XUAT dictionary encoding and line-ending safety.
+- Rule 11: Centralized editor commit handling.
+- Rule 13: Undo batching and dirty-state integrity.
+- Rule 15: Worker-thread isolation and immutable search snapshots.
+- Rule 17: Credential protection.
+- Rule 18: TLS verification.
+- Rule 20: CSIF interoperability.
+
+==========================================================
+3. HIGH-PRIORITY FINDINGS
+==========================================================
+
+----------------------------------------------------------
+FINDING P0-1: MULTI-FILE REPLACE ALL DOES NOT SUPPORT
+              RELIABLE BUNDLE DISCOVERY
+----------------------------------------------------------
+
+Location:
+misora.py, approximately lines 8722-8737.
+
+Current behavior:
+
+The multi-file Replace All prefilter reads a Unity3D bundle
+as raw bytes and counts occurrences of the UTF-8 search string.
+
+Conceptually:
+
+    raw = cf.read_bytes()
+    count = raw.count(find_text.encode("utf-8", "ignore"))
+
+Only files with a positive byte count proceed to the
+structured bundle replacement operation.
+
+Why this is problematic:
+
+Story dialogue is stored inside structured Unity assets.
+The bundle's raw bytes are not equivalent to its decoded
+dialogue content.
+
+A raw-byte search can therefore miss valid dialogue
+matches or produce misleading candidate counts.
+
+The replacement stage subsequently loads the bundle as
+a StoryDocument, demonstrating that the prefilter and
+replacement stages are using different search representations.
+
+Potential impact:
+
+- Valid bundle matches may never be discovered.
+- The reported match count may be inaccurate.
+- Users may receive a false "no matches" result.
+- Results may differ between current-document search
+  and multi-file search.
+
+Proposed direction:
+
+Use the structured StoryDocument representation for
+bundle discovery.
+
+Avoid scanning and decoding every bundle multiple times
+when a decoded snapshot can be reused safely.
+
+Required regression tests:
+
+- A bundle containing a known Japanese dialogue string.
+- Search where the query exists only in decoded dialogue.
+- Search in Box 0 metadata.
+- Search in speaker names.
+- A query with no matches.
+- A query with multiple matches in one bundle.
+
+Reviewer questions:
+
+1. Does the bundle encoding prove that raw UTF-8 scanning
+   is incapable of finding some legitimate dialogue?
+2. Can the existing bundle-loading pipeline be reused
+   without introducing excessive memory consumption?
+3. Is there a smaller fix than introducing a new search
+   abstraction?
+
+
+----------------------------------------------------------
+FINDING P0-2: BUNDLE REPLACEMENTS ARE MISSING FROM
+              MULTI-FILE UNDO HISTORY
+----------------------------------------------------------
+
+Location:
+misora.py, approximately lines 8762-8795.
+
+Current behavior:
+
+The multi-file replacement loop handles Unity3D bundles
+and plain-text files.
+
+However, per_file_deltas is populated only in the
+plain-text replacement branch.
+
+Bundle files are saved using save_bundle_story(), but
+their before/after states are not added to the
+BulkFileDelta operation.
+
+Consequently:
+
+- Text-file Replace All operations can be recorded.
+- Bundle Replace All operations are not represented
+  in the same bulk undo record.
+
+Impact:
+
+The user can execute a multi-file replacement that
+modifies multiple story bundles without having a
+corresponding undo operation for those bundles.
+
+This is a data-integrity issue.
+
+Proposed direction:
+
+Investigate the existing UndoJournal architecture and
+the smallest safe way to record bundle changes.
+
+Do not automatically serialize entire Unity3D bundles
+into an enormous in-memory undo structure.
+
+Consider stable bundle/document identity and a suitable
+before/after representation.
+
+Required tests:
+
+- Replace All across two bundles.
+- Replace All across one bundle and one text file.
+- Undo should restore every changed file.
+- Redo should reapply every changed file.
+- A failed save must not create a misleading successful
+  undo operation.
+
+
+----------------------------------------------------------
+FINDING P0-3: BATCH TRANSLATION MODIFIES GUI-OWNED STATE
+              FROM A BACKGROUND THREAD
+----------------------------------------------------------
+
+Location:
+misora.py, approximately lines 11089-11145.
+
+Current implementation:
+
+BatchTranslateDialog starts a background worker.
+
+Inside that worker, the code:
+
+- Reads the live StoryDocument.
+- Reads live Box objects.
+- Calls undo_journal.begin_batch().
+- Calls undo_journal.record().
+- Calls doc.inject_box().
+- Updates _modified_boxes.
+- Changes is_dirty.
+- Calls self.after_idle() for progress updates.
+- Calls self.after_idle() for completion handling.
+
+This violates the intended architecture in AGENTS.md
+Rule 13 and Rule 15.
+
+A background worker should not modify the application's
+document model or undo state.
+
+It also should not call Tkinter methods, including
+after_idle(), from the worker.
+
+Potential impact:
+
+- Tkinter cross-thread errors.
+- Race conditions with navigation or document switching.
+- Undo operations recording inconsistent state.
+- A document being changed after the user has switched
+  to another document.
+- Inconsistent modified-box state.
+- Difficult-to-reproduce shutdown errors.
+
+A second issue is batch lifecycle handling.
+
+begin_batch() is called manually, and end_batch() is not
+protected by a finally block.
+
+The project already provides an exception-safe batch()
+context manager in core/undo_journal.py.
+
+Proposed direction:
+
+Separate translation execution from application of results.
+
+A suitable minimal architecture may be:
+
+1. Capture immutable translation jobs on the UI thread.
+2. Run network translation in background workers.
+3. Return results through a thread-safe queue.
+4. Apply document and undo changes on the UI thread.
+5. Use an exception-safe batch lifecycle.
+6. Ensure cancellation cannot apply stale results to
+   a different document.
+
+Do not introduce a large task scheduler without need.
+
+Required tests:
+
+- Successful translation of multiple boxes.
+- Cancellation during translation.
+- Translation failure in the middle of a batch.
+- Switching documents during an active translation.
+- Closing the dialog during translation.
+- Undo and redo after a completed batch.
+
+
+----------------------------------------------------------
+FINDING P0-4: SEARCH WORKERS RECEIVE LIVE MUTABLE
+              DOCUMENT REFERENCES
+----------------------------------------------------------
+
+Location:
+misora.py, approximately lines 8028-8034 and 8055-8085.
+
+core/search_engine.py, approximately lines 267-339.
+
+Current behavior:
+
+on_start_search() collects the actual StoryDocument
+instances from open_documents.
+
+These objects are passed directly to the background
+search worker.
+
+The worker subsequently reads:
+
+- doc.has_metadata()
+- doc.get_metadata()
+- doc.boxes
+- box.clean_text
+- box.text
+- box.speaker
+
+These are live document objects that can also be modified
+by UI editing operations.
+
+The project already specifies immutable search snapshots
+in AGENTS.md Rule 15.
+
+The search completion queue is already implemented.
+The problem is the data passed to the worker, not
+necessarily the queue architecture.
+
+Potential impact:
+
+- Search sees a mixture of old and new document state.
+- Results become inconsistent while editing.
+- Concurrent access becomes difficult to reason about.
+- Race conditions may be intermittent.
+
+Proposed direction:
+
+Capture detached search data on the UI thread.
+
+Workers should receive immutable or otherwise isolated
+snapshots, not live StoryDocument objects.
+
+Do not deep-copy the entire complex application object
+without measuring memory and performance.
+
+Required tests:
+
+- Search while actively editing a dialogue box.
+- Search while changing speakers.
+- Search while editing Box 0 metadata.
+- Search while switching between documents.
+- Search should return results corresponding to one
+  consistent snapshot.
+
+
+----------------------------------------------------------
+FINDING P1-1: MULTI-FILE TEXT REPLACEMENT MAY ALTER
+              ENCODING AND LINE ENDINGS
+----------------------------------------------------------
+
+Location:
+misora.py, approximately lines 8776-8784.
+
+Current behavior:
+
+The text replacement branch reads using:
+
+    read_text(encoding="utf-8", errors="replace")
+
+Then writes using:
+
+    write_text(new_txt, encoding="utf-8")
+
+Potential data-integrity issues:
+
+- Non-UTF-8 content may be replaced with U+FFFD.
+- A UTF-8 BOM may not be preserved.
+- CRLF and LF distinctions may be lost.
+- Files are rewritten directly instead of through
+  an atomic replacement path.
+
+A backup is made before the write, which is useful,
+but it does not make the replacement itself atomic.
+
+This behavior conflicts with AGENTS.md Rule 10.
+
+There is a related risk in plain-text file opening:
+
+misora.py, approximately line 6138, also uses
+UTF-8 decoding with errors="replace".
+
+If the application subsequently saves that content,
+the replacement characters may be written permanently.
+
+Proposed direction:
+
+Use the existing encoding-preservation conventions
+where applicable.
+
+Do not create a new generic encoding framework unless
+the project actually requires one.
+
+Required tests:
+
+- UTF-8 without BOM.
+- UTF-8 with BOM.
+- CRLF.
+- LF.
+- Japanese text.
+- A file containing invalid UTF-8 bytes.
+- Verify unchanged lines remain byte-identical where
+  the application contract requires it.
+
+
+----------------------------------------------------------
+FINDING P1-2: MANUAL UNDO BATCHES ARE NOT ALWAYS
+              EXCEPTION-SAFE
+----------------------------------------------------------
+
+Locations:
+
+misora.py, approximately lines 8624-8647.
+misora.py, approximately lines 11089-11128.
+
+Current behavior:
+
+Some operations invoke begin_batch() and end_batch()
+manually.
+
+If an unexpected exception exits the operation between
+these calls, the batch may remain open.
+
+This can contaminate subsequent undo operations.
+
+The existing MasterUndoJournal already includes:
+
+    with journal.batch("Operation"):
+        ...
+
+This context manager uses finally to ensure end_batch()
+is executed.
+
+Proposed direction:
+
+Use the existing exception-safe context manager where
+appropriate.
+
+Do not redesign MasterUndoJournal unless a separate
+reproducible defect justifies it.
+
+Required tests:
+
+- Exception during a multi-box replacement.
+- Exception during batch translation.
+- A subsequent unrelated edit must not join the
+  previous operation's batch.
+- Undo history must remain usable after failure.
+
+
+----------------------------------------------------------
+FINDING P1-3: DPAPI PROTECTION FALLS BACK TO PLAINTEXT
+----------------------------------------------------------
+
+Location:
+core/security.py, approximately lines 20-61.
+
+Current behavior:
+
+protect_secret() attempts to encrypt a secret using
+Windows DPAPI.
+
+If the platform is not Windows, ctypes is unavailable,
+or an encryption operation fails, it returns the
+original plaintext.
+
+This is a fail-open behavior.
+
+The function documentation also explicitly permits
+plaintext fallback.
+
+Potential impact:
+
+A configuration saved through the secure serialization
+path may contain an unencrypted API key if encryption
+is unavailable or fails.
+
+This is especially concerning because the caller
+requests secure serialization.
+
+Proposed direction:
+
+Investigate whether the application officially supports
+non-Windows platforms.
+
+Consider fail-closed behavior when secure storage is
+required:
+
+- Raise a specific security exception.
+- Prevent accidental plaintext persistence.
+- Clearly inform the user if secure storage is
+  unavailable.
+- Avoid silently downgrading protection.
+
+Do not introduce an external credential-management
+dependency without justification.
+
+Required tests:
+
+- DPAPI success.
+- DPAPI failure.
+- DPAPI API unavailable.
+- Non-Windows behavior.
+- Existing legacy plaintext config compatibility.
+- Decryption failure must not expose the secret.
+
+
+==========================================================
+4. MEDIUM-PRIORITY FINDINGS
+==========================================================
+
+----------------------------------------------------------
+FINDING P2-1: SEARCH ENGINE SILENTLY HIDES FILE ERRORS
+----------------------------------------------------------
+
+Location:
+core/search_engine.py, approximately lines 260-366
+and 394-414.
+
+Current behavior:
+
+Several file-processing paths use:
+
+    except Exception:
+        pass
+
+os.walk() is also used without an onerror callback.
+
+A bundle parse failure or inaccessible directory may
+therefore produce incomplete results without a visible
+reason.
+
+The caller's skipped_paths collection cannot report
+exceptions that are swallowed internally.
+
+This conflicts with AGENTS.md Rule 15:
+
+Report skipped/inaccessible paths instead of silently
+under-reporting results.
+
+Proposed direction:
+
+Provide a minimal error-reporting mechanism.
+
+Search should distinguish:
+
+- Successfully scanned files.
+- Files with no matches.
+- Files that could not be read.
+- Bundles that could not be decoded.
+- Directories that could not be traversed.
+- Files skipped because of cancellation.
+
+Do not turn every normal no-match result into an error.
+
+Required tests:
+
+- Corrupt bundle.
+- Missing file.
+- Permission-denied file where supported.
+- Unreadable directory.
+- Search cancellation.
+
+
+----------------------------------------------------------
+FINDING P2-2: JAPANESE HALF-WIDTH DAKUTEN NORMALIZATION
+              DOES NOT MATCH WHOLE-STRING NFKC
+----------------------------------------------------------
+
+Location:
+core/search_engine.py, approximately lines 27-29
+and 77-92.
+
+Current tokenizer groups a character with combining
+marks in selected Unicode ranges.
+
+However, the tokenizer does not group half-width
+voiced and semi-voiced marks U+FF9E and U+FF9F.
+
+A direct verification produced:
+
+Input:
+    ｶﾞ
+
+Span-aware normalization:
+    ガ
+
+Whole-string normalization:
+    ガ
+
+These strings are not equal.
+
+The issue is reproducible using the current
+ProjectSearchEngine helper.
+
+Potential impact:
+
+Japanese search queries using half-width kana with
+dakuten may not match equivalent full-width text.
+
+Proposed direction:
+
+Fix span-preserving normalization rather than simply
+replacing it with whole-string normalization.
+
+The UI still needs accurate source character spans for
+highlighting.
+
+Required tests:
+
+- ｶﾞ
+- ｶﾟ
+- ｶﾞｯｺｳ
+- が
+- ガ
+- ぱ
+- Unicode combining dakuten and handakuten
+- Search result highlight boundaries must remain correct.
+
+
+----------------------------------------------------------
+FINDING P2-3: MULTI-FOLDER DRAG AND DROP IGNORES
+              ADDITIONAL FOLDERS
+----------------------------------------------------------
+
+Location:
+misora.py, approximately lines 2220-2294.
+
+Current behavior:
+
+Dropped paths are separated into files and directories.
+
+The file branch processes multiple files, but the
+folder branch calls:
+
+    self._process_opened_folder(dirs[0], ...)
+
+Only the first dropped directory is processed.
+
+Additional directories appear to be ignored.
+
+Proposed direction:
+
+Determine the intended UX before changing behavior.
+
+Possible choices:
+
+- Process all dropped directories.
+- Warn the user that only one folder is supported.
+- Ask for a single folder when multiple folders are
+  dropped.
+
+Avoid repeating confirmation dialogs unnecessarily.
+
+Required tests:
+
+- One folder.
+- Two folders.
+- Files mixed with folders.
+- Invalid paths.
+
+
+==========================================================
+5. IMPORTANT CORRECTIONS TO THE EXISTING DEFECT LEDGER
+==========================================================
+
+The following items must not be accepted blindly from
+PROJECT_STATE.md.
+
+----------------------------------------------------------
+CORRECTION 1: STALE-CARD-REGISTRY
+----------------------------------------------------------
+
+Existing ledger status:
+CONFIRMED.
+
+Current source observation:
+
+_render_continuous_view() calls:
+
+    self._card_widgets.clear()
+
+before the plain-text early-return branch.
+
+This suggests the reported stale registry condition
+has already been resolved.
+
+Recommended classification:
+
+RETRACTED / ALREADY RESOLVED.
+
+Do not spend development time fixing this again unless
+a new reproducer proves otherwise.
+
+
+----------------------------------------------------------
+CORRECTION 2: UNDO-COALESCE-CROSS-SOURCE
+----------------------------------------------------------
+
+Existing ledger claims:
+
+Undo coalescing merges edits from different sources.
+
+Current source observation:
+
+MasterUndoJournal already checks:
+
+- Same box.
+- Same source.
+- Same file.
+- Coalescing time window.
+
+The journal itself is source-aware.
+
+However, most BoxEditDelta call sites do not explicitly
+supply source values. Only a small number of call sites
+currently use non-default source attribution.
+
+This means the potential remaining problem is incomplete
+source attribution at the event origin, not necessarily
+the UndoJournal coalescing algorithm.
+
+Recommended classification:
+
+PARTIALLY CONFIRMED / ROOT CAUSE NEEDS CORRECTION.
+
+Reviewer should inspect ribbon formatting, keyboard
+typing, paste, cut, and other virtual event handlers.
+
+Do not rewrite the journal before verifying the actual
+user-visible failure.
+
+
+----------------------------------------------------------
+CORRECTION 3: TEST SUITE BREAKDOWN
+----------------------------------------------------------
+
+The current test source contains 100 test methods.
+
+However, the distribution differs from PROJECT_STATE.md.
+
+Actual test method counts:
+
+- test_misora_core.py: 20
+- test_misora_ui_integration.py: 27
+- test_phase1_manual_verification.py: 8
+- test_phase2_required.py: 13
+- test_phase3_performance_config.py: 6
+- test_phase4_import_export_preview.py: 5
+- test_phase5_mtl_security_preview.py: 7
+- test_script_codec.py: 14
+
+Total: 100.
+
+The total is still 100, but the documented distribution
+is stale.
+
+
+==========================================================
+6. PROJECT DOCUMENTATION FINDINGS
+==========================================================
+
+----------------------------------------------------------
+DOC-1: PROJECT_STATE.md CONTAINS GIT CONFLICT MARKERS
+----------------------------------------------------------
+
+The file contains:
+
+    <<<<<<< Updated upstream
+    ...
+    =======
+    ...
+    >>>>>>> Stashed changes
+
+This was found in both:
+
+- The uploaded archive.
+- The public GitHub main branch.
+
+Therefore, this is not merely an upload extraction issue.
+
+The file also contains contradictory test status
+descriptions:
+
+- Header text refers to Phase 4 and 93/93 tests.
+- The later measured baseline refers to Phase 5 and
+  100/100 tests.
+
+The file is intended to be the canonical project ledger.
+
+Its integrity should be restored before future AI
+agents use it as the authoritative state document.
+
+Do not invent which side of the conflict is correct.
+Reconcile the information against the current source.
+
+
+----------------------------------------------------------
+DOC-2: README.md REFERENCES MISSING IMAGE ASSETS
+----------------------------------------------------------
+
+The following README paths were checked against
+the public GitHub main branch and returned not found:
+
+- assets/banner.jpg
+- assets/misora_chibi.png
+- assets/icons/caravan_buddy_icon_118201.png
+- assets/icons/caravan_buddy_icon_100101.png
+- assets/icons/caravan_buddy_icon_126401.png
+- assets/icons/caravan_buddy_icon_100201.png
+- assets/icons/caravan_buddy_icon_103601.png
+- assets/icons/caravan_buddy_icon_132501.png
+- assets/icons/caravan_buddy_icon_133101.png
+
+The README therefore contains broken image references.
+
+The project structure in README.md should also be
+checked against the current source tree.
+
+Do not replace missing images with invented artwork.
+Either restore the intended assets or use a documented
+text-only fallback.
+
+
+==========================================================
+7. ENVIRONMENT AND TEST VERIFICATION
+==========================================================
+
+Independent audit environment:
+
+- Python: 3.13.5
+- OS: Linux
+- UnityPy: Not installed
+- Pillow: Available
+- Tkinter display: Unavailable
+
+Checks performed:
+
+1. Compile check:
+
+   python -m compileall -q misora.py core assets tests
+
+   Result: PASS.
+
+2. CSIF codec tests:
+
+   python -m unittest tests.test_script_codec -v
+
+   Result: 14 passed, 0 failed.
+
+3. Phase 3 tests:
+
+   python -m unittest tests.test_phase3_performance_config -v
+
+   Result: 4 passed, 2 environment-related errors.
+
+   Error A:
+   UnityPy is not installed.
+
+   Error B:
+   Tkinter cannot create a GUI root because no display
+   is available.
+
+These errors must not be represented as confirmed
+application defects.
+
+The complete 100-test suite has not been independently
+verified in this environment.
+
+PROJECT_STATE.md reports a previous Windows test run:
+
+- Python 3.12.10
+- 100 tests
+- 100 passed
+- 0 failures
+- 0 errors
+- 0 skips
+
+This is a project-recorded result, not an independently
+reproduced result in this audit.
+
+Manual Windows verification remains important,
+particularly for clipboard, keyboard shortcuts,
+ribbon editing, and view transitions.
+
+==========================================================
+8. POTENTIAL IMPROVEMENT IDEAS
+==========================================================
+
+These are proposals, not confirmed requirements.
+
+Do not implement them during this review.
+
+----------------------------------------------------------
+IDEA A: SAFE REPLACE-ALL PREVIEW
+----------------------------------------------------------
+
+A preview before multi-file replacement could display:
+
+- Target files.
+- Match counts.
+- Before/after text.
+- Bundle dialogue boxes affected.
+- Locked boxes skipped.
+- Files that could not be decoded.
+- Files that cannot be safely replaced.
+
+The user could confirm or cancel before any changes.
+
+However, this should only be considered after the existing
+Replace All data-integrity problems are corrected.
+
+It should not become an oversized new framework.
+
+
+----------------------------------------------------------
+IDEA B: SEARCH COMPLETENESS REPORT
+----------------------------------------------------------
+
+A search operation could summarize:
+
+- Files discovered.
+- Files scanned successfully.
+- Files skipped.
+- Decode failures.
+- Parse failures.
+- Permission failures.
+- Matches found.
+- Cancellation status.
+
+This would make project-wide search more trustworthy.
+
+
+----------------------------------------------------------
+IDEA C: RELIABLE BATCH TRANSLATION WORKFLOW
+----------------------------------------------------------
+
+A future improvement could provide:
+
+- Per-box translation status.
+- Successful/failed counts.
+- Cancellation.
+- Retry failed boxes.
+- Safe result application.
+- Undo as one logical batch.
+- Protection against stale document results.
+
+This should be developed using the existing MTL
+and UndoJournal architecture.
+
+Avoid adding a general-purpose task orchestration
+framework unless needed.
+
+
+==========================================================
+9. PROPOSED PRIORITY ORDER
+==========================================================
+
+The reviewer should challenge this ordering.
+
+Initial recommendation:
+
+Priority 1:
+- P0-2: Bundle Replace All undo gap.
+- P0-3: Batch Translation thread-safety violations.
+- P0-4: Search access to live mutable documents.
+- P0-1: Bundle Replace All discovery correctness.
+
+Priority 2:
+- P1-1: Encoding and line-ending preservation.
+- P1-2: Exception-safe undo batches.
+- P1-3: DPAPI fail-open behavior.
+
+Priority 3:
+- P2-1: Silent search failures.
+- P2-2: Half-width Japanese kana normalization.
+- P2-3: Multiple-folder drag-and-drop behavior.
+
+Documentation:
+- Resolve PROJECT_STATE.md merge conflicts.
+- Correct test suite counts.
+- Repair README image references.
+
+The priority order may change if the reviewer finds
+a more severe data-loss or reproducible runtime issue.
+
+
+==========================================================
+10. QUESTIONS FOR THE INDEPENDENT AI REVIEWER
+==========================================================
+
+Please perform a critical review of this report.
+
+A. Verify each finding against the current GitHub main
+   branch.
+
+B. Identify false positives or findings that have
+   already been fixed.
+
+C. Identify any root-cause mistakes.
+
+D. Look for additional high-severity defects not
+   mentioned in this report.
+
+E. Evaluate whether proposed fixes are too complicated
+   for the actual problem.
+
+F. Suggest minimal implementation strategies that
+   preserve the current architecture.
+
+G. Identify which fixes need real Windows testing rather
+   than relying exclusively on mocked/headless tests.
+
+H. Recommend the smallest useful regression tests for
+   each accepted finding.
+
+I. Challenge the proposed priority order.
+
+J. Separate findings into:
+
+   - CONFIRMED
+   - PARTIALLY CONFIRMED
+   - CONDITIONAL
+   - RETRACTED
+   - DESIGN INVARIANT
+   - NEW FINDING
+
+For every accepted finding, provide:
+
+- Finding ID.
+- Actual root cause.
+- Evidence and source locations.
+- User-visible impact.
+- Severity.
+- Minimal recommended correction.
+- Regression test requirements.
+- Any remaining uncertainty.
+
+Do not create a Copilot implementation prompt.
+
+Do not modify code.
+
+Do not recommend a large-scale rewrite.
+
+The purpose is to produce an independently verified
+technical consensus for Phase 1.
