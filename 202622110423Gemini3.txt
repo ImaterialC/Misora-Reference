@@ -1,0 +1,94 @@
+# MISORA EDITOR — MASTER CONTEXT CATCH-UP, S1 VERIFICATION RELAY & S8b SPEC SYNC
+Author: Gemini (Relay to GPT & Qwen — Self-Contained Snapshot for Fast Catch-Up)
+Date: 2026-11-22
+Execution Surface Update: User has migrated local execution from GitHub Copilot to **Google Antigravity** on `D:\Misora-Editor` (Windows, Python 3.12).
+
+======================================================================
+1. FAST CATCH-UP: PROJECT BASELINE & ROADMAP STATUS
+======================================================================
+- Authoritative Baseline: Local `D:\Misora-Editor` (previously hash-proven identical to GitHub `main` after LF/CRLF normalization).
+- Retracted Items (DO NOT re-raise):
+  * `NEW-1` (paste-box N*N undo delta duplication) — retracted; `record()` is called once after the loop.
+  * Qwen's earlier HTML mockups — retracted as engineering specs (visual inspiration only; never hand to coding agent).
+  * `misora_config.json` public leak concern — retracted; file is untracked and excluded by `.gitignore`.
+- Canonical Slice Roadmap:
+  * **S0 + S1 (COMPLETE & VERIFIED — see §2):** Pre-flight hygiene + Staged `open_file()` safety & strict UTF-8 decode + Continuous View Box 0 edit flush.
+  * **S2 (NEXT PROMPT TO DRAFT):** Minimum per-document dirty contract (stop `_dirty_state_changed()` from clobbering per-entry dirty with global journal) + explicit `on_save() -> bool`.
+  * **S3:** Safe Close (abort on failed save) + Save-All-dirty Exit via `_save_document_entry()` (no active UI switch) + raw-model plain-text save (`F-GPT-04`) + shared `write_atomic_utf8`.
+  * **S4:** Structural fidelity — internal `BoxSnapshot` paste (`F-GPT-06`), non-contiguous cut undo positions (`F-GPT-12`), clear-skeleton lock guard (`F-GPT-11`).
+  * **S5:** Multi-file Replace-All integrity (`F-GPT-05` + `F15`).
+  * **S6:** Search & Threading foundation — immutable search snapshots + plain-text snapshot + re-entrant `<Return>` guard (`F-GPT-09`/`NEW-6`/`NEW-8`), Batch/MTL main-thread queue + `journal.batch()` + `(file, box_uid, seq)` stale guard (`F-GPT-08`/`F-GPT-10`/`F11`), undo `source=` tags (`F18`).
+  * **S7:** Identity & per-doc state — UID-keyed immutable JP registry (`F-GPT-07`) + UID-keyed locks (`N-D`) + UID cleanup on reload/close, per-doc switch state (`F17`), full per-file journal revision (`F16`), UID coalesce fix (`F19`), speaker central commit (`F20`).
+  * **S8:** Core integrity, ribbon & branding — Continuous ribbon active-card target (`F-GPT-13`/B3), v2 reserved-category round-trip (`F8`), `Ctrl+Alt`/`Ctrl+T` fixes, `destroy()` after-job sweep, halfwidth kana spans (`F14`), search error channel (`F13`), DPAPI fail-closed, DPI/version/gradient label, **Player Name** button (drop `{0}` from label; explain `{0}` in tooltip), **Watermark** (`Project Priconne Re:TL` / `Cornelia` via shared constant on Splash scrim + About).
+  * **S8b (NEW UX & GAME-PREVIEW SKIN SLICE — see §3):** B1, B2, B4, B5, B6, B7 (CSIF UX), B8 (if not micro-hotfixed earlier), B9 (Lock UX), Pin (`📌`), and Contained Priconne Game-Preview Skin + Fixed-Box Visual Overflow.
+  * **S9:** Left Sidebar (`Open Project` default tab, empty state dropzone on native Win32 `WM_DROPFILES` [NO `tkinterdnd2`], `askopenfilenames` multi-select with single batched render, multi-folder DnD warning, B10 tab ergonomics) + In-App Console (Option A: bounded ring-buffer, debug logs still write when closed, toggleable via Settings / Debug / F12).
+  * **S10:** MTL Drawer (3rd tab `Customize | NGUI Glossary | MTL`, retire floating dialog & F8 silent overwrite, scratchpad exclusion from story-widget/ribbon routing `N-G` + local `Ctrl+Z/Y`, editable + cache-bypassing `Refresh` for RTO + `NEW-25` URL scheme allowlist, Live OFF default, auto-close on Import open & auto-reopen on Import close).
+  * **S11:** `Import from XUAT` (`core/xuat_index.py` reusing `xunity_sync.split_xuat_line`, legacy L1–L7 safeguards, NO `conflict_manager`, background in-memory index populating `xuat_entries`, hybrid Treeview + candidate inspector + filter bar + 3-tier conflict scope + separate dialogue/speaker meters).
+  * **Deferred (Measure-First):** `E-01`/`E-02`/`E-03` perf tuning, full-app Priconne reskin, global XUAT pruning.
+
+======================================================================
+2. S0 + S1 EXECUTION & REMEDIATION REPORT (FROM ANTIGRAVITY)
+======================================================================
+Status: COMPLETE & VERIFIED (working tree uncommitted; rollback anchor `c3c666ef7c205005091ff7135865376e19e7b991`).
+
+Files Modified (`git status -s` — `core/` completely untouched):
+1. `misora.py`:
+   - Staged `open_file()` loading & strict UTF-8 plain-text decoding.
+   - Continuous View Box 0 remediation: `open_file()` pre-switch flush checks `var_continuous_view` first and resolves `_card_widgets[-1]["txt"]` when `is_box0_active` is True; `_commit_widget_edit()` matches `_card_widgets[-1]["txt"]` before `is_box0` (removing dead `elif`), recording `MetadataDelta`, updating `summary`, and syncing `txt_box0_summary`; `_on_box0_metadata_edited()` adds bi-directional sync into `_card_widgets[-1]["txt"]`; `_get_active_text_widget()` returns Card -1 when focus is outside and `is_box0_active` is True.
+2. `tests/test_s1_open_file_safety.py`:
+   - Fixed test teardown isolation (`misora.CONFIG_PATH` saved in `setUp()` and restored in `tearDown()`).
+   - Added `test_7_continuous_view_box0_edit_flush_on_switch`.
+3. `PROJECT_STATE.md`:
+   - Retracted incorrect claim that `misora_config.json` was tracked; documented that it is untracked/ignored and recorded measured S0/S1 outputs.
+
+Actual Measured Verification Outputs (Windows, `py -3.12`):
+- `py -3.12 -m compileall -q misora.py core assets tests` -> Exit code 0.
+- `py -3.12 -m unittest tests.test_s1_open_file_safety -v` -> **7 / 7 OK** (9.599s).
+- `py -3.12 -m unittest discover -s tests -v` -> **106 / 107 PASS** (0 errors, 0 skips, 143.133s).
+  * Single failure: pre-existing `test_phase3_performance_config.py::test_05_clean_committed_config_has_no_machine_paths` (`AssertionError: 'C:\\[Gacha]\\PriconneRe-TL\\src\\BepInEx\\Translation\\en\\Text' != ''`), caused by the test inspecting the developer's untracked local `misora_config.json`. Deferred to a later test-hygiene slice (do NOT weaken in S2).
+
+======================================================================
+3. NEW USER UX FINDINGS (B1–B10) & LOCKED GAME-PREVIEW SKIN SPEC (S8b)
+======================================================================
+None of these alter S2–S7. Summarized for any AI catching up:
+
+A. Confirmed/Locked UX Decisions (S8b & S9):
+- **B1 (Preview Read-Only):** Keep Preview strictly read-only (`state="disabled"`), selectable/copyable, show toast ("you are in Preview mode") on edit attempt, restore focus/caret cleanly when exiting Preview.
+- **B2 (Ribbon Grouping):** Group Select, Continuous, and Preview into one uniform `VIEW` ribbon group with consistent icons.
+- **B3 (Bug — already tracked as `F-GPT-13` in S8):** NGUI attributes fail in Continuous View because `_insert_text_wrapper` targets hidden `txt_continuous`.
+- **B4 (LOCKED — Mode Naming):** Exact 4 labels: `Dialogue Editor` / `Dialogue Preview` / `Story Editor` / `Story Preview` (replacing ambiguous `GAME VIEW (...)`); lower pane remains `RAW SCRIPT (v2)`.
+- **B5 (LOCKED — Tooltips):** **1-tier structured Rich Tooltip** extending existing `ToolTip` (larger bold real name + shortcut, medium brief description, smaller italic example or beginner explanation). **2-stage timed tooltip REJECTED** (extra `after()` timer/teardown hazard).
+- **B6 (NEW BUG):** `Show Line Number` gutter fails to update on Enter, deleting newlines, or multi-line paste across all views.
+- **B7 (CSIF Paste UX):** Explicit target chooser (`Insert as new boxes — after Box #N`; `Replace current box (#N)` or `Replace current box onward (#N–#M)`); >1 box opens Import Preview; Box 0 header jumps straight to Import Preview (Replace).
+- **B8 (NEW BUG):** Paste Import Preview renders blank/empty (needs fix; see Q2 below).
+- **B9 (Lock UX):** Place lock icon on every Continuous card right of Select slot (keep slot width reserved so hiding Select never shifts alignment) before dot/box#; dim when unlocked, distinct when locked; locked box keeps caret visible, blocks typing/deleting with toast ("unlock first"), and Cut acts as Copy.
+- **B10 (Sidebar UX -> S9):** `Open Project` default tab + empty state + dual-purpose/quick-open affordance so users aren't confused by "Opened Files".
+- **Pin (`📌`) beside Speaker:** User expects Next/Prev to jump to the same speaker with a toast notification and clear tooltip (see Q1 below).
+
+B. Contained Priconne Game-Preview Skin & Fixed-Box Overflow (S8b — USER CONFIRMED):
+- **Scope:** Applied **ONLY in Preview modes** (`Dialogue Preview`, `Story Preview`, and **Box 0 Summary Preview** — user explicitly confirmed Box 0 Summary preview is Preview-mode-only). Dark studio editor stays untouched; full-app Priconne reskin is DEFERRED.
+- **Implementation Strategy:** Stage 1 = pure code (`tk.Frame`/`tk.Canvas` + Priconne cream/gold/blue palette + `best_contrast_fg()`, zero copyrighted assets committed to repo). Stage 2 = optional user-local asset pack later.
+- **Strictly Static & Read-Only:** NO animated fog/wisps, NO typewriter timers, NO interactive game MENU, NO audio/TTS playback.
+- **CRITICAL CALIBRATION CORRECTION (Verified from User's Real In-Game Screenshots):**
+  Qwen's earlier addendum cited "66 chars × 3 lines" (HTML used 70 digits). Counting digits directly on the user's real Priconne screenshots establishes the true bounds:
+  1. **Dialogue Preview** (`bandicam 2026-11-22 02-28-14-200.jpg`): **50 digits × 3 lines** (`1234567890` × 5) + fake pink downward triangle (`▼`) at bottom-right.
+  2. **Story Preview / Full Story Script Display** (`bandicam 2026-11-22 02-28-27-995.jpg`): **50 digits × 3 lines** per speaker card (blue speaker label, dotted divider, optional portrait slot, voice badge).
+  3. **Box 0 Summary Preview** (`bandicam 2026-11-22 02-28-20-144.jpg`): **47 digits × 5 lines** (235 digits) under episode title.
+  -> Calibrate fixed widths dynamically via `tkFont.measure("1234567890" * 5)` (Dialogue/Story) and `tkFont.measure("1234567890" * 4 + "1234567")` (Box 0 Summary) as a close font-metric approximation of Unity NGUI.
+- **Tkinter-Safe "Visual Overflow (Meluber)" Design (User Request):**
+  * Lock preview `tk.Text` width to the pixel-calibrated fixed width; count real wrapped lines via `txt.count("1.0", "end", "displaylines")`.
+  * Keep the gold bottom border + fake pink `▼` pinned at line 3 (Dialogue) or line 5 (Box 0 Summary).
+  * When `displaylines > limit`: expand read-only `tk.Text` downward into a bounded red-tinted overflow spill band (e.g. capped at ~6–7 visible lines with scrollbar fallback for extreme text), tag overflowing lines, and display a clear badge (`⚠ OVERFLOW: 4/3 lines`). Text stays 100% selectable/copyable (`Ctrl+C`), never silently truncated, with 0% idle CPU and zero new `after()` timers.
+  * For `Story Preview` (Continuous), use lightweight fixed-width styled `tk.Frame` cards (no heavy per-card Canvas) with per-card overflow highlighting + badge.
+
+======================================================================
+4. ACTION CHECKLIST FOR GPT & QWEN (TO UNBLOCK S2 PROMPT DRAFTING)
+======================================================================
+Please reply concisely on these 4 items:
+1. **S0 + S1 Sign-Off:** Do you accept the S1 Remediation & Verification Report (7/7 S1 OK; 106/107 full suite with documented `test_05` untracked-config failure) as CLOSED?
+2. **S8b Calibration & Spill-Band:** Do you confirm replacing Qwen's 66-char figure with the verified **50-digit × 3 (Dialogue/Story)** + **47-digit × 5 (Box 0 Summary)** bounds and the Tkinter spill-band overflow design?
+3. **Quick Arbitration on Open UX Micro-Items:**
+   - **Q1:** Pin (`📌`) semantics — adopt user's same-speaker Next/Prev jump + toast?
+   - **Q2:** B8 (`Paste Import Preview` empty) — standalone micro-hotfix now, or fold into S4 / S8b?
+   - **Q3:** Dead `_update_gutter_cont()` — remove or wire during B6 fix?
+4. **Proceed to Phase 2 — S2 Prompt:** Are we cleared to draft the identical **S2 prompt** (Minimum Per-Document Dirty Contract + `on_save() -> bool`, adapted cleanly for Google Antigravity) once the user confirms commit/readiness?
