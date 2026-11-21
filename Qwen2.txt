@@ -1,0 +1,162 @@
+# MISORA — PHASE 1b BRAINSTORM: META-CORRECTIONS, LEGACY VERDICTS, NEW MTL DEFECTS, DRAWER SPEC
+Author: Assistant A. Basis: byte-exact GitHub main (misora.py 499,293 B / 11,169 lines, sha ba6ae25c3f)
++ Reference-Files tarball + executed repros. Sandbox restored this round.
+
+## PART A — META-CORRECTIONS (must fix before further debate)
+A1. ATTRIBUTION (Assistant A was wrong; Gemini correct, byte-verified by first heading):
+  - GPT1.txt  = GPT's P0-1..P0-4 / P1-1..P1-3 / P2-1..P2-3 / DOC-1/DOC-2 report.
+  - grook1.txt= Grok's P1-A..P1-E + "ALREADY DONE — DO NOT RE-PROMPT" memo.
+  - Qwen1.txt = Assistant A's own Phase 0 brief verbatim (NO independent Qwen content yet).
+  - gemini1.txt = Gemini hypothesis dossier.
+  => A's prior "challenge to Qwen" targets GROK's memo. DPAPI fail-open / search-silent-errors /
+     halfwidth-NFKC / test-distribution / README-9-images are GPT's findings. Technical verdicts unchanged.
+  => Request a genuine independent Qwen cross-check; Qwen1.txt is an echo, not a review.
+A2. BASELINE DIVERGENCE (pre-flight blocker):
+  - main misora.py = 499,293 B (re-verified this round, unchanged). No .unity3d on main.
+  - User local ZIP per Gemini = 510,461 B (+11,168 B) + 1001005.unity3d / storydata_1001005.unity3d.
+  - REFRAME: N1/N3/N4/N17 (Ctrl+Alt dead / destroy sweep absent / after_idle absent / picker v1.3.3
+    hardcoded) are CONFIRMED-on-main but may be MAIN-LAGS-LOCAL if the +11 KB contains those fixes.
+    Reclassify CONDITIONAL-on-local until user syncs. DO NOT draft Phase 2 patches before sync.
+  - Action: user pushes local to main (or declares authoritative copy); re-run audit on synced tree.
+
+## PART B — 7 LEGACY BUGS: ALL CONFIRMED (byte-exact + executed repros)
+L1 \= split [REPRO]: "a\=b=Hello world" -> key 'a\', val 'b=Hello world' (expected key 'a=b').
+   PORT RULE: reuse Misora core/xunity_sync.split_xuat_line (first UNESCAPED '=', already Rule-10
+   compliant, verified lines 34/42). NEVER port advscript line.split("=",1).
+L2 block hijack [REPRO]: one "=stray" line flips whole file to block mode; JP2 lost.
+   PORT RULE: per-entry format detection (or strict first-entry sniff), not whole-file any(startswith "=").
+L3 unconditional global memory [REPRO]: plain pick "1" (no 'a') persists {'はい':'Yes.'} globally;
+   'a' suffix parsed (rstrip("aA")) but ignored. LOCALIZATION TRAP: global memory for short
+   context-dependent phrases recreates XUAT global collisions.
+   PORT RULE: 3-tier scope — Use Once (DEFAULT) / Apply to Identical JP in THIS Story / Remember
+   Globally (explicit opt-in). Short/common phrases (はい,うん,えっ？,……) default Use Once + warn on global.
+L4 non-deterministic fuzzy [REPRO]: PYTHONHASHSEED 1/2/3 -> ['TRUE','TRUE','decoy']; set slice
+   list(pool)[:4000] drops true best under some seeds.
+   PORT RULE: deterministic ranking (sort by abs(len(c)-len(query)) then lexicographic) BEFORE cap,
+   or trigram-overlap scoring. Never slice an unordered set.
+L5 completion gate ignores speakers [CODE]: is_complete=(missing_real==0 and real_boxes>0); miss_names
+   tracked but not gated. Stories with JP speaker names repack as "100%".
+   PORT RULE: separate dialogue% and speaker% meters; repack gate = dialogue 100% AND speakers
+   resolved (or explicit override flag surfaced to user).
+L6 cross-story pruning hazard [CODE]: prompt_xuat_cleanup prunes JP=EN once Story A repacks; Story B
+   (unmigrated) sharing the phrase loses translation. (Gemini's claim that user "excluded
+   conflict_manager" is UNVERIFIED — do not propagate as user intent.)
+   PORT RULE: v1 NO auto-prune (migration sidecar report only). v2 prune requires a global reference
+   index of ALL remaining unmigrated stories' JP keys; exclude short/common lines; backup+log.
+L7 norm2 blind to placeholders/NGUI [CODE]: no {playername}<->{0}, no tag handling.
+   PORT RULE: align normalization with core/ngui_tags.py + core/search_engine.py. Exact raw match
+   highest priority; tag-stripped / placeholder-normalized matches FLAGGED for review (EN captured
+   post-render may lack tags -> formatting-loss risk on inject).
+
+## PART C — NEW MTL/TRANSLATOR DEFECTS (byte-exact main; directly explain user dissatisfaction)
+C1 TRANSLATOR-APPLY-STRIPS-TAIL: TranslatorAssistantDialog._on_apply line 10938
+   new_text=txt_trans.get("1.0",tk.END).strip() -> strips significant trailing breaks. P1.
+C2 TRANSLATOR-APPLY-BYPASSES-LOCK: _on_apply (10931-10956) has NO is_box_locked check (F8 path checks
+   at request time only). D8 violation. P1.
+C3 TRANSLATOR-APPLY-JUNK-UNDO + NO-UID: _on_apply records BoxEditDelta unconditionally (no change
+   check) and without box_uid. P2.
+C4 TRANSLATOR-STALE-RESULT: _on_translate.on_success inserts result into txt_trans with no
+   (doc,box_uid,seq) guard; navigation during translate lands result in wrong box. P1.
+C5 FETCH-ALL-UNCONFIGURED-SPAM: _on_fetch_all spawns 5 threads (Google/DeepL/Local/LLM/XUAT Cache)
+   regardless of configuration; paid DeepL queried silently; XUAT Cache uses xuat_entries=None. P2.
+C6 BATCH-DIALOG-DEAD-PIN: BatchTranslateDialog._toggle_pin_top defined but self.btn_pin never created
+   -> latent AttributeError. P3 hygiene.
+C7 MTL-DIALOG-VARS-NO-MASTER: 19 tk.*Var without master= in MTL dialogs (Rule 3). P3 sweep.
+C8 DRAWER-NO-REFERENCE-TAB: main drawer tabs = Customize | NGUI Glossary (4886/4894). Gemini's
+   "existing Reference tab" is inaccurate vs main. Clarify: rename Glossary->Reference, or local diff.
+C9 XUAT-ENTRIES-DEAD: self.xuat_entries assigned 0 times, read via getattr 4 times. "XUAT Cache"
+   engine + use_xuat_cache checkbox are inert. Migration index (RUN 5) populates it.
+C10 TRANSLATOR-SOURCE-SEED retraction FACTUALLY WRONG: refresh_box (10819/10822+) DOES seed txt_trans
+   with box.clean_text (JP if untranslated). Ledger retraction ("not pre-seeded") contradicted.
+   Reopen as design question; drawer must NOT seed scratchpad with JP.
+C11 F8-SILENT-OVERWRITE: on_translate_current_box overwrites box in place, no preview, no JP-check
+   (translates already-EN boxes), no uid guard, lock checked only at request not apply. User dislikes
+   this opaque behavior -> re-route to drawer (Part D).
+
+## PART D — MTL DRAWER SPEC: ENDORSE GEMINI CORE + REFINE/TRIM (answers Gemini Q4/Q5)
+AGREE core: drawer tab; full-height MTL box; Live checkbox default OFF; manual Translate/Retry;
+status line; Apply via central _commit_widget_edit source="mtl" + lock + box_uid; Copy; XUAT-hit
+badge; 400ms debounce; stale-drop; main-thread queue (NOT after_idle from worker); visibility
+auto-pause; zero-skip (empty/Box0/punct-only/cached); 429/auth auto-uncheck Live + toast; auto-close
+on Import open; shared session MTL cache.
+REFINE / TRIM:
+D1 TRIGGER INVARIANT (stronger than Gemini's list): fire ONLY when active box UID changes. JP key is
+   immutable per uid (N8), so editing EN never retriggers; index shifts from structural edits don't
+   retrigger. Single hook _on_active_box_changed() called from _update_views, _focus_continuous_box,
+   _on_card_focus_in (card focus does NOT call _update_views today), search-jump, undo-nav, file-switch.
+   400ms debounce dedups double-fire. Structurally prevents quota burn.
+D2 LAYOUT in 330px drawer: top bar (provider dropdown + Live + Translate/Retry + status); compact
+   read-only JP strip (2-4 lines, get_jp_key(uid)); FULL-HEIGHT editable MTL scratchpad; bottom bar
+   (Apply / Apply&Next / Copy + XUAT-hit badge). Do NOT seed scratchpad with JP (fixes C10); seed with
+   XUAT-hit/cache result if present, else empty + hint. Main editor already shows JP/EN for comparison.
+D3 APPLY SAFETY (fixes C1/C2/C3): no .strip() of tail (preserve trailing breaks; normalize CRLF only);
+   record delta only if changed; check is_box_locked (disable Apply + "(Locked)" label); include
+   box_uid; source="mtl". Apply&Next flushes then navigates, skips locked.
+D4 RETIRE floating TranslatorAssistantDialog -> drawer MTL is the single surface. Toolbar MTL button,
+   F8, and menu "Translator Assistant" all open drawer MTL tab. F8 = open drawer + trigger manual
+   translate (visible/editable/explicit Apply), NOT silent overwrite (fixes C11). Keep
+   BatchTranslateDialog for bulk (fix C6 + thread safety in RUN 2). DEFER "Fetch All" engine
+   comparison (fixes C5 by removal); v1 = one active provider; optional Compare later.
+D5 CACHE: session-only OrderedDict LRU cap 2000, key (provider_id, model/target, normalized_jp).
+   Lookup order: XUAT index hit (free) -> MTL session cache -> network. NOT persisted to disk in v1
+   (TM sidecar D11 later). RULE-24 TENSION: bounded cache is intrinsic quota-protection for the new
+   feature, not premature optimization of existing code — flag for explicit consensus.
+D6 MUTUAL EXCLUSION: on Import open -> _close_side_drawer() + cancel Live debounce + bump epoch
+   (drop in-flight drawer results). While Import open: MTL tab button + toolbar MTL button DISABLED
+   (tooltip "MTL is in the Import window"); Customize/Reference tabs still usable. On Import close:
+   drawer stays closed; MTL re-enabled. No dual-MTL surface; predictable.
+D7 LIVE never persisted ON; always OFF at launch (quota). Provider selection persists via mtl_config.
+D8 TEARDOWN: add _mtl_live_job to destroy() cancel list (N3). Drain MTL results in the EXISTING
+   _process_search_queue 100ms poll (no new after job), guarded by _destroyed.
+D9 REUSE engine TagMasker (protect_tags already masks/unmasks, mtl_engine 134-157) — no new masking.
+   Reuse _highlight_ngui_tags_for_widget on scratchpad; theme + best_contrast_fg (Rule 21).
+D10 SPEAKER mini-hint: keep (cheap, aids pronouns/tone). Pass speaker context to LLM ONLY if
+   mtl_engine already supports a context field — verify; if absent, DO NOT add (trim).
+D11 SHORTCUTS: Ctrl+Enter = Apply&Next bound on scratchpad widget only (return "break"); drop Alt+S.
+   Install MisoraShortcuts bindtag for native Ctrl+C/V/X/A. No bind_all (avoid stealing from dialogs).
+D12 SCOPE STATES: Box0 / plain-text -> "MTL not applicable" placeholder; v1 story boxes only.
+TRIMMED from Gemini spec as over-engineering: Fetch-All comparison (defer), persisted Live state (no),
+disk-persisted MTL cache (no), LLM speaker-context plumbing if absent (no), token-bucket rate
+scheduler (rely on debounce + existing rate_limit_delay + 429 auto-pause).
+
+## PART E — IMPORT FROM XUAT REFINEMENTS
+E1 AGREE hybrid UI: lightweight Treeview left [Box#|Speaker|JP preview|Active EN|Status badge] +
+   per-selected-box candidate inspector right (</> cycle, file:line provenance, level badge, inline
+   override, Fetch MTL appending candidate) + top filter bar [All|Conflicts|Missing|Norm/Fuzzy|Exact].
+E2 ADOPT 3-tier conflict memory (L3): Use Once default / This Story / Global opt-in; short-phrase warn.
+E3 Completion gate includes speakers (L5); dual meters; repack gate dialogue+speakers.
+E4 Pruning deferred (L6); v1 sidecar report only; v2 global-reference-index prune.
+E5 Parser porting rules per Part B (reuse split_xuat_line; per-entry detection; deterministic fuzzy;
+   ngui/placeholder-aligned normalization with flagged non-exact matches).
+E6 Index populates xuat_entries (fixes C9) -> drawer XUAT-hit badge activates when RUN 5 lands.
+   Drawer (RUN 4) ships without badge; badge lights up later. No blocker.
+
+## PART F — SEQUENCING + QUESTIONS
+AGREE Gemini refinement: Pre-flight sync -> RUN1 data safety (Replace-All trio, N9/N10/N11/N12, DnD
+warn, geometry clamp, ledger reconcile) -> RUN2 thread+identity foundation (SEARCH-RACE snapshots,
+N14/N15 queue, journal.batch(), N8 uid JP registry, N7/N16 per-doc state/dirty, N20 source tags)
+-> RUN3 remaining integrity/polish (N1/N2/N3/N4/N5/N6/N17/N18/N19, DPAPI fail-closed, search error
+channel, halfwidth NFKC, C1-C11 interim guards if drawer not yet landed) -> RUN4 MTL Drawer
+-> RUN5 Import from XUAT. N5 moved to RUN3 (tradeoff: not blocking MTL/Import; acute losses in RUN1).
+N8 is HARD prerequisite for drawer (immutable JP) and Import. N14/N15 prerequisite for Live.
+Q1 Confirm attribution correction (A1) and that Qwen1.txt is an echo — request real Qwen review?
+Q2 Confirm baseline sync plan (A2); which copy authoritative? Re-audit after sync.
+Q3 Accept 7 legacy verdicts + repros (Part B) and porting rules?
+Q4 Accept NEW MTL defects C1-C11 (byte-exact main lines)? Challenge any with counter-evidence.
+Q5 Accept drawer refinements D1-D12 (UID-trigger, retire floating dialog, F8->drawer, trim Fetch-All,
+   3-tier memory, completion incl speakers, prune defer)? Any Tk lifecycle/shortcut risk missed?
+Q6 Rule-24 bounded-cache tension (D5): acceptable as feature-intrinsic, or defer cache entirely?
+Q7 Is "Reference" a rename of NGUI Glossary (C8) or a local-build difference? User to confirm.
+
+## QUESTIONS TO USER
+U1 Sync local 510,461 B misora.py to main (or declare authoritative). Pre-flight blocker.
+U2 "Reference" tab = rename NGUI Glossary, or does local already differ?
+U3 Approve retiring floating Translator Assistant in favor of drawer MTL? F8 -> drawer+translate OK?
+U4 Live always-OFF at launch acceptable (quota protection)?
+U5 Upload asset_registry.py + priconne_tool.py for v2 batch repack naming/redirect-index (still pending)?
+U6 Auto-apply policy for Import: exact+unique auto OK? norm/fuzzy always manual? source-folder priority?
+
+## RULES OF ENGAGEMENT
+AGREE/DISAGREE/NEEDS-EVIDENCE per item with file:line or executed repro. No hallucinated lines/tabs.
+Old-tool claims now byte-verified (sandbox restored). Converge on identical Phase 2 prompts only after
+user approval AND baseline sync. Keep fixes minimal and invariant-preserving.

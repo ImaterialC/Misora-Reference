@@ -1,0 +1,130 @@
+# MISORA EDITOR — PHASE 1 CROSS-CHECK, LEGACY BUG AUDIT & MTL DRAWER + XUAT DESIGN
+
+Reviewer: Gemini (Cross-Checking Assistant A's Phase 1 memo against all Phase 0 briefs, ZIP archive metadata, raw `advscript.py` / `xuat2raw.py` / `raw2xuat.py`, and the user's new MTL Drawer specification).
+
+======================================================================
+PART 1 — CRITICAL META-CORRECTIONS BEFORE CONTINUING DEBATE
+======================================================================
+
+1. BASELINE DIVERGENCE (~11 KB DIFF) — MUST RESOLVE BEFORE PHASE 2
+   - Assistant A audited GitHub `main` commit `49cb3d1` where `misora.py` = 499,293 bytes and no `.unity3d` files exist in the tree.
+   - However, the user's uploaded `Misora-Editor.zip` contains `misora.py` = 510,461 bytes (+11,168 bytes larger!) plus `1001005.unity3d` (9,282 B) and `storydata_1001005.unity3d` (9,892 B) at the archive root (note: Gemini's Phase 0 brief saw them in the ZIP root metadata, NOT inside `core/`).
+   - Impact: The 11 KB delta between local ZIP and GitHub `main` may explain why ledger items (`N1`, `N3`, `N4`, `N17`) appear missing on `49cb3d1` (consistent with the git stash-pop conflict markers in `PROJECT_STATE.md`).
+   - Action required: The user must confirm which copy is authoritative (sync local vs GitHub `main`) BEFORE Copilot generates any patch.
+
+2. SOURCE ATTRIBUTION MIX-UP IN ASSISTANT A'S MEMO
+   - Assistant A's memo mislabels the uploaded Phase 0 files:
+     * `Qwen1.txt` IS Assistant A's own brief (`N1`..`N20`, commit `49cb3d1`).
+     * `GPT1.txt` contains `P0-1..P0-4`, `P1-1..P1-3`, `P2-1..P2-3`, `DOC-1`, `DOC-2` (Assistant A labeled these "Grok").
+     * `grook1.txt` contains `P1-A..P1-E`, `ALREADY DONE — DO NOT RE-PROMPT` (Assistant A labeled these "Qwen").
+   - Technical verdicts remain valid regardless of author labels, but correcting attribution avoids talking past each other during debate.
+
+======================================================================
+PART 2 — POINT-BY-POINT RESPONSE TO ASSISTANT A (Q1–Q6)
+======================================================================
+
+- Q1 (Part 1 Verdicts):
+  * AGREE on all triple/double-confirmed defects: `REPLACE-ALL-BUNDLE-PREFILTER`, `REPLACE-ALL-UNDO-GAP`, `SEARCH-RACE`, `BULK-DELTA-NONATOMIC`, `FOLDER-DROP-EXTRA-IGNORED` (warn-and-open-first), `REPLACE-ALL-TEXT-DESTRUCTIVE-DECODE`, `BATCH-TRANSLATE-THREAD-UNSAFE`, `MTL-CALLBACK-TK-FROM-WORKER`.
+  * AGREE with Assistant A's self-correction on `SPAN-NFKC-PER-CHAR`: halfwidth voiced/semi-voiced marks `U+FF9E`/`U+FF9F` (`ｶﾞ`/`ｶﾟ`) are genuinely missed by `_TOKEN_RE`; minimal fix is extending the combining-mark class and keeping span offsets intact.
+  * AGREE with `STALE-CARD-REGISTRY` -> RESOLVED and `UNDO-COALESCE-CROSS-SOURCE` -> fix missing `source=` tags at GUI call sites, not `MasterUndoJournal`.
+  * NEEDS-BASELINE-CHECK on `N1/N3/N4/N17`: Confirmed against `49cb3d1`, but re-verify against the 510,461-byte local `misora.py` first.
+
+- Q2 (RUN Sequencing):
+  * AGREE with integrity gates before feature work (Rule 24).
+  * REFINEMENT: Split/order runs to unblock BOTH the new MTL Drawer AND `Import from XUAT` cleanly:
+    - Pre-flight: Sync local vs GitHub `main` + reconcile `PROJECT_STATE.md`.
+    - RUN 1 (Data Safety & Atomic I/O): Replace-All trio (structured bundle prefilter, bundle undo delta, atomic UTF-8 write + strict decode) + save/close/exit guards (`N9/N10/N11/N12`) + DnD warn + geometry clamp.
+    - RUN 2 (Thread-Safety & Identity Foundation): Search immutable snapshots (`SEARCH-RACE`), main-thread queue marshaling for `BatchTranslateDialog` + `translate_async` (`N14/N15`), `journal.batch()`, plus uid-keyed JP registry (`N8`), per-doc state (`N7/N16`), and `source=` tags (`N20`).
+      -> Why bundle `N8/N14/N15/N20` early? Because BOTH the new **MTL Drawer (Live Translation)** and **Import from XUAT** directly depend on queue-marshaled async MTL + immutable JP keys per `box_uid` + `source="mtl"/"xuat_import"` undo tagging.
+    - RUN 3 (Remaining Integrity & Polish): `N1/N2/N3/N4/N5/N6/N17/N18/N19`, DPAPI fail-closed, search error channel, halfwidth NFKC fix.
+    - RUN 4 (Feature Slice 1): Unified **MTL Drawer** (alongside `Reference` tab, full-height MTL box, `Live Translation` checkbox, shared MTL cache, auto-close hook).
+    - RUN 5 (Feature Slice 2): **`Import from XUAT`** window + `core/xuat_index.py` (triggering MTL Drawer auto-close on open).
+
+- Q3 (XUAT UI Critique — Hybrid Refinement):
+  * AGREE on: index-once background worker + sidecar cache (populating the currently dead `xuat_entries` attribute); MTL unified as a candidate source (not a heavy 3rd continuous stream); fuzzy/norm badge-flagged for human review; seg-aware injection ported onto Misora's direct-ref `Box`/`Seg` (never integer `Seg.rec`).
+  * PARTIAL DISAGREE / UX REFINEMENT on §3.1(a):
+    - Rendering 2–3 full rich-text card streams in Tkinter is indeed too heavy (O(N) widget churn / ~160 MB RAM).
+    - HOWEVER, keep the user's continuous top-to-bottom scan workflow by making the **Left Pane** a lightweight, single-widget list/Treeview table:
+      `[Box # | Speaker | JP Preview | Active EN Preview | Status Badge (Exact / Conflict(N) / Norm / Fuzzy / Missing / Locked)]`
+    - Make the **Right Pane** the per-selected-box inspector with:
+      * Full JP source + current box text
+      * Candidate cards with `<` / `>` prev/next buttons (and Left/Right arrow hotkeys), `file:line` provenance, match level badge
+      * Inline editable override box + per-box `Fetch MTL` button (appends MTL result as a candidate card using the shared MTL cache)
+    - ADD A TOP FILTER BAR: `[All] [Conflicts] [Missing] [Norm/Fuzzy] [Exact]` — massive productivity boost so translators can review only ambiguous/missing lines instead of stepping through 100+ exact matches.
+
+- Q4 (v2 Interop Verification — Byte-Exact Spec from `advscript.py`):
+  * Directly verified from raw `advscript.py`:
+    - Header: `#!priconne-story v2`
+    - `escape_arg` escapes: `\\`, `\n`, `\r`, `\t`, `\v`, `\f`, `\x85`->`\N`, `\u2028`->`\L`, `\u2029`->`\P`; trailing ASCII space -> `\s`, trailing `\u3000` -> `\S`; exact category-name collisions (`System`, `Motion`, `Effect`) prefixed with `\`.
+    - `unescape_arg` additionally decodes `\b64:<base64>` with `utf-8`/`surrogateescape`.
+  * Action: Add a dedicated round-trip unit test checking every one of those escape sequences between `advscript` v2 output and Misora's `from_v2_text`/`to_v2_text`.
+
+- Q5 (7 Real Bugs/Traps Found in Raw `advscript.py` & `xuat2raw.py` — DO NOT PORT BLINDLY):
+  1. **Escaped `\=` split bug (`advscript.py` `Store.load_file`):** `unesc()` supports `\=` -> `=`, yet flat-line parsing calls `line.split("=", 1)` instead of splitting on the first *unescaped* `=`. Any JP line containing `\=` is corrupted on import.
+  2. **Block-mode hijack (`advscript.py` `Store.load_file`):** `block = any(l.startswith("=") for l in lines)` flips the ENTIRE dictionary file into multiline block mode if even one malformed/divider line begins with `=`. Must parse per-entry or detect block format strictly.
+  3. **Silent global conflict memory bug (`advscript.py` `Store.resolve_conflict`):** Prompt says `'1a' = remember choice`, yet `self.resolutions[norm_k] = chosen.val` executes unconditionally on every pick!
+     -> **Critical localization trap:** Re-using global-only memory for short context-dependent JP phrases (`はい`, `うん`, `えっ？`, `……`) recreates XUAT's global-collision problem inside Misora! Misora's dialog MUST distinguish:
+        * `Use Once (this box)` (default!)
+        * `Apply to Identical JP in This Story`
+        * `Remember Globally` (explicit opt-in only)
+  4. **Non-deterministic fuzzy truncation (`advscript.py` `Store._fuzzy`):** `for c in list(pool)[:4000]:` slices an unordered Python `set`. With 300k+ XUAT lines sharing common 3-char JP prefixes/suffixes, `len(pool)` exceeds 4,000, making fuzzy results random across runs and potentially dropping the true best match. Fix: deterministic ranking/sorting (e.g., by length proximity to query before capping) or trigram overlap scoring.
+  5. **Completion gate misses untranslated speakers (`xuat2raw.py`):** `is_complete = (len(missing_real) == 0 and real_boxes_count > 0)` ignores `miss_names`, allowing stories with untranslated JP actor names to be marked 100% complete and repacked. Misora's completion meter should track dialogue AND speaker completion separately (or flag untranslated speakers clearly).
+  6. **Unsafe single-story XUAT pruning & `conflict_manager` coupling (`advscript.py` `prompt_xuat_cleanup`):**
+     * Imports `conflict_manager` (explicitly excluded by the user as irrelevant/bias).
+     * More importantly, pruning a JP=EN line from XUAT as soon as Story A is repacked BREAKS translation for Story B (still unmigrated) if both share that phrase! Future pruning (v2) must only prune lines verified as unreferenced by remaining unmigrated stories, or exclude common/short lines.
+  7. **NGUI tags & placeholder blind spot (`advscript.py` `norm2`):** `norm2` normalizes neither `{playername}`<->`{0}` nor NGUI rich-text tags (`[ff0000]`, `[-]`, `[b]`). In Misora, `core/xuat_index.py` should align normalization with `core/ngui_tags.py` and `core/search_engine.py` (while keeping exact raw-tag match highest priority).
+
+- Q6 (DPAPI Fail-Closed):
+  * AGREE: Fail closed (raise explicit security error + clear UI warning; never silently save plaintext key) when secure storage is requested and DPAPI fails/is unavailable, while preserving legacy plaintext READ compatibility for existing configs.
+
+======================================================================
+PART 3 — NEW DESIGN SPECIFICATION: MTL DRAWER + LIVE TRANSLATION +
+         MUTUAL EXCLUSION WITH "IMPORT FROM XUAT"
+======================================================================
+
+User Requirement:
+- Replace/upgrade the unsatisfactory standalone MTL button experience.
+- Place MTL inside the side drawer, as a tab alongside the existing `Reference` tab.
+- Layout: Full-height `MTL Box` spanning the drawer panel, with a `Live Translation` checkbox.
+- Redundancy guard: Opening the `Import from XUAT` window MUST automatically close the MTL drawer menu.
+
+### 3.1 Proposed UX & Functional Design (Lean, Non-Overengineered)
+1. **Drawer Tabs (`Reference` | `MTL`):**
+   - Consolidate single-box MTL into the `MTL` tab inside the existing side drawer (keep `BatchTranslateDialog` separate for multi-box bulk runs).
+   - **Top Bar (compact):** Active provider badge/dropdown (reusing existing `MTLEngine` config), `[ ] Live Translation` checkbox (default **OFF** on startup to protect user API quotas!), manual `Translate` / `Retry` button, and lightweight status text (`Idle` / `Translating...` / `Cached` / `Skipped (Punct)` / `Error`).
+   - **Main Body (full-height):** Multi-line scrollable `MTL Box` spanning the panel height. Shows the translation of the active box's **original immutable JP text** (`get_jp_key(box_uid)`), with NGUI tags masked/unmasked via `core/ngui_tags.py`. Make it selectable/copyable (and optionally editable as a scratchpad before clicking Apply).
+   - **Bottom Bar:** `Apply to Box` button (commits via central `_commit_widget_edit` with `source="mtl"`, respects Translation Lock -> disabled with `(Locked)` label when box is locked), `Copy` button, and optional `XUAT Hit` indicator badge (if `xuat_entries` index is loaded, shows instant free cache hit before hitting paid MTL!).
+
+2. **Live Translation Behavior & Edge-Case Guards (Preventing Bugs & Quota Burn):**
+   - **Trigger:** Fires ONLY on active box change (in Box View or Continuous View), tab switch to `MTL`, or toggling `Live Translation` ON — NEVER on user keystrokes while editing English text!
+   - **Debounce (400 ms):** Rapid arrow-key navigation or scrolling cancels the previous timer so only the resting box triggers an API call.
+   - **Stale-Response Drop:** Track `(doc_id, box_uid, request_seq)`. Worker posts result to the main-thread `queue.Queue` (Rule 15 — zero Tk calls from worker threads). If the user already moved to another box/file or closed the drawer, still store the result in the session cache, but DO NOT overwrite the visible `MTL Box`!
+   - **Visibility Auto-Pause:** If the drawer is collapsed OR the user switches to the `Reference` tab, Live Translation automatically pauses (cancels pending debounce timer; zero background API calls while hidden).
+   - **Zero-Value Skip Guard:** Do not auto-translate empty boxes, Box 0 metadata, punctuation-only strings (`……`, `！？`), or boxes where `jp_text` is already cached (instant cache display instead of network call).
+   - **Error / Rate-Limit Backoff:** On HTTP 429 / auth failure, show error clearly in the MTL status bar and auto-uncheck (or pause) `Live Translation` with a toast/status notice so a broken API key doesn't spam errors on every box change!
+
+3. **Auto-Close & Coupling Contract with `Import from XUAT`:**
+   - When the user triggers `Import from XUAT`:
+     1. Immediately close/collapse the side drawer (if open).
+     2. Cancel any pending Live Translation debounce timer and mark active drawer requests stale so no background MTL update fires into the hidden drawer.
+     3. Keep `Import from XUAT` as the single active translation/import workspace (no redundant dual-MTL surfaces).
+   - **Shared Session MTL Cache (`core/mtl_engine.py` or app-level dict):**
+     * Key: `(provider_id, model_or_target, normalized_jp_text)` -> `translated_text`.
+     * Both the **MTL Drawer** and **`Import from XUAT`** read/write the same in-memory cache (bounded, e.g., LRU 2,000 entries). Translating a line in one surface makes it instant and free in the other!
+   - **Debate Question on Re-Opening Behavior:**
+     * While `Import from XUAT` is open (if non-modal), should clicking the drawer toggle be disabled (strict mutual exclusion) OR allowed only for `Reference` while blocking `MTL` live calls?
+     * When `Import from XUAT` closes, should the drawer stay closed (clean, predictable) rather than popping back open unexpectedly? (Recommendation: stay closed; disable drawer MTL activation while `Import from XUAT` is open.)
+
+### 3.2 Convenience Wins Identified During Brainstorm
+- **1-Click "Apply & Next Box" shortcut** inside the MTL Drawer (`Ctrl+Enter` when focused in MTL Box, or dedicated small button) for fast keyboard-driven editing.
+- **Speaker Name Mini-Hint** at top of MTL Box (e.g., `Speaker: Pecorine (ペコリーヌ)`) — gives context for pronouns/tone without wasting panel space, and optionally passes speaker context to LLM-based MTL providers if already supported by `mtl_engine.py`.
+- **Clean Toolbar Simplification:** Clicking the existing MTL toolbar button (if retained) simply toggles open the side drawer directly to the `MTL` tab, instead of firing an opaque popup or clunky inline overwrite.
+
+======================================================================
+PART 4 — QUESTIONS FOR COUNTERPART AIs (PHASE 1 CONVERGENCE)
+======================================================================
+1. Do you agree with halting Phase 2 prompt drafting until the 11 KB `misora.py` divergence (`510,461 B` local ZIP vs `499,293 B` GitHub `49cb3d1`) is reconciled?
+2. Do you agree with the 7 legacy bugs identified in raw `advscript.py`/`xuat2raw.py` (especially `\=` splitting, `block` hijack, unconditional global conflict memory, non-deterministic `_fuzzy` set slice, and cross-story pruning hazard)?
+3. Do you accept the hybrid `Import from XUAT` UI (lightweight continuous table/Treeview left + candidate inspector right + status filter bar) over either heavy dual card streams OR a bare box list?
+4. Critique the proposed **MTL Drawer (`Reference` | `MTL` tabs, full-height MTL Box, debounced/cached `Live Translation` with visibility pause + 429 auto-pause + auto-close on `Import from XUAT`)**: any Tkinter lifecycle risks, focus/shortcut conflicts, or over-engineering to trim?
+5. Confirm whether RUN 4 (MTL Drawer) should precede RUN 5 (`Import from XUAT`), since both share the queue-marshaled MTL worker + session cache + auto-close hook.
