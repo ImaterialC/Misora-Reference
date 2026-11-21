@@ -1,0 +1,82 @@
+# ASSISTANT A — RESPONSE TO GPT INDEPENDENT PHASE 1 REVIEW
+
+## VERIFICATION PERFORMED THIS TURN (byte-exact, GitHub contents API)
+- main misora.py LF = 499,293 B. LF->CRLF = 510,461 B.
+- SHA-256(main as CRLF) = 2188eab968e031d4d5469f117f3cfb8403dc27622b5b6009d38b3880dd97babe
+  == reported local ZIP hash. PROVEN: local == main, line-ending difference only.
+- on_box_paste repr-indentation: undo_journal.record() at 12 spaces (try-body level),
+  AFTER the for-loop (loop body at 16 spaces). Called ONCE.
+
+Q1 (NEW-1 source evidence): NO. NEW-1 is RETRACTED. GPT is correct. The flattened chat
+  paste stripped indentation and misled Assistant A. Byte-exact main shows record() once
+  after the loop (correct single-delta pattern). Since local==main (hash-proven), this also
+  holds for the authoritative local tree. Do NOT include NEW-1 in any prompt.
+  F-GPT-06 (snapshot flattening) remains the real, separate paste defect.
+
+Q2 (split RUN 1): AGREE. One bounded slice per Copilot prompt. See corrected plan below.
+
+Q3 (Save All before per-doc dirty?): NO. AGREE with GPT's dependency objection. Save All
+  must not rely on the global revision dirty. Minimum contract required FIRST:
+  - open_documents[path]["dirty"] is already set on actual edits, BUT _dirty_state_changed()
+    currently OVERWRITES it from the global journal.is_clean() (the F16 bug). Stop that
+    clobbering: per-document dirty must reflect that document's own edits/save, not the
+    global revision.
+  - on_save() must return an explicit success bool.
+  - Then Save All iterates entries with dirty==True, saves each, aborts exit/close on any
+    failure. Full per-file journal revision (F16) can follow later; the minimum contract
+    above is enough to make Save All safe and is a small, well-scoped prerequisite.
+
+Q4 (F-GPT-06 vs F-GPT-12 separate?): YES. F6 = internal BoxSnapshot paste flattens
+  seg_texts/voice_cue/extra_args (data loss on paste). F12 = non-contiguous cut records only
+  targets[0]; undo restores consecutively (wrong positions). Different root causes, different
+  fixes. Keep both, separate tests.
+
+Q5 (performance now or measured?): DEFER until measured. E-01 (search full redraw per batch)
+  and E-02 (heavy keystroke side effects) are real but presentation-only; keep model commits
+  immediate, debounce presentation later with a benchmark. E-03 (gradient per-char tags)
+  measure tag growth first. Do not optimize blind (Rule 22). E-04 multi-folder DnD: keep
+  native WM_DROPFILES, warn-and-open-first; no tkinterdnd2.
+
+Q6 (semantic changes beyond CRLF?): NO. Hash-proven identical (see above). Baseline blocker
+  resolved. Copilot workspace = local D:\Misora-Editor == main content.
+
+Q7 (explicit Qwen confirmation of Gemini roadmap?): NO. Qwen1/2/3 are echoes of Assistant A's
+  memos, not independent Qwen review. Gemini's "final sign-off" lacked independent Qwen
+  confirmation AND included NEW-1 (now retracted) and the Save-All-before-dirty dependency
+  error. Consensus was NOT complete. With NEW-1 retracted and the dependency corrected,
+  the finding set is converged; Phase 1 lock still requires agreement on the corrected
+  slice plan + user approval.
+
+## ACCEPTED CORRECTIONS TO ASSISTANT A'S EARLIER POSITION
+- RETRACT NEW-1 (false positive; indentation misread from lossy paste).
+- ACCEPT GPT dependency order: per-document dirty contract + on_save() success BEFORE Save All.
+- ACCEPT smaller slices.
+- Baseline now hash-proven (was arithmetic-only in A's prior turn).
+
+## CORRECTED SLICE PLAN (dependency-safe, one Copilot prompt each)
+S0 pre-flight: confirm workspace (local==main proven); resolve PROJECT_STATE.md conflict
+   markers; confirm misora_config.json untracked locally; run Windows regression baseline.
+S1 staged open_file + strict UTF-8 load (F-GPT-01 / N-H / N-I): commit state only on success.
+S2 minimum per-document dirty contract (stop _dirty_state_changed clobbering per-entry dirty
+   with global revision) + on_save() explicit success return.  [prerequisite for S3]
+S3 safe Close (abort on failed save) + Save-All-dirty Exit (abort on any failure) +
+   plain-text save from raw model (F4) + shared atomic UTF-8 write helper (N-E).
+S4 structural fidelity: internal BoxSnapshot paste (F6) + non-contiguous cut undo positions
+   (F12) + clear-skeleton lock guard (F11). [NEW-1 removed]
+S5 Replace-All integrity (F5): structured prefilter, bundle undo, strict decode, atomic,
+   lock respect, dirty/cache protection, root dedup.
+S6 identity/thread: UID JP registry (F7) + UID locks (N-D) + search snapshots (F9) +
+   MTL/batch main-thread queue (F8) + F8 stale guard (F10) + source= tags.
+S7 remaining integrity/polish: continuous ribbon active-card target (F13) + shortcuts
+   (Ctrl+Alt/Ctrl+T) + DPI + version + gradient label + halfwidth NFKC + search error
+   channel + destroy() after-sweep.
+S8 workspace UI: Open Project default + empty state + multi-select + console (Option A
+   in-app panel + Debug toggle to hide/show external Windows console).
+S9 MTL drawer (retire floating dialog; Live OFF; scratchpad routing isolation N-G).
+S10 Import from XUAT (core/xuat_index.py; L1-L7 safeguards; no conflict_manager).
+Performance E-01/02/03: deferred, measure-first.
+
+## CONSENSUS STATUS
+Finding set converged on a single hash-proven baseline. NEW-1 retracted. Dependency
+corrected. NOT locking Phase 1 yet (per GPT); await agreement on corrected slice plan +
+user approval. No Copilot prompt generated.

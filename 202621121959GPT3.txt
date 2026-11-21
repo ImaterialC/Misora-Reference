@@ -1,0 +1,365 @@
+
+MISORA EDITOR — INDEPENDENT PHASE 1 REVIEW
+Reviewer: GPT
+Date: 2026-11-21
+Repository: ImaterialC/Misora-Editor
+Reviewed baseline: GitHub main
+misora.py blob: ba6ae25c3f7088392d968ed1d5915fe08bd87ed8
+
+VERDICT: PARTIALLY AGREE.
+DO NOT LOCK PHASE 1 YET.
+DO NOT GENERATE THE COPILOT PROMPT YET.
+
+==================================================
+1. CONFIRMED FINDINGS
+==================================================
+
+F-GPT-01 — OPEN FAILURE STATE CORRUPTION
+Severity: P0
+File: misora.py, lines 6066-6177
+
+open_file() modifies current_file_path, dirty state,
+lock state, modified boxes and source-text cache
+before the new document has been successfully loaded.
+
+If loading fails, the old document objects can remain
+while the active path and other state point to the new
+file.
+
+Recommendation:
+Stage the new document and all associated state in
+local variables. Commit the new state only after a
+successful load. Preserve the previous document
+completely on failure.
+
+F-GPT-02 — CLOSE IGNORES SAVE FAILURE
+Severity: P0
+File: misora.py, lines 9027-9046
+
+close_file() calls on_save(), then deletes the document
+from open_documents without verifying that saving
+succeeded.
+
+Recommendation:
+Provide an explicit save-success result. Abort closing
+when Save fails. Preserve the document and its Undo
+history.
+
+F-GPT-03 — EXIT DOES NOT SAVE ALL DIRTY DOCUMENTS
+Severity: P0
+File: misora.py, lines 1349-1363
+
+_exit_app() prompts when any open document is dirty,
+but calls on_save() only once for the active document.
+
+Inactive dirty documents can be discarded.
+
+Recommendation:
+Save every dirty document and abort shutdown if any
+required save fails. This must be coordinated with
+reliable per-file dirty tracking.
+
+F-GPT-04 — COMPILED PREVIEW CAN CORRUPT PLAIN-TEXT SAVE
+Severity: P1
+File: misora.py, lines 6183-6200, 7863-7880
+
+The plain-text view can display compiled/rendered NGUI
+content. The save branch reads from the presentation
+widget instead of the authoritative raw text model.
+
+Recommendation:
+Save the raw model content, never the rendered preview.
+
+F-GPT-05 — MULTI-FILE REPLACE ALL DATA INTEGRITY
+Severity: P0/P1
+File: misora.py, lines 8609-8802
+
+Issues include:
+- Binary byte prefiltering instead of structured bundle
+  dialogue matching.
+- Bundle replacements omitted from BulkFileDelta.
+- Lossy text decoding.
+- Non-atomic text writes.
+- Translation Lock bypass.
+- Unsaved active document reload risk.
+- Stale cached documents after disk replacement.
+
+Recommendation:
+Fix as a dedicated engineering slice. Preserve the
+existing UndoJournal model. Do not create a generic
+transaction framework without demonstrated need.
+
+F-GPT-06 — INTERNAL BOX SNAPSHOT DATA LOSS
+Severity: P1
+File: misora.py, lines 6838-6880
+File: core/story_ast.py, lines 207-230
+
+Internal BoxSnapshot clipboard data is converted into
+flattened DialogueBlock objects and rebuilt as new
+snapshots.
+
+Segment boundaries, voice cues and extra arguments
+can be lost.
+
+Recommendation:
+Preserve internal BoxSnapshot data directly.
+Keep external clipboard conversion separate.
+
+F-GPT-07 — XUAT JAPANESE SOURCE KEY DRIFT
+Severity: P1
+File: misora.py, lines 7926-7943
+
+The original source-text cache is overwritten with
+translated text after synchronization.
+
+A subsequent save can search XUAT using English text
+instead of the original Japanese source.
+
+Recommendation:
+Use immutable Japanese source text keyed by stable
+Box UID. Do not overwrite it after translation.
+
+F-GPT-08 — BATCH TRANSLATION THREAD VIOLATION
+Severity: P1
+File: misora.py, lines 11089-11145
+
+The worker thread accesses and modifies StoryDocument,
+UndoJournal and application state. It also schedules
+Tkinter callbacks directly.
+
+Recommendation:
+Workers should perform translation only. Return plain
+results through a thread-safe queue. Validate document
+and Box identity before applying results on the UI
+thread. Guarantee exception-safe batch completion.
+
+F-GPT-09 — SEARCH WORKER READS LIVE DOCUMENTS
+Severity: P1
+File: misora.py, lines 8028-8085
+
+Search receives mutable StoryDocument references while
+the UI can still modify them.
+
+Recommendation:
+Create immutable search snapshots on the UI thread.
+
+F-GPT-10 — ASYNC TRANSLATION STALE RESULT
+Severity: P1
+File: misora.py, lines 9619-9675
+
+F8 captures a box index but does not validate
+document identity or Box UID when its asynchronous
+result returns.
+
+A result may be applied to another file's box at the
+same index.
+
+Recommendation:
+Validate file/document identity and Box UID before
+applying the result.
+
+F-GPT-11 — CLEAR SKELETON BYPASSES LOCK
+Severity: P1
+File: misora.py, lines 9983-10017
+
+on_clear_dialogue_skeleton() modifies every box
+without checking Translation Lock.
+
+Recommendation:
+Skip locked boxes and report how many were preserved.
+
+F-GPT-12 — NON-CONTIGUOUS CUT UNDO POSITION LOSS
+Severity: P1
+Files:
+misora.py, lines 6798-6818 and 8837-8895
+core/story_ast.py, lines 589-612
+
+The delete delta stores only the first selected index.
+Undo restores snapshots consecutively from that index.
+
+Non-contiguous selections may therefore be restored
+at incorrect positions.
+
+Recommendation:
+Preserve original positions for every deleted snapshot.
+
+F-GPT-13 — CONTINUOUS RIBBON TARGET MISMATCH
+Severity: P1
+File: misora.py, lines 5372-5419 and 7067-7075
+
+The ribbon wrapper targets txt_continuous even though
+bundle Continuous View uses individual card editors
+and hides txt_continuous.
+
+Recommendation:
+Resolve the active card editor before inserting or
+wrapping text.
+
+F-GPT-14 — PROJECT STATE DOCUMENT CONFLICT
+Severity: P1
+File: PROJECT_STATE.md, lines 1-7
+
+The canonical project state document contains
+unresolved Git conflict markers.
+
+Recommendation:
+Resolve the conflict and reconcile the actual
+test status before treating the file as authoritative.
+
+==================================================
+2. CONFIRMED EFFICIENCY / MAINTENANCE OBSERVATIONS
+==================================================
+
+E-01 — SEARCH RESULT FULL REDRAW
+File: misora.py, lines 8093-8125
+
+Search results are fully rendered for every incoming
+batch. Many batches can cause repeated full rebuilds.
+
+Consider one render per UI polling cycle rather than
+one full render per batch.
+
+E-02 — HEAVY KEYSTROKE SIDE EFFECTS
+File: misora.py, around line 7673
+
+Dialogue editing triggers several view, highlight,
+resize and counter updates on every keystroke.
+
+Preserve immediate model commits, but consider
+debouncing expensive presentation-only work.
+
+E-03 — GRADIENT STYLE TAG COST
+File: misora.py, lines 4758-4789
+
+Gradient rendering interpolates colors per character
+and generates style tags for those colors.
+
+Measure tag growth and rendering cost before choosing
+a cap or alternative representation.
+
+E-04 — MULTI-FOLDER DRAG AND DROP
+File: misora.py, lines 2220-2287
+
+Only dirs[0] is sent to folder processing.
+
+Additional dropped directories are ignored.
+
+Keep native Win32 WM_DROPFILES. Do not add an
+unnecessary tkinterdnd2 dependency.
+
+==================================================
+3. DISPUTED FINDING — REQUIRES CORRECTION
+==================================================
+
+QWEN NEW-1:
+BOX-PASTE-UNDO-DELTA-DUPLICATION
+
+The claimed repeated recording inside the insertion
+loop was NOT found in the current GitHub main source.
+
+The current code inserts snapshots in a loop and calls
+undo_journal.record() once AFTER the loop.
+
+Reference:
+misora.py, lines 6883-6899.
+
+Do not include this bug in a Copilot prompt unless
+the authoritative local source proves otherwise.
+
+The separate F-GPT-06 snapshot-flattening defect
+remains valid.
+
+==================================================
+4. ROADMAP DEPENDENCY OBJECTION
+==================================================
+
+The proposed RUN 1 includes Save All and per-document
+shutdown safety, while per-file dirty/revision
+correction is assigned to RUN 3a.
+
+These tasks are coupled.
+
+A save-all implementation must not rely on an
+inaccurate global dirty revision.
+
+Recommendation:
+Define the minimum correct per-document dirty-state
+contract before implementing Save All.
+
+Also split the current RUN 1 into small engineering
+slices to avoid oversized Copilot prompts.
+
+Suggested order:
+1. Staged open and strict loading.
+2. Per-file save status and safe Close/Exit.
+3. Structural snapshot and cut/paste Undo.
+4. Remaining text persistence and lifecycle fixes.
+
+==================================================
+5. BASELINE AND EVIDENCE REQUIREMENTS
+==================================================
+
+GitHub main misora.py:
+499,293 bytes.
+
+Reported local ZIP misora.py:
+510,461 bytes.
+
+The 11,168-byte difference is consistent with
+LF-to-CRLF conversion, but this reviewer has not
+independently verified the local ZIP hash or
+normalized content.
+
+Before implementation:
+- Verify Copilot's actual workspace.
+- Compare normalized source hashes.
+- Check that no uncommitted changes will be lost.
+- Resolve PROJECT_STATE.md conflict markers.
+- Run the actual Windows regression suite.
+
+The public main branch .gitignore already excludes
+misora_config.json. It is not currently present as a
+tracked file in the inspected GitHub tree. Recheck
+local Git tracking rather than treating this as a
+confirmed public-secret leak.
+
+==================================================
+6. QUESTIONS FOR COUNTERPART REVIEWERS
+==================================================
+
+Q1. Can anyone provide source evidence proving
+QWEN NEW-1 exists in the authoritative local tree?
+
+Q2. Is the proposed split of RUN 1 technically safer
+for the current Copilot workspace and model limits?
+
+Q3. Can Save All be implemented safely before
+per-document dirty-state correctness is established?
+
+Q4. Do you agree that F-GPT-06 and F-GPT-12 are
+separate structural Undo problems?
+
+Q5. Are the performance suggestions worth implementing
+now, or should they remain deferred until measured?
+
+Q6. Does the local ZIP contain semantic changes
+beyond line-ending normalization?
+
+Q7. Does the latest Gemini final roadmap have explicit
+Qwen confirmation, including the newly disputed findings?
+
+FINAL POSITION:
+
+The core data-integrity and threading findings are
+accepted.
+
+The false or unverified claims must be removed or
+re-proven.
+
+The roadmap needs dependency correction and smaller
+Copilot execution slices.
+
+This reviewer does NOT approve Phase 2 yet.
+
+No code modifications made.
+No Copilot execution prompt produced.

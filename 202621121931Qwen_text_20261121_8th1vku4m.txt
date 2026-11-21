@@ -1,0 +1,49 @@
+# MISORA — PHASE 1 COUNTERPART SIGN-OFF (Assistant A)
+
+## BASELINE RECONCILIATION — VERIFIED (arithmetic)
+main misora.py = 499,293 B / 11,169 lines (byte-exact tarball, this session).
+local = 510,461 B. Delta = 11,168 B = exact line-break count of an 11,169-line file.
+CRLF adds 1 byte per line break => 499,293 + 11,168 = 510,461. CONCLUSIVE: local == main
+content, CRLF vs LF only. Gemini's "CRLF equivalent of ba6ae25c3f" is correct.
+=> Baseline blocker REMOVED. All findings verified on main apply identically to local.
+=> User to confirm local SHA-256 == 2188eab9...babe (one-liner provided). SHA re-verify
+   in sandbox pending (sandbox intermittent); arithmetic proof stands independently.
+
+## VERDICT: AGREE TO LOCK PHASE 1. Zero hard objections to the finding set or RUN ordering.
+The notes below are PHASE 2 prompt-design constraints, not consensus blockers.
+
+N1 (granularity): RUN 1 / RUN 2 / RUN 3a as written exceed one quota-limited Copilot prompt.
+  RUN 3a bundles ~12 substantial fixes (mini-epic). Sub-slice per the prompting playbook:
+  RUN1 -> 1a staged-open+strict-load+on_save-success; 1b close/exit-abort+save-all-dirty+
+         plaintext-raw-save+atomic-helper; 1c paste-single-delta+BoxSnapshot-fidelity+
+         clear-skeleton-lock+destroy-sweep.
+  RUN2 -> 2a structured-prefilter+strict-decode+atomic+root-dedup; 2b bundle-undo+lock+
+         dirty/cache-protection+refresh.
+  RUN3a -> 3a-1 UID-JP-registry+UID-locks+lifecycle; 3a-2 per-doc-state+per-file-dirty+
+         source-tags+UID-coalesce+flush-before-switch; 3a-3 Batch/MTL-queue+journal.batch+
+         stale-guard; 3a-4 search-snapshot+reentrant-guard+plaintext-snapshot; 3a-5
+         v2-reserved-category+search-error-channel+halfwidth-kana.
+  Each sub-slice = one Copilot prompt + its own failing-first regression test.
+
+N2 (dependency): RUN 1 close/exit abort (F2/F3) MUST use an explicit on_save() success
+  return, NOT the global is_dirty (F16 per-file dirty is deferred to 3a-2). Do not build
+  RUN 1 on the broken global dirty signal.
+
+N3 (gap): RUN 3c must ALSO include the external Windows-console hide toggle
+  (ShowWindow(GetConsoleWindow(), SW_HIDE/SW_SHOW), default hidden, wired to
+  var_console_visible) per the user's earlier decision. Gemini's sign-off only lists the
+  in-app console (Option A); add the external toggle so the console decision is complete.
+
+N4 (completeness): fold minor NEW items into the RUN map so none are lost:
+  NEW-14/15/16/18 -> 3b; NEW-17/19/20/22/23 -> 3c; NEW-21 -> RUN4; NEW-24 -> RUN1 close/exit
+  (or 3a-2). New branding/QoL (Watermark, Player-Name label, {0} parity, 3-line overflow,
+  Copy-Missing+Context) confirmed lean; 3-line overflow metric CONDITIONAL on real game-box
+  capacity; Watermark stays a fan-project credit (no official-affiliation implication).
+  .gitattributes: minimal `* text=auto` only; avoid whole-repo renormalization diff.
+
+## All GPT F1-F27, Grok N-A..N-J, and Assistant A NEW-1..25 are accounted for in the RUN map
+(after N4 folding). F19 remains CONDITIONAL (test-first). F24/F27 measure-first on Windows.
+
+## READY: upon USER approval, proceed to Phase 2 — draft the identical, bounded Copilot
+prompt for RUN 1a (then 1b, 1c), with pre-flight hygiene (workspace hash check, minimal
+.gitattributes, PROJECT_STATE conflict-marker cleanup, confirm misora_config.json untracked).

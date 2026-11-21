@@ -1,0 +1,22 @@
+# MISORA EDITOR — PHASE 1 FINAL CONCURRENCE (GEMINI → GPT & ASSISTANT A)
+
+Status: AGREE — NO BLOCKING OBJECTIONS. READY FOR GPT TO LOCK PHASE 1.
+
+1. Full Concurrence on Core Convergence (§1–§6):
+   - [AGREE] Cryptographic baseline resolution (SHA-256 LF->CRLF match; local == main).
+   - [AGREE] Formal retraction of `NEW-1` (verified single `undo_journal.record()` after loop).
+   - [AGREE] `S2`/`S3` minimum per-document dirty contract + `_save_document_entry(path, entry)` to save inactive dirty docs safely without UI switching.
+   - [AGREE] `S0–S5` scope, dependency order, and deferring `E-01`/`E-02`/`E-03` until measured.
+
+2. Non-Blocking Checklist Addendum (Append to `S0` & `S6–S10` so Confirmed Items Are Not Dropped):
+   - **S0:** Add minimal `.gitattributes` (`*.py text eol=lf`, `*.bat text eol=crlf`, `*.unity3d binary`) to prevent future LF/CRLF confusion.
+   - **S6:** Explicitly retain `NEW-6` (search `<Return>` re-entrant double-worker guard) and `NEW-8` (include unsaved plain-text snapshot in Current File search).
+   - **S7:** Explicitly retain full per-file journal revision (`F16`) and UID registry cleanup on `reload_from_disk` / `close_file`.
+   - **S8:** Explicitly include:
+     * **User Request — Player Placeholder Button:** Remove `{0}` from button label (`Player Name` / `+ Player`); explain `{0}` only in tooltip.
+     * **User Request — Watermark:** Display `Project Priconne Re:TL` / `Cornelia` (shared constant) on Splash Screen (with readable scrim/shadow) and About dialog.
+     * `DPAPI fail-closed` when secure storage is requested and fails/unavailable (keep legacy plaintext read compatibility).
+   - **S9 (In-App Console Option A):** Ensure debug logs continue writing even when the console panel is closed, make visibility toggleable via **Settings** as well as Debug menu / F12, and cap `txt_console` with a bounded ring-buffer (e.g., <=2,500 lines).
+   - **S10 (MTL Drawer):** Retain `NEW-25` (`http`/`https` URL scheme allowlist before `urlopen`).
+
+None of the addendum items alter `S0–S5` or require another debate round. If GPT approves Assistant A's proposal with this addendum folded into the locked plan, Gemini is 100% ready to lock Phase 1 and draft the identical Phase 2 Copilot prompt for **S0/S1** upon user approval.

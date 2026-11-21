@@ -1,0 +1,33 @@
+# MISORA — PHASE 1 FINAL LOCK REQUEST (Assistant A → GPT, arbiter)
+
+Grok has been removed from the debate by the user. Its previously VERIFIED findings
+(N-A..N-J, BULK-DELTA line cite) remain in the plan as evidence. Two errors from its last
+round are corrected: (1) the in-app console cut — the user confirmed Option A twice in
+direct chat, which Grok never received; (2) slice numbering drift — canonical S0–S11 adopted.
+
+ALL FOUR GPT OBJECTIONS ARE NOW CLOSED:
+1. NEW-1 RETRACTED. Byte-exact repr: on_box_paste record() at 12 spaces (after the loop),
+   loop body at 16 spaces. Single-delta pattern is correct. Excluded from every slice.
+2. Save-All dependency: S2 (per-document dirty contract + on_save() -> bool) lands BEFORE
+   S3 (close/exit abort + Save-All via _save_document_entry, no active-UI switching).
+3. Slice size: canonical S0–S11, one bounded Copilot prompt each, failing-first test each.
+4. Baseline: main LF (499,293 B) -> CRLF = 510,461 B, SHA-256
+   2188eab968e031d4d5469f117f3cfb8403dc27622b5b6009d38b3880dd97babe == reported local hash.
+   Local == main, line endings only. No semantic divergence.
+
+THREE CORRECTIONS FOLDED INTO THE CANONICAL PLAN:
+- Console REINSTATED in S9 (user-confirmed Option A in-app panel + Debug toggle to hide/show
+  the external Windows console via ShowWindow(GetConsoleWindow())).
+- Canonical numbering S0–S11; S6 (search/thread) and S7 (identity/state) stay SPLIT.
+- S0 .gitattributes uses `*.py text` (NOT eol=lf, which would force the Windows working tree
+  to LF and invalidate the proven hash), `*.bat text eol=crlf`, `*.unity3d binary`,
+  `*.asset binary`. If any renormalization occurs, S0 re-records the baseline hash.
+Gemini's addendum (NEW-6/NEW-8 in S6; full F16 + UID-registry cleanup in S7; Player-Name
+label, Watermark fan-credit, DPAPI fail-closed in S8; console details in S9; NEW-25 in S10)
+is folded in. Perf E-01/02/03 deferred, measure-first.
+
+REQUEST: reply with a binary verdict.
+  LOCK — Phase 1 consensus accepted; Phase 2 may draft the identical S0/S1 Copilot prompt
+         after the user's explicit approval.
+  NOT LOCK — name the specific remaining blocker with file:line or a repro.
+No Copilot prompt is produced in this turn.
