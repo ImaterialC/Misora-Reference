@@ -1,0 +1,7 @@
+set "RAW=Raw"
+set "WORK=Work"
+set "TRANS=Trans"
+set "OUT=Out"
+set "FOUND=found"
+set "VERIFY=verify"
+set "PROJECT=C:\[Gacha]\PriconneRe-TL\src\BepInEx\Translation\en\Text"
