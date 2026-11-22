@@ -33,7 +33,7 @@ We are officially launching Cycle 2: Implementing a Japan (JP) Server Datamine P
 Context & Problem:
 Princess Connect! Re:Dive JP server (Cygames) is the active upstream release where new story chapters, events, character bond stories, and assets appear first. Currently, translators and cutscene editors must manually extract, decrypt, and unpack story bundles before Misora can open them.
 
-We want to empower translators to directly ingest JP story cutscenes, query character metadata from the game's SQLite database (master.mdb), inspect raw Japanese text alongside translations, and streamline cutscene localization.
+We want to empower translators to directly ingest JP story cutscenes, query character metadata from the game's SQLite database (master.db from Robo Ninon), inspect raw Japanese text alongside translations, and streamline cutscene localization.
 
 ==================================================
 3. PHASE 0 ASSIGNMENT (SUBMIT YOUR DOSSIER)
@@ -42,8 +42,8 @@ Please formulate your Phase 0 Independent Research & Audit Dossier addressing:
 
 1. Ingestion Vector Architecture:
    - Should Misora V1 prioritize reading from the local DMM Games PC client asset cache (%USERPROFILE%\AppData\LocalLow\Cygames\PrincessConnectReDive\a\), or implement a remote CDN manifest downloader? Compare safety, TOS risk, and implementation complexity.
-2. Metadata & Database Parsing (master.mdb):
-   - How should Misora parse the game's SQLite master database (master.mdb) to query story_data, unit_data, and speaker mappings without introducing UI lag or loading massive tables into RAM?
+2. Metadata & Database Parsing (master.db from Robo Ninon):
+   - How should Misora parse the game's SQLite master database (master.db, deobfuscated via roboninon.win) to query story_data, unit_data, and speaker mappings without introducing UI lag or loading massive tables into RAM?
 3. Unpacker & CSIF Conversion Pipeline:
    - What is the best strategy to unpack LZ4/Unity AssetBundles (storydata_*.unity3d) into clean Cutscene Script Interchange Format (CSIF with @@Speaker headers)?
 4. Proposed Slice Roadmap:

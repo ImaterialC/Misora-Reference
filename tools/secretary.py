@@ -67,39 +67,73 @@ def cmd_status(args):
 
     # Archives
     print("\n[COLD ARCHIVES]")
-    if os.path.exists("archives"):
-        for f in sorted(os.listdir("archives")):
-            if f.endswith(".zip"):
-                p = os.path.join("archives", f)
-                sz = os.path.getsize(p)
-                print(f"  📦 {f:<30} ({sz/1024:.1f} KB)")
-    else:
+    archive_dirs = ["archives", os.path.join("reference_toolchains", "archives")]
+    found_archives = False
+    for adir in archive_dirs:
+        if os.path.exists(adir):
+            for f in sorted(os.listdir(adir)):
+                if f.endswith(".zip"):
+                    p = os.path.join(adir, f)
+                    sz = os.path.getsize(p)
+                    print(f"  📦 {p:<45} ({sz/1024:.1f} KB)")
+                    found_archives = True
+    if not found_archives:
         print("  (None)")
+
+    # Reference Toolchains Desk
+    print("\n[REFERENCE TOOLCHAINS (ACTIVE DESK)]")
+    rt_docs = [
+        os.path.join("reference_toolchains", "README.md"),
+        os.path.join("reference_toolchains", "PROGRAM_LINEAGE_AND_ALIASES.md"),
+        os.path.join("reference_toolchains", "EXTRACTOR_PLUGIN_PROPOSAL.md"),
+        os.path.join("reference_toolchains", "community_heritage", "HERITAGE_AND_SOURCES.md"),
+    ]
+    for doc in rt_docs:
+        if os.path.exists(doc):
+            sz = os.path.getsize(doc)
+            print(f"  ✓ {doc:<45} ({sz/1024:.1f} KB)")
+
+    v3_path = os.path.join("reference_toolchains", "v3_kyouka_suite")
+    if os.path.exists(v3_path):
+        v3_files = [f for root, _, files in os.walk(v3_path) for f in files]
+        print(f"  🟢 V3 Kyouka Suite: {len(v3_files)} files active (uncompressed)")
+
+    v2_path = os.path.join("reference_toolchains", "v2_modular_tools")
+    if os.path.exists(v2_path):
+        v2_files = [f for root, _, files in os.walk(v2_path) for f in files]
+        print(f"  🟢 V2 Modular Tools: {len(v2_files)} files active (uncompressed)")
+
     print("=" * 60)
 
 
 def cmd_verify_zips(args):
     print("Running integrity checks on all archives...")
-    if not os.path.exists("archives"):
-        print("No archives/ directory found.")
-        return 0
-
+    archive_dirs = ["archives", os.path.join("reference_toolchains", "archives")]
     all_passed = True
-    for f in sorted(os.listdir("archives")):
-        if f.endswith(".zip"):
-            p = os.path.join("archives", f)
-            try:
-                with zipfile.ZipFile(p, "r") as zf:
-                    corrupt = zf.testzip()
-                    if corrupt is None:
-                        count = len(zf.namelist())
-                        print(f"  ✓ {f}: PASS ({count} files, {os.path.getsize(p)/1024:.1f} KB)")
-                    else:
-                        print(f"  ✗ {f}: CORRUPT (First bad file: {corrupt})")
-                        all_passed = False
-            except Exception as e:
-                print(f"  ✗ {f}: FAILED TO OPEN ({e})")
-                all_passed = False
+    found_any = False
+
+    for adir in archive_dirs:
+        if not os.path.exists(adir):
+            continue
+        for f in sorted(os.listdir(adir)):
+            if f.endswith(".zip"):
+                found_any = True
+                p = os.path.join(adir, f)
+                try:
+                    with zipfile.ZipFile(p, "r") as zf:
+                        corrupt = zf.testzip()
+                        if corrupt is None:
+                            count = len(zf.namelist())
+                            print(f"  ✓ {p}: PASS ({count} files, {os.path.getsize(p)/1024:.1f} KB)")
+                        else:
+                            print(f"  ✗ {p}: CORRUPT (First bad file: {corrupt})")
+                            all_passed = False
+                except Exception as e:
+                    print(f"  ✗ {p}: FAILED TO OPEN ({e})")
+                    all_passed = False
+
+    if not found_any:
+        print("No zip archives found.")
 
     return 0 if all_passed else 1
 

@@ -16,7 +16,7 @@ This repository serves as the official recording archive, decision ledger, and c
 | **Cycle 1: Slice S0 & S1** | Open File Safety, test harness isolation, multi-document caching | **IMPLEMENTED** ✅ | Passing tests (`test_s1_open_file_safety.py`) |
 | **Cycle 1: Slice S8b-1** | Narrowed Game-Style Dialogue Box Preview (in-game styling) | **LOCKED & PARKED** ⏸️ | Ready in `prompts/S8b-1_narrowed_dialogue_box.md` |
 | **Cycle 1: Slice S2** | Minimum Per-Document Dirty Contract & Explicit `on_save() -> bool` | **UNANIMOUS LOCK** 🔒 | Ready in `prompts/S2_dirty_contract_final_locked.md` |
-| **Cycle 2: JP Datamine Pipeline** | **Japan Server Ingestion, `master.mdb` SQLite parser, CSIF extractor** | **ACTIVE DEBATE** 🟢 | **Phase 0 Research & Proposal Stage** |
+| **Cycle 2: JP Datamine Pipeline** | **Japan Server Ingestion, `master.db` SQLite parser (Robo Ninon), CSIF extractor** | **ACTIVE DEBATE** 🟢 | **Phase 0 Research & Proposal Stage** |
 | **Cycle 1: Slice S3 to S11** | Save-All on Exit, Structural Undo, Threading, Full Journal | **QUEUED** 📋 | Queued following S2 verification |
 
 ---
@@ -58,7 +58,7 @@ STRICT BEHAVIORAL INVARIANTS:
   * S8b-1: UNANIMOUS LOCK & PARKED (UI presentation layer, in-game styling).
   * S2 (Dirty Tracking Contract): UNANIMOUS LOCK (prompt finalized in prompts/S2_dirty_contract_final_locked.md).
 - Cycle 2 (Active Floor): JAPAN SERVER DATAMINE INTEGRATION.
-  * Status: PHASE 0 KICKOFF — Independent research on ingesting JP server assets (Cygames DMM client cache vs CDN), SQLite master.mdb parsing, story bundle unpacking into CSIF, and dual-language diff view.
+  * Status: PHASE 0 KICKOFF — Independent research on ingesting JP server assets (Cygames DMM client cache vs CDN), SQLite master.db parsing (Robo Ninon datamine), story bundle unpacking into CSIF, and dual-language diff view.
   * Briefing document: active_debates/datamine_jp_server/01_KICKOFF_BRIEFING_JP_DATAMINE.md.
 
 ==================================================
@@ -66,7 +66,7 @@ STRICT BEHAVIORAL INVARIANTS:
 ==================================================
 Deliver your Phase 0 Independent Research & Proposals on the Japan Server Datamine Pipeline:
 1. Ingestion vector (DMM PC local cache vs CDN fetcher).
-2. Database architecture (master.mdb SQLite query engine).
+2. Database architecture (master.db SQLite query engine from Robo Ninon).
 3. Unpacker & CSIF translation workflow.
 4. Proposed slice sequence (e.g., D1 to D4).
 5. Safety & legal guardrails (zero hardcoded decryption keys).

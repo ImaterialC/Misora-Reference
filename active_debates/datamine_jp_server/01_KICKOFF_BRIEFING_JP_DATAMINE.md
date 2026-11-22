@@ -41,15 +41,15 @@ The Review Board (GPT, Gemini, Qwen) is tasked with debating the following 5 arc
   * Interacting with Cygames asset CDN manifests (`manifest_assetlist`) to download specific story bundles on demand.
   * *Debate Point:* Does a CDN downloader risk API deprecation, IP throttling, or terms-of-service violations?
 
-### Pillar 2: Master Database Parsing (`master.mdb` / `master.db`)
-- The JP game client utilizes an encrypted/compressed SQLite database (`master.mdb`) containing crucial metadata tables:
+### Pillar 2: Master Database Parsing (`master.db` from Robo Ninon)
+- The JP community reverse-engineering ecosystem utilizes a deobfuscated SQLite 3 database (`master.db`), maintained and updated continuously via [Robo Ninon](https://roboninon.win/db/download) (inspired by `Expugn/priconne-database`), containing crucial metadata tables:
   * `story_data` (story IDs, title, synopsis, episode hierarchy).
   * `unit_data` / `unit_profile` (character names, IDs, voice actors, unit illustrations).
   * `chara_story_status` / `event_story_data` (unlock requirements, chronological chapters).
 - *Debate Points:*
-  * How should Misora Editor parse `master.mdb`? (Read-only SQLite query engine with indexed caching).
+  * How should Misora Editor parse `master.db`? (Read-only SQLite query engine with indexed caching).
   * How should character metadata enrich Misora's UI? (Speaker auto-completion, character portraits beside dialogue boxes, auto-populating Box 0 metadata).
-  * Memory footprint: The full database can exceed 100MB+; how to avoid startup lag? (Lazy indexed lookups vs. dedicated SQLite worker).
+  * Memory footprint: The database is ~51MB SQLite 3; how to avoid startup lag? (Lazy indexed lookups vs. dedicated SQLite worker).
 
 ### Pillar 3: Asset Bundle Unpacking & CSIF Conversion
 - Story cutscenes are stored as LZ4-compressed Unity AssetBundles (`storydata_XXXXXXX.unity3d`).
@@ -92,6 +92,6 @@ The Review Board (GPT, Gemini, Qwen) is tasked with debating the following 5 arc
 ## 4. IMMEDIATE ACTION FOR THE REVIEW BOARD (PHASE 0)
 
 Reviewers (**GPT**, **Gemini**, **Qwen**) are requested to formulate their **Phase 0 Independent Research & Audit Dossier** answering:
-1. What is the cleanest, safest architecture for Misora Editor to ingest JP story assets and `master.mdb` metadata?
+1. What is the cleanest, safest architecture for Misora Editor to ingest JP story assets and `master.db` (Robo Ninon) metadata?
 2. Should we prioritize DMM PC local cache reading over remote CDN downloading?
 3. How should the datamine roadmap be sliced (e.g., D1: `master.db` reader, D2: Story Bundle unpacker, D3: Dual-Language Diff View)?

@@ -168,7 +168,7 @@ flowchart LR
 ### Motivation & Goals:
 Princess Connect! Re:Dive JP server is the active upstream development branch where new story content releases first. Cycle 2 focuses on creating an automated pipeline for:
 1. **Asset Ingestion:** Local DMM Games PC client asset cache (`%USERPROFILE%\AppData\LocalLow\Cygames\PrincessConnectReDive\a\`) vs. remote CDN downloaders.
-2. **Metadata Parsing:** Querying SQLite `master.mdb` (`story_data`, `unit_data`, `event_story_data`) for automatic speaker identification, chapter trees, and character portraits.
+2. **Metadata Parsing:** Querying SQLite `master.db` (Robo Ninon datamine: `story_data`, `unit_data`, `event_story_data`) for automatic speaker identification, chapter trees, and character portraits.
 3. **CSIF Unpacker Pipeline:** Direct extraction of raw Japanese story bundles into clean `CSIF` documents.
 4. **Dual-Language Comparison:** Side-by-side Japanese raw vs. translated text comparison in the editor.
 5. **Safety Constraints:** Zero hardcoded decryption keys in source code; user-configured local paths only.
