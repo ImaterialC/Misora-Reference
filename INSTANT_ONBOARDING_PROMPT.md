@@ -1,12 +1,12 @@
-# INSTANT ONBOARDING PROMPT — FOR NEW AI JOINING MID-MEETING
-> **Panduan Penggunaan:** Salin seluruh blok teks di bawah ini dan tempelkan langsung ke sesi chat AI baru (ChatGPT, Claude, Gemini, atau Qwen) agar model tersebut langsung memahami seluruh konteks rapat tanpa perlu membaca ribuan baris log percakapan mentah.
+# INSTANT ONBOARDING PROMPT — FOR NEW AI INSTANCES JOINING MID-MEETING
+> **Operator Instructions:** Copy the entire code block below and paste it directly into any new AI chat session (ChatGPT, Claude, Gemini, or Qwen) to instantly bring the model up to full context without reading thousands of lines of raw chat transcripts.
 
 ---
 
 ```plaintext
 # HANDOFF & CATCH-UP BRIEFING — MISORA EDITOR MULTI-AI ENGINEERING BOARD
 ## For any new AI instance joining the discussion mid-meeting
-Date: 2026-11-22 | Target Codebase: https://github.com/ImaterialC/Misora-Editor | Reference Repo: https://github.com/ImaterialC/Reference-Files
+Date: 2026-11-22 | Target Codebase: https://github.com/ImaterialC/Misora-Editor | Reference Repo: https://github.com/ImaterialC/Misora-Reference
 
 You are stepping into an active, multi-AI consensus review for Misora Editor (an indie Tkinter/Python 3.12 Princess Connect! Re:Dive adv script editor).
 
@@ -38,7 +38,8 @@ STRICT BEHAVIORAL INVARIANTS:
   * Key UX rule: Summary Box (Box 0) auto-wraps; Story Dialogue Box does NOT auto-wrap (calibrated to 50 chars x 3 lines, wrap="none", dual-axis overflow markers).
 - Slice S2 (Dirty Tracking Contract & Multi-Document Safety): UNANIMOUS LOCK by GPT, Qwen, and Gemini.
   * Solves: Cross-file false-clean clobber, explicit on_save() -> bool return, undo-storm prevention, secondary XUAT retry retention, and preserved test_34/test_39 baselines.
-  * The full executable prompt is available in: prompts/S2_dirty_contract_final_locked.md.
+  * Executable prompt: prompts/S2_dirty_contract_final_locked.md
+  * Step-by-step verification guide: prompts/S2_execution_guide.md
 
 ==================================================
 3. IMMEDIATE NEXT ACTION

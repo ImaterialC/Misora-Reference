@@ -13,7 +13,7 @@ The Recording Secretary is an autonomous AI agent responsible for curating, summ
 ## 2. Repository Architecture Standard (Two-Tier Model)
 
 ```text
-<Project>-Reference-Files/
+<Project>-Misora-Reference/
 ├── README.md                      # Tier 1 (Active Desk): Landing dashboard & Instant Onboarding Prompt
 ├── SUMMARY_AND_CONSENSUS.md       # Tier 1 (Active Desk): Comprehensive living executive ledger
 ├── INSTANT_ONBOARDING_PROMPT.md   # Tier 1 (Active Desk): Standalone 40-line catch-up prompt

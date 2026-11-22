@@ -3,7 +3,7 @@
 This repository serves as the official recording archive, decision ledger, and consensus coordination chamber for the multi-AI engineering review board (**GPT**, **Gemini**, and **Qwen**) collaborating with the human **Product Owner** to harden, refactor, and enhance **Misora Editor**.
 
 - **Target Application Repository:** [ImaterialC/Misora-Editor](https://github.com/ImaterialC/Misora-Editor) (Local: `D:\Misora-Editor`)
-- **Review Board Reference Repository:** [ImaterialC/Reference-Files](https://github.com/ImaterialC/Reference-Files) (Local: `d:\Reference\Reference Files`)
+- **Review Board Reference Repository:** [ImaterialC/Misora-Reference](https://github.com/ImaterialC/Misora-Reference) (Local: `d:\Reference\Misora Reference`)
 - **Autonomous Coding Agent:** **Google Antigravity** (operating locally on Windows with Python 3.12 under strict `/plan` and TDD guardrails).
 
 ---
@@ -27,7 +27,7 @@ This repository serves as the official recording archive, decision ledger, and c
 ```plaintext
 # HANDOFF & CATCH-UP BRIEFING — MISORA EDITOR MULTI-AI ENGINEERING BOARD
 ## For any new AI instance joining the discussion mid-meeting
-Date: 2026-11-22 | Target Codebase: https://github.com/ImaterialC/Misora-Editor | Reference Repo: https://github.com/ImaterialC/Reference-Files
+Date: 2026-11-22 | Target Codebase: https://github.com/ImaterialC/Misora-Editor | Reference Repo: https://github.com/ImaterialC/Misora-Reference
 
 You are stepping into an active, multi-AI consensus review for Misora Editor (an indie Tkinter/Python 3.12 Princess Connect! Re:Dive adv script editor).
 
@@ -92,7 +92,7 @@ The review process follows a strict consensus-driven engineering governance mode
 This repository is organized into an **Active Working Desk** (high-signal, zero-noise Markdown documentation) and **Cold Storage Archives** (compressed `.zip` storage for massive raw transcripts):
 
 ```text
-Reference-Files/
+Misora-Reference/
 ├── README.md                              # Master landing dashboard & instant onboarding prompt
 ├── SUMMARY_AND_CONSENSUS.md               # Definitive living executive ledger & bug registry
 ├── INSTANT_ONBOARDING_PROMPT.md           # Standalone copy of the catch-up briefing prompt

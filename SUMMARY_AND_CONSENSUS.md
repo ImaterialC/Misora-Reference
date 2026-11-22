@@ -1,131 +1,159 @@
 # MISORA EDITOR — MASTER SUMMARY & CONSENSUS LEDGER
-## Notulen Eksekutif, Arsitektur, Registry Bug (F1–F20, B1–B10), dan Roadmap S0–S11
+## Comprehensive Executive Minutes, Architectural Overview, Bug Registry (F1–F20, B1–B10), and S0–S11 Roadmap
 
-**Penyusun:** Asisten Sekretaris Pencatat (Google Antigravity AI)  
-**Target Repositori Proyek:** `Misora-Editor` (`D:\Misora-Editor` | [GitHub: ImaterialC/Misora-Editor](https://github.com/ImaterialC/Misora-Editor))  
-**Target Repositori Referensi:** `Reference-Files` (`d:\Reference\Reference Files` | [GitHub: ImaterialC/Reference-Files](https://github.com/ImaterialC/Reference-Files))  
-**Tanggal Terakhir Diperbarui:** 2026-11-22
-
----
-
-## 1. PENDAHULUAN & TUJUAN DOKUMEN
-
-Dokumen ini adalah **ringkasan otoritatif bebas redundansi** dari seluruh perdebatan teknis lintas AI (GPT, Gemini, Qwen, dan User) dalam mengaudit, memperbaiki arsitektur, dan meningkatkan fitur **Misora Editor**.
-
-Tujuan utama dokumen ini adalah memberikan pemahaman menyeluruh dalam satu berkas terstruktur, sehingga AI atau pengembang mana pun yang bergabung di tengah rapat dapat memahami konteks, keputusan yang telah dikunci (*locked*), dan langkah selanjutnya tanpa harus membaca ribuan baris rekaman obrolan mentah.
+**Author:** Autonomous Recording Secretary Agent (Google Antigravity AI)  
+**Target Codebase:** `Misora-Editor` (`D:\Misora-Editor` | [GitHub: ImaterialC/Misora-Editor](https://github.com/ImaterialC/Misora-Editor))  
+**Review Reference Repository:** `Misora-Reference` (`d:\Reference\Misora Reference` | [GitHub: ImaterialC/Misora-Reference](https://github.com/ImaterialC/Misora-Reference))  
+**Last Synchronized:** 2026-11-22
 
 ---
 
-## 2. ARSITEKTUR MISORA EDITOR
+## 1. EXECUTIVE SUMMARY & PURPOSE
 
-Misora Editor adalah aplikasi desktop editor naskah cerita (*adv script*) untuk game **Princess Connect! Re:Dive** berbasis Python 3.12 dan Tkinter. Aplikasi ini memanipulasi file aset Unity (`.unity3d`), format teks NGUI bertag, serta sinkronisasi kamus terjemahan XUnity Auto Translator (XUAT).
+This document serves as the **authoritative, single-source-of-truth consensus ledger** for the engineering review board evaluating **Misora Editor**. It synthesizes all technical debates, architectural invariants, verified defects, and feature specifications agreed upon across hundreds of discussion turns between **GPT**, **Gemini**, **Qwen**, and the human **Product Owner**.
 
-### Peta Komponen Utama:
-- **`misora.py`:** Titik masuk utama (*entrypoint*) dan pengendali antarmuka pengguna (GUI Tkinter), manajemen tab, ribbon toolbar, event keyboard/mouse, serta integrasi komponen inti.
-- **`core/story_ast.py`:** Pemodelan AST (*Abstract Syntax Tree*) untuk naskah cerita (`StoryDocument`, `Box`, `CommandRecord`), serialisasi/deserialisasi naskah.
-- **`core/bundle_io.py`:** Pembacaan dan pengemasan ulang aset `.unity3d` berbasis UnityPy / format biner aset.
-- **`core/script_codec.py`:** Pengkodean dan pendekodean naskah cerita antara representasi teks dan biner AST.
-- **`core/undo_journal.py`:** Mesin pencatat riwayat perubahan undo/redo berbasis operasi delta.
-- **`core/ngui_tags.py`:** Parser dan penangan tag format NGUI (`[b]`, `[i]`, `[color]`, `<size>`, ruby text, dll.).
-- **`core/mtl_engine.py`:** Mesin bantuan terjemahan mesin (MTL) asinkron.
-- **`core/search_engine.py`:** Mesin pencarian teks dan regex melintasi kotak dialog dan berkas.
-- **`core/xunity_sync.py`:** Sinkronisasi dua arah dengan berkas konfigurasi/kamus terjemahan XUnity.
-- **`core/security.py`:** Sanitasi path file, pencegahan *path traversal*, dan validasi keamanan berkas.
-- **`core/logger.py`:** Subsistem pencatatan log diagnostik aplikasi.
-- **`tests/`:** Rangkaian tes regresi otomatis berbasis `unittest`.
+By consolidating these determinations into a structured, zero-redundancy format, any new AI instance or developer can immediately understand the project state, verified design constraints, and active engineering milestones without reading multi-megabyte chat transcripts.
 
 ---
 
-## 3. PROTOKOL & ATURAN SIDANG MULTI-AI
+## 2. MISORA EDITOR ARCHITECTURAL OVERVIEW
 
-Proyek ini menggunakan metode **Engineering Review Board** berbasis konsensus multi-model:
+Misora Editor is an indie desktop story/script editor designed for Princess Connect! Re:Dive adv scripts (`.unity3d` text assets). It is implemented in Python 3.12 utilizing standard Tkinter for GUI controls, interacting with NGUI-tagged text formats, raw binary Unity assets, and XUnity Auto Translator (XUAT) dictionary mappings.
 
-| Partisipan | Peran Utama | Tanggung Jawab Kritis |
+### Core Component Breakdown:
+- **`misora.py`:** Application entrypoint, main Tkinter window lifecycle, ribbon toolbar, tab management, key/mouse event dispatching, and view presentation logic.
+- **`core/story_ast.py`:** Object AST (*Abstract Syntax Tree*) model representing scripts (`StoryDocument`, `Box`, `CommandRecord`), responsible for serialization and deserialization.
+- **`core/bundle_io.py`:** Unity binary asset packaging and extraction utilizing UnityPy/binary serialization.
+- **`core/script_codec.py`:** Bidirectional codec translating raw script streams to and from AST nodes.
+- **`core/undo_journal.py`:** Delta-based command history engine supporting undo and redo operations.
+- **`core/ngui_tags.py`:** Parser, validator, and renderer for NGUI formatting tags (`[b]`, `[i]`, `[color]`, `<size>`, ruby annotations).
+- **`core/mtl_engine.py`:** Machine translation assistant engine supporting asynchronous translation calls.
+- **`core/search_engine.py`:** Cross-document and cross-box text search and regex evaluation engine.
+- **`core/xunity_sync.py`:** Bidirectional synchronizer with XUnity Auto Translator persistent dictionary files.
+- **`core/security.py`:** Filesystem sanitization, path traversal mitigation, and asset integrity validation.
+- **`core/logger.py`:** Application logging and diagnostic subsystem.
+- **`tests/`:** Automated regression test suite implemented under standard Python `unittest`.
+
+---
+
+## 3. MULTI-AI REVIEW BOARD GOVERNANCE
+
+The engineering review operates under a strict consensus-driven multi-model protocol:
+
+| Participant | Primary Designation | Core Responsibility |
 | :--- | :--- | :--- |
-| **GPT** | Arbiter Final | Memeriksa akar terdalam (*deepest inspection*), mengeluarkan vonis *LOCK*, dan menyusun kerangka draf prompt awal. |
-| **Gemini** | Reviewer Teknis | Menjaga stabilitas Tkinter, mengaudit risiko UX, dan menyusun *sync briefs* antar AI. |
-| **Qwen (Assistant A)** | Verifikator Sumber | Menguji kebenaran kode terhadap disk (*live code verification*), mereproduksi bug, dan memberikan koreksi presisi teknis. |
-| **User** | Direktur & Pengambil Keputusan | Memutus arah desain produk, memvalidasi kenyamanan pengguna, dan menjadi penghubung (*relay*) antar model. |
-| **Google Antigravity** | Coding Agent (Eksekutor) | Agen AI mandiri yang mengeksekusi prompt rekayasa perangkat lunak secara lokal di `D:\Misora-Editor` melalui mode `/plan` dan TDD. |
-| *Grok* | *Dikeluarkan* | *Telah diberhentikan oleh User setelah Phase 1. Temuan awalnya tetap sah, namun tidak memiliki hak suara lagi.* |
+| **GPT** | Final Arbiter | Deepest architectural inspector; holds final `LOCK` / `NOT LOCK` authority; authors initial engineering prompts. |
+| **Gemini** | Technical Reviewer | Tkinter GUI and UX risk auditor; evaluates thread safety; compiles cross-AI synchronization briefs. |
+| **Qwen (Assistant A)** | Source Verifier | Verifies assertions against disk source; reproduces edge-case bugs; contributes precision technical corrections. |
+| **Product Owner (User)**| Executive Director | Defines product scope, arbitrates UX preferences, and relays messages across AI models. |
+| **Google Antigravity** | Autonomous Coding Agent | Executes finalized engineering prompts locally in `D:\Misora-Editor` following strict `/plan` pre-flight and failing-first TDD. |
+| *Grok* | *Dismissed* | *Removed from the review board by user after Phase 1. Historical findings remain valid where cited, but it holds no voting rights.* |
 
-### Aturan Komunikasi:
-1. Komunikasi kepada **User** wajib menggunakan **Bahasa Indonesia**.
-2. Komunikasi teknis, perdebatan antar-AI, draf instruksi, dan prompt coding wajib menggunakan **Bahasa Inggris**.
-3. **Disiplin Konsensus:** Dilarang mengeksekusi kode sebelum ada konsensus bulat (*UNANIMOUS LOCK*) dari para AI dan persetujuan dari User.
-
----
-
-## 4. REGISTRY BUG & TEMUAN KRITIS
-
-### A. Phase 1 Technical Audit (Cacat Integritas Data & Sistem F1–F20)
-- **F1 (Dirty Tracking Desync):** Flag `is_dirty` dan status pada `open_documents` tidak sinkron saat berpindah file. *(Diselesaikan di S2)*.
-- **F2 (Inconsistent on_save Return):** `on_save()` mengembalikan `None` atau tidak menangkap exception sehingga pemanggil tidak dapat membedakan keberhasilan dan kegagalan. *(Diselesaikan di S2)*.
-- **F3 (Undo-Storm):** Undo pada dokumen memicu refresh berulang ke widget lain dan memicu lag. *(Diselesaikan di S2)*.
-- **F4 (Plain-Text Save Desync):** File teks biasa yang dibuka terkontaminasi atau salah simpan jika preview aktif. *(Dijadwalkan S3)*.
-- **F5 (Close Document Abort Missing):** Menutup tab dokumen tidak mengonfirmasi pembatalan jika penyimpanan gagal. *(Dijadwalkan S3)*.
-- **F6 (Structural Snapshot Integrity):** Operasi Cut/Paste/Delete Box merusak integritas urutan ID Box. *(Dijadwalkan S4)*.
-- **F7 (Multi-File Replace All):** Replace all lintas file menulis langsung ke disk tanpa validasi rollback. *(Dijadwalkan S5)*.
-- **F8 (Threading Race Condition):** Operasi pencarian dan MTL di thread latar belakang mengakses UI Tkinter tanpa `after()`. *(Dijadwalkan S6)*.
-- **F9 (XUAT Secondary Error Wipe):** Gagal menulis kamus XUAT menghapus antrean kotak modifikasi. *(Diselesaikan di S2)*.
-- **F10–F20:** Cacat batas NGUI, memori bocor pada tag Tcl, validasi encoding UTF-8 BOM, penanganan path Windows multibyte, dan pengerasan branch speaker laten.
-
-### B. Phase 1b UX Audit (Temuan Pengujian Pengguna B1–B10)
-- **B1 (Preview Mode Guard & Aesthetic):** Mode Preview (ikon mata `👁`) harus berstatus *read-only* agar markup NGUI tidak rusak, dilengkapi toast peringatan, dan berpenampilan menyerupai kotak dialog game. *(S8b-1)*.
-- **B2 (Ribbon Grouping):** Mengelompokkan ikon Preview dengan Single/Continuous View dan Select Box secara monokromatis. *(S8b-2)*.
-- **B3 (Continuous View NGUI):** Tombol format NGUI mati pada tampilan kontinu. *(S8)*.
-- **B4 (Header Naming):** Mengganti header statis `"GAME VIEW"` menjadi dinamis mencerminkan mode aktif: *Dialogue Editor*, *Dialogue Preview*, atau *Story Editor*. *(Disetujui User)*.
-- **B5 (Structured Tooltips):** Tooltip 1-tingkat yang kaya (Judul, Deskripsi Singkat, Contoh miring) tanpa timer ganda yang rumit. *(S8b-3)*.
-- **B6 (Stale Line Number):** Nomor baris tidak memperbarui saat Enter, Delete, atau Paste multiline. *(S8)*.
-- **B8 (Empty Paste Preview Bug):** Dialog pratinjau impor naskah dari clipboard kosong pada pola tertentu. *(S4)*.
-- **B9 (Translation Soft-Lock):** Kunci proteksi teks dialog yang tetap memperbolehkan seleksi dan copy, namun memblokir ketikan dan IME Jepang. *(S8b-4)*.
-- **B10 (Opened Files vs Open File):** Tab samping kiri sering disalahartikan sebagai tombol buka file; diperjelas dengan ikon/tombol `+` dan judul deskriptif. *(S9)*.
-- **Speaker Pin (`📌`):** Mengubah fungsi tombol pin untuk mengunci/membuka perubahan speaker pada kotak aktif. *(S8b-2)*.
+### Operational Communication Rules:
+1. All direct interaction with the human **Product Owner** is conducted in **Bahasa Indonesia**.
+2. All technical debates, cross-AI critiques, engineering prompts, and code documentation are conducted in **English**.
+3. **No Execution Without Unanimous Lock:** No code edits are permitted until GPT, Gemini, and Qwen achieve unanimous `LOCK` and the Product Owner approves.
 
 ---
 
-## 5. ROADMAP LENGKAP SLICE PROMPT (S0–S11)
+## 4. MASTER DEFECT & BUG REGISTRY
 
-| Slice | Fokus Utama | Status Saat Ini | Berkas Terkait |
-| :---: | :--- | :---: | :--- |
-| **S0** | Test Harness & Environment Isolation | **SELESAI & LULUS** | `tests/test_misora_core.py` |
-| **S1** | Open File Safety & Multi-Document Isolation | **SELESAI & LULUS** | `tests/test_s1_open_file_safety.py` |
-| **S2** | Minimum Per-Document Dirty Contract & `on_save() -> bool` | **UNANIMOUS LOCK** (Siap Eksekusi) | `prompts/S2_dirty_contract_final_locked.md` |
-| **S3** | Inactive-Doc Save, Close-File Abort & Save-All on Exit | Menunggu S2 | Rencana S3 |
-| **S4** | Structural Snapshot, Cut/Paste Integrity & Fix B8 | Menunggu S3 | Rencana S4 |
-| **S5** | Multi-File Replace-All & BulkFileDelta Checkpoints | Menunggu S4 | Rencana S5 |
-| **S6** | Background Threading Redesign (Search & MTL Async) | Menunggu S5 | Rencana S6 |
-| **S7** | Full MasterUndoJournal Revisions & Speaker Hardening | Menunggu S6 | Rencana S7 |
-| **S8** | Editor Core Polish (B3 Continuous View & B6 Line Numbers) | Menunggu S7 | Rencana S8 |
-| **S8b-1** | Narrowed Game-Style Dialogue Box Preview (Preview Skin) | **LOCKED & PARKED** | `prompts/S8b-1_narrowed_dialogue_box.md` |
-| **S8b-2** | Ribbon Cleanup & Speaker Pin Toggle (`📌`) | Menunggu S8 | Rencana S8b-2 |
-| **S8b-3** | Rich 1-Tier Structured Tooltips | Menunggu S8 | Rencana S8b-3 |
-| **S8b-4** | Translation Soft-Lock UX (Caret/Copy Active) | Menunggu S8 | Rencana S8b-4 |
-| **S9** | Left Sidebar Workspace (Opened Files vs Project Nav B10) | Menunggu S8b | Rencana S9 |
-| **S10** | XUnity Translator Sync Hardening | Menunggu S9 | Rencana S10 |
-| **S11** | Final Integration Verification, Build & Packaging | Menunggu S10 | Rencana S11 |
+### A. Foundational Data Integrity & System Defects (F1–F20)
+- **F1 (Dirty Tracking Desynchronization):** The `is_dirty` flag and `open_documents` cache desynchronize during document switching. *(Resolved in S2)*.
+- **F2 (Inconsistent `on_save()` Return Value):** `on_save()` returns `None` on exits and fails to report disk exceptions as boolean values. *(Resolved in S2)*.
+- **F3 (Undo-Storm & False Baseline):** Undoing edits triggers redundant widget-wide UI re-renders and fails to restore clean state at saved baselines. *(Resolved in S2)*.
+- **F4 (Plain-Text Save Model Clobber):** Plain-text files opened in preview mode risk data corruption during persistence. *(Assigned to S3)*.
+- **F5 (Close File Abort Missing):** Closing tabs does not abort when saving fails. *(Assigned to S3)*.
+- **F6 (Structural Snapshot Integrity):** Cut/Paste/Delete Box operations corrupt internal Box ID sequences. *(Assigned to S4)*.
+- **F7 (Multi-File Replace-All Safety):** Unvalidated direct disk modifications during multi-file replace. *(Assigned to S5)*.
+- **F8 (Threading Race Conditions):** Worker threads in search and MTL touch Tkinter widgets outside `after()`. *(Assigned to S6)*.
+- **F9 (XUAT Secondary Error Wipe):** Dictionary write failures clear `self._modified_boxes` prematurely. *(Resolved in S2)*.
+- **F10–F20:** Boundary edge cases in NGUI parsing, unbounded Tcl gradient tag accumulation, UTF-8 BOM encoding validation, multibyte path safety on Windows, and speaker mutation branches.
+
+### B. User Testing & UX Defects (B1–B10)
+- **B1 (Preview Mode Guard & Aesthetic):** Preview mode (`👁`) must be strictly read-only to safeguard raw NGUI markup, styled after in-game Princess Connect! Re:Dive dialogue boxes, with a non-modal cooldown toast on edit attempts. *(Assigned to S8b-1; LOCKED & PARKED)*.
+- **B2 (Ribbon Grouping):** View toggles grouped separately from NGUI format controls; formatting controls dimmed during preview. *(Assigned to S8b-2)*.
+- **B3 (Continuous View NGUI Inactive):** Formatting buttons target hidden widget rather than active editor card. *(Assigned to S8)*.
+- **B4 (Header Renaming):** Replace `"GAME VIEW"` with dynamic headers reflecting active view mode. *(Assigned to S8b-1)*.
+- **B5 (Structured Tooltips):** Adopt 1-tier Rich Tooltips (Title, Short Description, Italic Example) instead of brittle multi-tier timers. *(Assigned to S8b-3)*.
+- **B6 (Stale Line Number Rendering):** Line number margin fails to recalculate on Enter, Delete, or multiline Paste. *(Assigned to S8)*.
+- **B8 (Empty Paste Preview Bug):** Clipboard script import preview dialog renders blank on certain inputs. *(Assigned to S4)*.
+- **B9 (Translation Soft-Lock):** Dialogue locking mechanism blocking typing and Japanese IME while allowing text selection and `Ctrl+C`. *(Assigned to S8b-4)*.
+- **B10 (Opened Files vs Open Project):** Left sidebar tab clarified with `+` signifiers to prevent confusion with opening files. *(Assigned to S9)*.
+- **Speaker Pin (`📌`):** Converted to an explicit toggle locking/unlocking speaker modification across navigation. *(Assigned to S8b-2)*.
 
 ---
 
-## 6. KRONOLOGI KONSENSUS (2026-11-21 s/d 2026-11-22)
+## 5. S-SERIES IMPLEMENTATION ROADMAP (S0–S11)
 
 ```mermaid
-flowchart TD
-    A["2026-11-21: Phase 0 Independent Audits (Gemini, Grok, Qwen, GPT)"] --> B["Phase 1 Cross-Check Rounds 1–4"]
-    B --> C["Pengeluaran Grok & Konsensus Penguncian Phase 1"]
-    C --> D["S0 & S1 Dikerjakan & Lulus Tes"]
-    D --> E["2026-11-22 Subuh: UX Audit B1–B10 & Migrasi ke Antigravity"]
-    E --> F["Debat S8b: Koreksi Wordwrap User (Summary=Wrap, Story=No Wrap)"]
-    F --> G["S8b-1 UNANIMOUS LOCK & PARKED"]
-    G --> H["Debat S2: Amandemen Q1–Q6 & Pelipatan Blocker B1/B2"]
-    H --> I["S2 UNANIMOUS LOCK (Siap Dieksekusi Antigravity)"]
+flowchart LR
+    S0["S0: Test Harness"] --> S1["S1: Open File Safety"]
+    S1 --> S2["S2: Dirty Tracking Contract"]
+    S2 --> S3["S3: Multi-Doc Save/Exit"]
+    S3 --> S4["S4: Structural Undo & Paste"]
+    S4 --> S5["S5: Bulk Replace Delta"]
+    S5 --> S6["S6: Threading Redesign"]
+    S6 --> S7["S7: Full Undo Journal"]
+    S7 --> S8["S8: Editor Polish"]
+    S8 --> S8b["S8b: Dialogue Preview & UX"]
+    S8b --> S9["S9: Sidebar Workspace"]
+    S9 --> S10["S10: XUAT Hardening"]
+    S10 --> S11["S11: Final Packaging"]
+
+    style S0 fill:#2ea043,stroke:#fff,color:#fff
+    style S1 fill:#2ea043,stroke:#fff,color:#fff
+    style S2 fill:#1f6feb,stroke:#fff,color:#fff
+    style S8b fill:#d29922,stroke:#fff,color:#fff
 ```
+
+| Slice | Milestone Scope | Review Status | Primary Output Files |
+| :---: | :--- | :---: | :--- |
+| **S0** | Test Harness & Environment Isolation | **IMPLEMENTED** ✅ | `tests/test_misora_core.py` |
+| **S1** | Open File Safety & Multi-Document Isolation | **IMPLEMENTED** ✅ | `tests/test_s1_open_file_safety.py` |
+| **S2** | Minimum Per-Document Dirty Contract & `on_save() -> bool` | **UNANIMOUS LOCK** 🔒 | `prompts/S2_dirty_contract_final_locked.md` |
+| **S3** | Inactive-Doc Save, Close-File Abort & Exit Save-All | QUEUED | `prompts/S3_safe_exit_and_save_all.md` |
+| **S4** | Structural Snapshot, Cut/Paste Integrity & B8 Fix | QUEUED | Pending S3 |
+| **S5** | Multi-File Replace-All & BulkFileDelta Checkpoints | QUEUED | Pending S4 |
+| **S6** | Background Threading Redesign (Search & MTL Async) | QUEUED | Pending S5 |
+| **S7** | Full MasterUndoJournal Revisions & Speaker Hardening | QUEUED | Pending S6 |
+| **S8** | Editor Polish (B3 Continuous View & B6 Line Numbers) | QUEUED | Pending S7 |
+| **S8b-1** | Narrowed Game-Style Dialogue Box Preview (Preview Skin) | **LOCKED & PARKED** ⏸️ | `prompts/S8b-1_narrowed_dialogue_box.md` |
+| **S8b-2** | Ribbon Cleanup & Speaker Pin Toggle (`📌`) | QUEUED | Pending S8 |
+| **S8b-3** | Rich 1-Tier Structured Tooltips | QUEUED | Pending S8 |
+| **S8b-4** | Translation Soft-Lock UX (Caret/Copy Active) | QUEUED | Pending S8 |
+| **S9** | Left Sidebar Workspace (Opened Files vs Project Nav B10) | QUEUED | Pending S8b |
+| **S10** | XUnity Auto Translator Persistent Sync Hardening | QUEUED | Pending S9 |
+| **S11** | Final Integration Verification, Build & Packaging | QUEUED | Pending S10 |
 
 ---
 
-## 7. PANDUAN LANGKAH EKSEKUSI BERIKUTNYA
-1. Pastikan hasil pekerjaan S0 dan S1 sudah di-commit secara lokal di `D:\Misora-Editor`.
-2. Salin isi lengkap prompt dari `prompts/S2_dirty_contract_final_locked.md`.
-3. Buka Google Antigravity di workspace `D:\Misora-Editor`, tempel prompt dengan `/plan`.
-4. Periksa artefak **Implementation Plan** yang dihasilkan Antigravity (terutama klasifikasi `test_34` dan verifikasi serializer `StoryDocument`).
-5. Jika rencana sesuai, tekan tombol **Proceed** untuk menjalankan implementasi berbasis TDD (11 kasus uji).
+## 6. HISTORICAL DEBATE CHRONICLES
+
+### A. 2026-11-21: Phase 0 Independent Audits & Phase 1 Consensus
+- Gemini, Grok, Qwen, and GPT produced independent technical audit dossiers.
+- Cross-review rounds identified foundational AST vulnerabilities, UTF-8 inconsistencies, and Tkinter event wrapper anomalies.
+- User dismissed Grok from voting after Round 4 due to inconsistent reasoning.
+- Phase 1 locked unanimously, establishing the foundational bug register and slice roadmap.
+- S0 and S1 implemented on `D:\Misora-Editor`, passing automated regression tests.
+
+### B. 2026-11-22: Phase 1b UX Audit & Antigravity Migration
+- User migrated execution agent from GitHub Copilot to **Google Antigravity**.
+- Audit of real-user testing yielded items B1 through B10.
+- User clarified word-wrapping behavior for dialogue boxes (Summary Box wraps; Story Dialogue Box does NOT wrap).
+- S8b-1 prompt locked unanimously and parked to protect data-integrity priorities.
+
+### C. 2026-11-22: S2 Dirty Contract & Multi-Document Safety Lock
+- Gemini drafted revised S2 specification.
+- Qwen contributed amendments Q1 through Q6.
+- GPT raised blockers B1 (`test_34` saved baseline) and B2 (`StoryDocument` full serializer), which were folded into the text.
+- Qwen, Gemini, and GPT issued unanimous **LOCK** on the final S2 prompt text.
+- Raw transcripts and debate turn files packed into `archives/*.zip`.
+
+---
+
+## 7. IMMEDIATE OPERATIONAL INSTRUCTIONS
+1. Confirm S0 and S1 local git commits in `D:\Misora-Editor`.
+2. Follow the operator checklist in `prompts/S2_execution_guide.md`.
+3. Submit `prompts/S2_dirty_contract_final_locked.md` to Google Antigravity with `/plan`.
+4. Review the Implementation Plan artifact, confirm baseline classification for `test_34`, and approve `Proceed`.
