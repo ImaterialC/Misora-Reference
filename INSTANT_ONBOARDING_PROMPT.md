@@ -16,7 +16,6 @@ You are stepping into an active, multi-AI consensus review for Misora Editor (an
 - GPT: Arbiter / deepest inspector / final lock authority.
 - Gemini: Technical reviewer / Tkinter safety / UX risk auditor / sync briefs compiler.
 - Qwen (Assistant A): Source verifier / bug reproduction / precision corrections.
-- Grok: REMOVED from the review board by user (historical Phase 1 findings remain cited, but it has no vote).
 - User: Product owner / phase approver / relay between AIs.
 - Google Antigravity: The coding agent executing prompts locally on D:\Misora-Editor (Windows, Python 3.12).
 
@@ -32,22 +31,23 @@ STRICT BEHAVIORAL INVARIANTS:
 ==================================================
 2. CURRENT PROJECT STATE & COMPLETED MILESTONES
 ==================================================
-- Phase 0 & Phase 1 (Initial Audit & Debate): COMPLETED & LOCKED.
-- Slice S0 & S1 (Open File Safety & Multi-Document Isolation): IMPLEMENTED and PASSING unit tests in D:\Misora-Editor (tests/test_s1_open_file_safety.py).
-- Slice S8b-1 (Narrowed Game-Style Dialogue Box Preview): UNANIMOUS LOCK by all 3 AIs and user. Current state: PARKED (UI presentation layer, strictly deferred until S2–S7 data-integrity slices are finished).
-  * Key UX rule: Summary Box (Box 0) auto-wraps; Story Dialogue Box does NOT auto-wrap (calibrated to 50 chars x 3 lines, wrap="none", dual-axis overflow markers).
-- Slice S2 (Dirty Tracking Contract & Multi-Document Safety): UNANIMOUS LOCK by GPT, Qwen, and Gemini.
-  * Solves: Cross-file false-clean clobber, explicit on_save() -> bool return, undo-storm prevention, secondary XUAT retry retention, and preserved test_34/test_39 baselines.
-  * Executable prompt: prompts/S2_dirty_contract_final_locked.md
-  * Step-by-step verification guide: prompts/S2_execution_guide.md
+- Cycle 1 (Core Integrity & UX): COMPLETED & LOCKED.
+  * S0 & S1: IMPLEMENTED & PASSING tests in D:\Misora-Editor.
+  * S8b-1: UNANIMOUS LOCK & PARKED (UI presentation layer, in-game styling).
+  * S2 (Dirty Tracking Contract): UNANIMOUS LOCK (prompt finalized in prompts/S2_dirty_contract_final_locked.md).
+- Cycle 2 (Active Floor): JAPAN SERVER DATAMINE INTEGRATION.
+  * Status: PHASE 0 KICKOFF — Independent research on ingesting JP server assets (Cygames DMM client cache vs CDN), SQLite master.mdb parsing, story bundle unpacking into CSIF, and dual-language diff view.
+  * Briefing document: active_debates/datamine_jp_server/01_KICKOFF_BRIEFING_JP_DATAMINE.md.
 
 ==================================================
-3. IMMEDIATE NEXT ACTION
+3. IMMEDIATE TASK
 ==================================================
-1. Ensure S0+S1 work is committed locally in D:\Misora-Editor.
-2. The user will run prompts/S2_dirty_contract_final_locked.md in Google Antigravity using `/plan`.
-3. If Antigravity stops in `/plan` due to test_34 baseline classification (Branch 3: direct journal manipulation), report the exact setup discrepancy and await user direction before approving Proceed.
-4. Once S2 is executed and verified PASS, proceed to Slice S3 (Inactive-doc save, close-file abort, save-all on exit).
+Deliver your Phase 0 Independent Research & Proposals on the Japan Server Datamine Pipeline:
+1. Ingestion vector (DMM PC local cache vs CDN fetcher).
+2. Database architecture (master.mdb SQLite query engine).
+3. Unpacker & CSIF translation workflow.
+4. Proposed slice sequence (e.g., D1 to D4).
+5. Safety & legal guardrails (zero hardcoded decryption keys).
 
 Please confirm you have digested this state and state your readiness in Bahasa Indonesia.
 ```

@@ -33,6 +33,20 @@ def cmd_status(args):
         else:
             print(f"  ✗ {doc:<30} (MISSING)")
 
+    # Active Debates
+    print("\n[ACTIVE DEBATES]")
+    if os.path.exists("active_debates"):
+        debates = [d for d in sorted(os.listdir("active_debates")) if os.path.isdir(os.path.join("active_debates", d))]
+        if debates:
+            for d in debates:
+                p = os.path.join("active_debates", d)
+                files_cnt = len(os.listdir(p))
+                print(f"  🟢 {d:<30} ({files_cnt} files in session)")
+        else:
+            print("  (None active)")
+    else:
+        print("  (None active)")
+
     # Prompts
     print("\n[PROMPTS]")
     if os.path.exists("prompts"):

@@ -1,4 +1,4 @@
-# MISORA EDITOR — MASTER SUMMARY & CONSENSUS LEDGER
+# MISORA REFERENCE — MASTER SUMMARY & CONSENSUS LEDGER
 ## Comprehensive Executive Minutes, Architectural Overview, Bug Registry (F1–F20, B1–B10), and S0–S11 Roadmap
 
 **Author:** Autonomous Recording Secretary Agent (Google Antigravity AI)  
@@ -128,7 +128,7 @@ flowchart LR
 
 ---
 
-## 6. HISTORICAL DEBATE CHRONICLES
+## 6. HISTORICAL DEBATE CHRONICLES (CYCLE 1 ARCHIVED)
 
 ### A. 2026-11-21: Phase 0 Independent Audits & Phase 1 Consensus
 - Gemini, Grok, Qwen, and GPT produced independent technical audit dossiers.
@@ -152,8 +152,27 @@ flowchart LR
 
 ---
 
-## 7. IMMEDIATE OPERATIONAL INSTRUCTIONS
+## 7. IMMEDIATE OPERATIONAL INSTRUCTIONS (CYCLE 1 S2 EXECUTION)
 1. Confirm S0 and S1 local git commits in `D:\Misora-Editor`.
 2. Follow the operator checklist in `prompts/S2_execution_guide.md`.
 3. Submit `prompts/S2_dirty_contract_final_locked.md` to Google Antigravity with `/plan`.
 4. Review the Implementation Plan artifact, confirm baseline classification for `test_34`, and approve `Proceed`.
+
+---
+
+## 8. CYCLE 2: JAPAN SERVER DATAMINE INTEGRATION (ACTIVE DEBATE)
+
+**Status:** **PHASE 0 KICKOFF — ACTIVE DEBATE**  
+**Working Directory:** `active_debates/datamine_jp_server/`
+
+### Motivation & Goals:
+Princess Connect! Re:Dive JP server is the active upstream development branch where new story content releases first. Cycle 2 focuses on creating an automated pipeline for:
+1. **Asset Ingestion:** Local DMM Games PC client asset cache (`%USERPROFILE%\AppData\LocalLow\Cygames\PrincessConnectReDive\a\`) vs. remote CDN downloaders.
+2. **Metadata Parsing:** Querying SQLite `master.mdb` (`story_data`, `unit_data`, `event_story_data`) for automatic speaker identification, chapter trees, and character portraits.
+3. **CSIF Unpacker Pipeline:** Direct extraction of raw Japanese story bundles into clean `CSIF` documents.
+4. **Dual-Language Comparison:** Side-by-side Japanese raw vs. translated text comparison in the editor.
+5. **Safety Constraints:** Zero hardcoded decryption keys in source code; user-configured local paths only.
+
+For detailed technical review questions and opening debate prompts, refer to:
+- 👉 **[01_KICKOFF_BRIEFING_JP_DATAMINE.md](active_debates/datamine_jp_server/01_KICKOFF_BRIEFING_JP_DATAMINE.md)**
+- 👉 **[02_OPENING_PROMPT_DEBATE_JP_DATAMINE.md](active_debates/datamine_jp_server/02_OPENING_PROMPT_DEBATE_JP_DATAMINE.md)**
