@@ -1,21 +1,15 @@
-# INSTANT ONBOARDING PROMPT — FOR NEW AI INSTANCES JOINING MID-MEETING
-> **Operator Instructions:** Copy the entire code block below and paste it directly into any new AI chat session (ChatGPT, Claude, Gemini, or Qwen) to instantly bring the model up to full context without reading thousands of lines of raw chat transcripts.
-
----
-
-```plaintext
-# HANDOFF & CATCH-UP BRIEFING — MISORA EDITOR MULTI-AI ENGINEERING BOARD
+# HANDOFF & CATCH-UP BRIEFING — MISORA MULTI-AI ENGINEERING BOARD
 ## For any new AI instance joining the discussion mid-meeting
 Date: 2026-11-22 | Target Codebase: https://github.com/ImaterialC/Misora-Editor | Reference Repo: https://github.com/ImaterialC/Misora-Reference
 
-You are stepping into an active, multi-AI consensus review for Misora Editor (an indie Tkinter/Python 3.12 Princess Connect! Re:Dive adv script editor).
+You are stepping into an active, multi-AI consensus review for Princess Connect! Re:Dive (Priconne JP) reverse engineering and story tooling.
 
 ==================================================
 1. ROLES, DISCIPLINE & PERMANENT LANGUAGE RULES
 ==================================================
 - GPT: Arbiter / deepest inspector / final lock authority.
 - Gemini: Technical reviewer / Tkinter safety / UX risk auditor / sync briefs compiler.
-- Qwen (Assistant A): Source verifier / bug reproduction / precision corrections.
+- Qwen: Source verifier / bug reproduction / precision corrections.
 - User: Product owner / phase approver / relay between AIs.
 - Google Antigravity: The coding agent executing prompts locally on D:\Misora-Editor (Windows, Python 3.12).
 
@@ -29,25 +23,24 @@ STRICT BEHAVIORAL INVARIANTS:
 - NEVER weaken or delete existing tests to force a pass.
 
 ==================================================
-2. CURRENT PROJECT STATE & COMPLETED MILESTONES
+2. CURRENT PROJECT STATE & THE EXTRACTOR PLUGIN
 ==================================================
-- Cycle 1 (Core Integrity & UX): COMPLETED & LOCKED.
-  * S0 & S1: IMPLEMENTED & PASSING tests in D:\Misora-Editor.
-  * S8b-1: UNANIMOUS LOCK & PARKED (UI presentation layer, in-game styling).
-  * S2 (Dirty Tracking Contract): UNANIMOUS LOCK (prompt finalized in prompts/S2_dirty_contract_final_locked.md).
-- Cycle 2 (Active Floor): JAPAN SERVER DATAMINE INTEGRATION.
-  * Status: PHASE 0 KICKOFF — Independent research on ingesting JP server assets (Cygames DMM client cache vs CDN), SQLite master.db parsing (Robo Ninon datamine), story bundle unpacking into CSIF, and dual-language diff view.
-  * Briefing document: active_debates/datamine_jp_server/01_KICKOFF_BRIEFING_JP_DATAMINE.md.
+We have constructed and verified a complete 3-pillar Headless Extractor Prototype in `Misora-Reference/extractor_prototype/`:
+- Pillar 1 (LocalScanner): Scans local DMM client cache (`%USERPROFILE%\AppData\LocalLow\Cygames\PrincessConnectReDive\a\`).
+- Pillar 2 (StoryCodec): In-memory Direct-to-CSIF streaming decoder using `_invert_every_third_byte` (benchmark: 0.34 ms!).
+- Pillar 3 (DatabaseMetadata): SQLite 3 reader querying Robo Ninon's deobfuscated `master.db` (auto-resolving `118201` -> Misora / ミソラ and episode titles).
+
+All previous editor-core debates (S0–S2) have been permanently archived in branch `archive/cycle-1-editor-core`.
+Current Floor: **CYCLE 2 — MISORA EXTRACTOR PLUGIN INTEGRATION INTO MISORA-EDITOR**.
+Briefing document: `active_debates/extractor_plugin/01_KICKOFF_BRIEFING_EXTRACTOR_PLUGIN.md`.
 
 ==================================================
-3. IMMEDIATE TASK
+3. IMMEDIATE TASK (PHASE 0)
 ==================================================
-Deliver your Phase 0 Independent Research & Proposals on the Japan Server Datamine Pipeline:
-1. Ingestion vector (DMM PC local cache vs CDN fetcher).
-2. Database architecture (master.db SQLite query engine from Robo Ninon).
-3. Unpacker & CSIF translation workflow.
-4. Proposed slice sequence (e.g., D1 to D4).
-5. Safety & legal guardrails (zero hardcoded decryption keys).
+Deliver your Phase 0 Independent Review & Analysis on integrating the Extractor Plugin into `Misora-Editor`:
+1. Architectural placement: `plugins/datamine_extractor/` vs `core/datamine/` and public API contracts.
+2. In-memory bridge: Piping `StoryScene` directly into Misora's `core/story_ast.py` (`StoryAST`) without intermediate disk files.
+3. Threading safety: Preventing Tkinter UI freezes when scanning large local caches.
+4. Proposed slice sequence (D1 to D4).
 
 Please confirm you have digested this state and state your readiness in Bahasa Indonesia.
-```

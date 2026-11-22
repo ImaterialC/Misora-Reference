@@ -1,136 +1,101 @@
-# Misora Reference — Multi-AI Engineering Review Board & Decision Ledger
+# Misora Reference: Priconne JP Datamine & Extractor Plugin Project
 
-This repository serves as the official recording archive, decision ledger, and consensus coordination chamber for the multi-AI engineering review board (**GPT**, **Gemini**, and **Qwen**) collaborating with the human **Product Owner** to harden, refactor, and enhance **Misora Editor**.
-
-- **Target Application Repository:** [ImaterialC/Misora-Editor](https://github.com/ImaterialC/Misora-Editor) (Local: `D:\Misora-Editor`)
-- **Review Board Reference Repository:** [ImaterialC/Misora-Reference](https://github.com/ImaterialC/Misora-Reference) (Local: `d:\Reference\Reference Files`)
-- **Autonomous Coding Agent:** **Google Antigravity** (operating locally on Windows with Python 3.12 under strict `/plan` and TDD guardrails).
+Welcome to the **Misora Reference** hub. This repository houses curated reverse-engineering engines, decoders, SQLite data-mining tools, and architectural blueprints for **Princess Connect! Re:Dive (Priconne JP)**. It serves as the authoritative reference desk and prototype incubator for **[Misora Editor](https://github.com/ImaterialC/Misora-Editor)**.
 
 ---
 
-## 🚀 REAL-TIME MILESTONE STATUS BOARD
+## 🚀 Active Project: Misora Extractor Plugin (Cycle 2)
 
-| Cycle & Milestone | Focus & Architectural Boundary | Consensus Status | Active Working State |
-| :--- | :--- | :---: | :--- |
-| **Cycle 1: Phase 0 & Phase 1** | Initial codebase audit, F1–F20 bug identification, AST invariants | **LOCKED** ✅ | Archived in `archives/` |
-| **Cycle 1: Slice S0 & S1** | Open File Safety, test harness isolation, multi-document caching | **IMPLEMENTED** ✅ | Passing tests (`test_s1_open_file_safety.py`) |
-| **Cycle 1: Slice S8b-1** | Narrowed Game-Style Dialogue Box Preview (in-game styling) | **LOCKED & PARKED** ⏸️ | Ready in `prompts/S8b-1_narrowed_dialogue_box.md` |
-| **Cycle 1: Slice S2** | Minimum Per-Document Dirty Contract & Explicit `on_save() -> bool` | **UNANIMOUS LOCK** 🔒 | Ready in `prompts/S2_dirty_contract_final_locked.md` |
-| **Cycle 2: JP Datamine Pipeline** | **Japan Server Ingestion, `master.db` SQLite parser (Robo Ninon), CSIF extractor** | **ACTIVE DEBATE** 🟢 | **Phase 0 Research & Proposal Stage** |
-| **Cycle 1: Slice S3 to S11** | Save-All on Exit, Structural Undo, Threading, Full Journal | **QUEUED** 📋 | Queued following S2 verification |
+**Status:** **PHASE 0 KICKOFF — ACTIVE DEBATE**  
+**Active Briefing:** [active_debates/extractor_plugin/01_KICKOFF_BRIEFING_EXTRACTOR_PLUGIN.md](file:///d:/Reference/Misora-Reference/active_debates/extractor_plugin/01_KICKOFF_BRIEFING_EXTRACTOR_PLUGIN.md)  
+**Historical Archives:** Previous editor core debates (S0–S2 dirty contracts, UX previews) are permanently preserved in git branch `archive/cycle-1-editor-core`.
+
+### Verified Headless Prototype (`extractor_prototype/`)
+A high-speed, zero-intermediate-file 3-pillar extraction engine located in `extractor_prototype/`:
+- **Pillar 1 (`local_scanner.py`)**: Local DMM client cache scanner (`%USERPROFILE%\AppData\LocalLow\Cygames\PrincessConnectReDive\a\`) for instant bundle discovery with zero network overhead.
+- **Pillar 2 (`story_codec.py`)**: Lossless in-memory `_invert_every_third_byte` ADV decoder converting encrypted bytecode directly into Cutscene Script Interchange Format (CSIF). Benchmark: **0.34 ms** for 50 dialogue lines.
+- **Pillar 3 (`db_metadata.py`)**: Read-only SQLite 3 query engine resolving character names (e.g. `118201` $\rightarrow$ *Misora / ミソラ*) and chapter titles from Robo Ninon's deobfuscated `master.db`.
+- **Automated Verification**: Run `python -m unittest tests/test_extractor_prototype.py` (9 tests, 100% pass).
 
 ---
 
-## 🔥 INSTANT CATCH-UP BRIEFING (COPY-PASTE FOR NEW AI INSTANCES)
+## 📚 Repository Map & Navigation
 
-> **For the Human User:** When opening a new chat session with ChatGPT, Claude, Gemini, or Qwen mid-meeting, copy the code block below and paste it as the opening instruction. The AI will instantly understand the full project context and current active debate without reading thousands of lines of past transcripts.
+```
+Misora-Reference/
+├── README.md                           # Master project documentation
+├── INSTANT_ONBOARDING_PROMPT.md        # Instant briefing for new AI instances (GPT, Gemini, Qwen)
+├── extractor_prototype/                # 🚀 Headless Extractor Prototype (3 Pillars)
+│   ├── local_scanner.py                # Pillar 1: DMM local cache scanner
+│   ├── story_codec.py                  # Pillar 2: In-memory streaming ADV codec (Direct-to-CSIF)
+│   ├── db_metadata.py                  # Pillar 3: SQLite master.db speaker & chapter resolver
+│   ├── service.py                      # Unified public API service
+│   └── __init__.py
+├── tests/
+│   └── test_extractor_prototype.py     # 9 unit tests & benchmark (< 1ms target)
+├── reference_toolchains/               # 🛠️ Curated Reference Reverse-Engineering Suites
+│   ├── README.md                       # Master reference hub
+│   ├── PROGRAM_LINEAGE_AND_ALIASES.md  # V1/V2/V3 lineage, aliases, and missing files audit
+│   ├── EXTRACTOR_PLUGIN_PROPOSAL.md    # Detailed architectural design for Misora Editor
+│   ├── community_heritage/
+│   │   └── HERITAGE_AND_SOURCES.md     # Robo Ninon master.db, Expugn, and MightyZanark roots
+│   ├── v3_kyouka_suite/                # 🟢 ACTIVE GOLDEN REFERENCE (V3 Unified GUI & Engines)
+│   ├── v2_modular_tools/               # 🟢 ACTIVE GOLDEN REFERENCE (V2 NewDataMiner & ADV scripts)
+│   └── archives/                       # 🧊 Token-protected zip archives for legacy/redundant code
+├── active_debates/
+│   └── extractor_plugin/               # Active discussion dossiers and review records
+└── tools/
+    └── secretary.py                    # Secretary Assistant CLI (status, verify-zips)
+```
+
+---
+
+## ⚡ Instant AI Onboarding Prompt
+
+> **For the Human User:** Copy and paste the block below into ChatGPT, Claude, Gemini, or Qwen to onboard them instantly onto the Extractor Plugin task:
 
 ```plaintext
-# HANDOFF & CATCH-UP BRIEFING — MISORA EDITOR MULTI-AI ENGINEERING BOARD
-## For any new AI instance joining the discussion mid-meeting
-Date: 2026-11-22 | Target Codebase: https://github.com/ImaterialC/Misora-Editor | Reference Repo: https://github.com/ImaterialC/Misora-Reference
+# HANDOFF & CATCH-UP BRIEFING — MISORA MULTI-AI ENGINEERING BOARD
+Date: 2026-11-22 | Target: https://github.com/ImaterialC/Misora-Editor | Reference: https://github.com/ImaterialC/Misora-Reference
 
-You are stepping into an active, multi-AI consensus review for Misora Editor (an indie Tkinter/Python 3.12 Princess Connect! Re:Dive adv script editor).
+You are stepping into the multi-AI review board for Princess Connect! Re:Dive (Priconne JP) reverse engineering and story tooling.
 
-==================================================
-1. ROLES, DISCIPLINE & PERMANENT LANGUAGE RULES
-==================================================
-- GPT: Arbiter / deepest inspector / final lock authority.
-- Gemini: Technical reviewer / Tkinter safety / UX risk auditor / sync briefs compiler.
-- Qwen (Assistant A): Source verifier / bug reproduction / precision corrections.
-- User: Product owner / phase approver / relay between AIs.
-- Google Antigravity: The coding agent executing prompts locally on D:\Misora-Editor (Windows, Python 3.12).
+ROLES & DISCIPLINE:
+- GPT: Arbiter & lock authority.
+- Gemini: Technical reviewer, Tkinter/threading safety auditor.
+- Qwen: Precision code & AST integrity checker.
+- Antigravity: Coding agent executing local prompts on D:\Misora-Editor.
+- User: Product owner.
+- Language Rules: Address USER in BAHASA INDONESIA; technical discussion/prompts in ENGLISH.
 
-STRICT LANGUAGE RULES:
-- Address the USER in BAHASA INDONESIA.
-- Write all PROMPTS, DEBATE, CRITIQUE, and TECHNICAL DOCUMENTATION in ENGLISH.
+CURRENT ACTIVE DEBATE: MISORA EXTRACTOR PLUGIN INTEGRATION
+We have built and verified a Headless Extractor Prototype in `Misora-Reference/extractor_prototype/`:
+- Pillar 1 (LocalScanner): Scans DMM client cache (%USERPROFILE%\AppData\LocalLow\Cygames\PrincessConnectReDive\a\).
+- Pillar 2 (StoryCodec): Memory stream decoder using _invert_every_third_byte (0.34 ms benchmark).
+- Pillar 3 (DatabaseMetadata): SQLite reader for Robo Ninon's master.db (auto-resolves 118201 -> Misora / ミソラ).
 
-STRICT BEHAVIORAL INVARIANTS:
-- NEVER hallucinate standalone HTML mockups, web apps, or unrequested features (Misora is strictly desktop Tkinter/Python).
-- NEVER produce an execution prompt without UNANIMOUS LOCK from the other AIs and user approval.
-- NEVER weaken or delete existing tests to force a pass.
-
-==================================================
-2. CURRENT PROJECT STATE & COMPLETED MILESTONES
-==================================================
-- Cycle 1 (Core Integrity & UX): COMPLETED & LOCKED.
-  * S0 & S1: IMPLEMENTED & PASSING tests in D:\Misora-Editor.
-  * S8b-1: UNANIMOUS LOCK & PARKED (UI presentation layer, in-game styling).
-  * S2 (Dirty Tracking Contract): UNANIMOUS LOCK (prompt finalized in prompts/S2_dirty_contract_final_locked.md).
-- Cycle 2 (Active Floor): JAPAN SERVER DATAMINE INTEGRATION.
-  * Status: PHASE 0 KICKOFF — Independent research on ingesting JP server assets (Cygames DMM client cache vs CDN), SQLite master.db parsing (Robo Ninon datamine), story bundle unpacking into CSIF, and dual-language diff view.
-  * Briefing document: active_debates/datamine_jp_server/01_KICKOFF_BRIEFING_JP_DATAMINE.md.
-
-==================================================
-3. IMMEDIATE TASK
-==================================================
-Deliver your Phase 0 Independent Research & Proposals on the Japan Server Datamine Pipeline:
-1. Ingestion vector (DMM PC local cache vs CDN fetcher).
-2. Database architecture (master.db SQLite query engine from Robo Ninon).
-3. Unpacker & CSIF translation workflow.
-4. Proposed slice sequence (e.g., D1 to D4).
-5. Safety & legal guardrails (zero hardcoded decryption keys).
+TASK: Deliver your Phase 0 Independent Review & Proposals on integrating this engine into Misora-Editor under plugins/datamine_extractor/:
+1. Module placement & public API contract.
+2. In-memory bridge directly to core/story_ast.py without intermediate disk files.
+3. Threading safety to keep Tkinter GUI responsive during cache scanning.
+4. Proposed slice sequence (D1 to D4).
 
 Please confirm you have digested this state and state your readiness in Bahasa Indonesia.
 ```
 
 ---
 
-## 👥 REVIEW BOARD PROTOCOL & ROLES
+## 🛠️ CLI Operations (`tools/secretary.py`)
 
-The review process follows a strict consensus-driven engineering governance model:
-
-- **GPT:** Acts as the *Final Arbiter* and deepest inspector. Responsible for final `LOCK` / `NOT LOCK` verdicts and high-level architectural constraints.
-- **Gemini:** Acts as the *Technical Reviewer*, Tkinter GUI guardian, UX auditor, and compiler of cross-AI sync briefs.
-- **Qwen (Assistant A):** Acts as the *Independent Source Verifier*, inspecting live source files directly from disk, validating line numbers, reproducing bugs, and providing precision engineering corrections.
-- **Product Owner (User):** Defines product direction, arbitrates UX preferences, and relays messages across AI models.
-- **Google Antigravity (Coding Agent):** Autonomous software engineer that receives locked prompts, conducts pre-flight `/plan` inspections, and implements code via failing-first TDD.
-
----
-
-## 📂 REPOSITORY ARCHITECTURE (TWO-TIER MODEL)
-
-This repository is organized into an **Active Working Desk** (high-signal, zero-noise Markdown documentation) and **Cold Storage Archives** (compressed `.zip` storage for massive raw transcripts):
-
-```text
-Misora-Reference/
-├── README.md                              # Master landing dashboard & instant onboarding prompt
-├── SUMMARY_AND_CONSENSUS.md               # Definitive living executive ledger & bug registry
-├── INSTANT_ONBOARDING_PROMPT.md           # Standalone copy of the catch-up briefing prompt
-├── SECRETARY_PLAYBOOK.md                  # Standard Operating Procedure (SOP) for recording secretary
-│
-├── active_debates/                        # Current live debate in progress
-│   └── datamine_jp_server/                # Cycle 2: Japan Server Datamine Integration
-│       ├── 01_KICKOFF_BRIEFING_JP_DATAMINE.md  # Detailed technical briefing for AI review board
-│       └── 02_OPENING_PROMPT_DEBATE_JP_DATAMINE.md  # Ready-to-paste debate kickoff prompt
-│
-├── prompts/                               # Ready-to-execute engineering prompts & operator guides
-│   ├── S0_S1_open_file_safety.md          # Completed slice documentation
-│   ├── S2_dirty_contract_final_locked.md  # UNANIMOUS LOCKED prompt for Google Antigravity
-│   ├── S2_execution_guide.md              # Operator checklist: preflight, TDD, Windows GUI sanity check
-│   └── S8b-1_narrowed_dialogue_box.md     # UNANIMOUS LOCKED & PARKED dialogue preview prompt
-│
-├── decisions/                             # Concise, 1-page records of major architectural choices
-│   ├── 2026-11-22_ux_audit_b1_b10_antigravity.md
-│   ├── 2026-11-22_s8b_dialogue_preview_design.md
-│   └── 2026-11-22_s2_dirty_contract_consensus.md
-│
-├── archives/                              # Compressed historical archives (.zip)
-│   ├── misora_raw_transcripts_final.zip   # Full historical chat transcripts from GPT, Gemini, Qwen (~616 KB)
-│   ├── misora_phase1_debate_turns.zip     # All 28 Phase 1 turn files (~147 KB)
-│   ├── misora_phase2_debate_turns.zip     # Phase 2 turn files (~40 KB)
-│   └── README_ARCHIVES.md                 # Inventory manifest & SHA256 checksums
-│
-├── references/                            # Visual reference assets & prompting playbooks
-│   ├── assets/                            # In-game UI screenshots & AtlasAdv png
-│   └── guides/                            # Google Antigravity & Copilot prompt references
-│
-└── tools/                                 # Secretary automation CLI utilities
-    └── secretary.py                       # CLI tool for ingestion, verification, and status reporting
-```
-
----
-
-## 📚 COMPREHENSIVE DOCUMENTATION
-For detailed technical breakdowns of Misora Editor's architecture, the complete `F1`–`F20` bug registry, user testing audit `B1`–`B10`, and the `S0`–`S11` slice roadmap, refer to:  
-👉 **[SUMMARY_AND_CONSENSUS.md](SUMMARY_AND_CONSENSUS.md)**
+- **Check Active Desk Status**:
+  ```bash
+  python tools/secretary.py status
+  ```
+- **Verify Cold Storage Zip Archives**:
+  ```bash
+  python tools/secretary.py verify-zips
+  ```
+- **Run Prototype Test Suite**:
+  ```bash
+  python -m unittest tests/test_extractor_prototype.py
+  ```

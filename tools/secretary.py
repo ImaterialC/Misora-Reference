@@ -26,7 +26,7 @@ def cmd_status(args):
 
     # Active Documents
     print("\n[ACTIVE DOCUMENTS]")
-    for doc in ["README.md", "SUMMARY_AND_CONSENSUS.md", "INSTANT_ONBOARDING_PROMPT.md", "SECRETARY_PLAYBOOK.md"]:
+    for doc in ["README.md", "INSTANT_ONBOARDING_PROMPT.md", "SECRETARY_PLAYBOOK.md"]:
         if os.path.exists(doc):
             sz = os.path.getsize(doc)
             print(f"  ✓ {doc:<30} ({sz/1024:.1f} KB)")
@@ -47,21 +47,14 @@ def cmd_status(args):
     else:
         print("  (None active)")
 
-    # Prompts
-    print("\n[PROMPTS]")
-    if os.path.exists("prompts"):
-        for f in sorted(os.listdir("prompts")):
-            p = os.path.join("prompts", f)
-            print(f"  ✓ {f:<30} ({os.path.getsize(p)/1024:.1f} KB)")
-    else:
-        print("  (None)")
-
-    # Decisions
-    print("\n[DECISION RECORDS]")
-    if os.path.exists("decisions"):
-        for f in sorted(os.listdir("decisions")):
-            p = os.path.join("decisions", f)
-            print(f"  ✓ {f:<30} ({os.path.getsize(p)/1024:.1f} KB)")
+    # Extractor Prototype Desk
+    print("\n[EXTRACTOR PROTOTYPE (ACTIVE DESK)]")
+    proto_dir = "extractor_prototype"
+    if os.path.exists(proto_dir):
+        for f in sorted(os.listdir(proto_dir)):
+            if f.endswith(".py"):
+                p = os.path.join(proto_dir, f)
+                print(f"  ⚡ {f:<30} ({os.path.getsize(p)/1024:.1f} KB)")
     else:
         print("  (None)")
 
