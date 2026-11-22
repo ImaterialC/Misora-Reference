@@ -1,6 +1,0 @@
-{
-  "categories": ["System", "Motion", "Effect", "Sound", "Movie", "Window"],
-  "text_cmds": ["focus"],
-  "breakers": ["goto", "type", "touch", "title", "outline", "situation"],
-  "trailing_nl": "always"
-}
