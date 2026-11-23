@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "command": "py -3.12 .agents/hooks/guard_git.py"
+      }
+    ]
+  }
+}
