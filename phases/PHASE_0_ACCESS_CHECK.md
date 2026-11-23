@@ -28,6 +28,10 @@ Ensure you have verified access to **all required repositories, files, tools, an
    - Explicitly flag ANY file that:
      - Returns 404 / permission error / fetch error
      - Is truncated due to size limits (especially `misora.py`)
+		-If you are unable to access the complete `misora.py` file or if the integration fails, I have broken it down into 4 parts. https://raw.githubusercontent.com/ImaterialC/Misora-Reference/refs/heads/main/Misora.py1.4.0.Part1.txt
+https://raw.githubusercontent.com/ImaterialC/Misora-Reference/refs/heads/main/Misora.py1.4.0.Part2.txt
+https://raw.githubusercontent.com/ImaterialC/Misora-Reference/refs/heads/main/Misora.py1.4.0.Part3.txt
+https://raw.githubusercontent.com/ImaterialC/Misora-Reference/refs/heads/main/Misora.py1.4.0.Part4.txt
      - Is unreadable, corrupted, or binary-inaccessible (e.g., images you cannot view)
 
 ---
