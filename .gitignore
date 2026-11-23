@@ -1,0 +1,46 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local virtual environments
+.venv/
+venv/
+env/
+
+# Local databases and SQLite sidecar files
+master.db
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.db-journal
+*.sqlite-journal
+
+# Local logs, dumps, and temporary exports
+*.log
+*.tmp
+*.temp
+*.bak
+*.report.txt
+*.probe.txt
+*.dump
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Keep raw game asset payloads out of the reference repository
+*.unity3d
+*.asset

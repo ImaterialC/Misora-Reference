@@ -1,101 +1,100 @@
-# Misora Reference: Priconne JP Datamine & Extractor Plugin Project
+# Misora Reference — Priconne JP Research and Extractor Prototypes
 
-Welcome to the **Misora Reference** hub. This repository houses curated reverse-engineering engines, decoders, SQLite data-mining tools, and architectural blueprints for **Princess Connect! Re:Dive (Priconne JP)**. It serves as the authoritative reference desk and prototype incubator for **[Misora Editor](https://github.com/ImaterialC/Misora-Editor)**.
+This repository is the research and reference workspace for [Misora Editor](https://github.com/ImaterialC/Misora-Editor). It contains source references, historical toolchains, exploratory prototypes, tests, and AI-assisted engineering records. It is **not** the production application repository.
 
----
+## Start here
 
-## 🚀 Active Project: Misora Extractor Plugin (Cycle 2)
+| File | Purpose |
+|---|---|
+| [INSTANT_ONBOARDING_PROMPT.md](INSTANT_ONBOARDING_PROMPT.md) | Compact handoff for a new reviewer joining mid-task |
+| [SECRETARY_PLAYBOOK.md](SECRETARY_PLAYBOOK.md) | Evidence, debate, decision, and archive procedure |
+| [plan_multi_ai_workflow_and_db_strategy.md](plan_multi_ai_workflow_and_db_strategy.md) | Multi-AI workflow, Antigravity feature selection, and database policy |
+| [plan_multi_ai_roster_and_workflow_strategy.md](plan_multi_ai_roster_and_workflow_strategy.md) | Provisional roster and a repeatable model evaluation method |
+| [AGENTS.md](AGENTS.md) | Operating rules for AI agents in this repository |
+| [INSTALL_REPAIR_PACK_PROMPT.md](INSTALL_REPAIR_PACK_PROMPT.md) | Safe Antigravity instructions for applying this repair pack |
+| [templates/](templates/) | Reusable brief, review, decision, and implementation templates |
 
-**Status:** **PHASE 0 KICKOFF — ACTIVE DEBATE**  
-**Active Briefing:** [active_debates/extractor_plugin/01_KICKOFF_BRIEFING_EXTRACTOR_PLUGIN.md](file:///d:/Reference/Misora-Reference/active_debates/extractor_plugin/01_KICKOFF_BRIEFING_EXTRACTOR_PLUGIN.md)  
-**Historical Archives:** Previous editor core debates (S0–S2 dirty contracts, UX previews) are permanently preserved in git branch `archive/cycle-1-editor-core`.
+## Related application
 
-### Verified Headless Prototype (`extractor_prototype/`)
-A high-speed, zero-intermediate-file 3-pillar extraction engine located in `extractor_prototype/`:
-- **Pillar 1 (`local_scanner.py`)**: Local DMM client cache scanner (`%USERPROFILE%\AppData\LocalLow\Cygames\PrincessConnectReDive\a\`) for instant bundle discovery with zero network overhead.
-- **Pillar 2 (`story_codec.py`)**: Lossless in-memory `_invert_every_third_byte` ADV decoder converting encrypted bytecode directly into Cutscene Script Interchange Format (CSIF). Benchmark: **0.34 ms** for 50 dialogue lines.
-- **Pillar 3 (`db_metadata.py`)**: Read-only SQLite 3 query engine resolving character names (e.g. `118201` $\rightarrow$ *Misora / ミソラ*) and chapter titles from Robo Ninon's deobfuscated `master.db`.
-- **Automated Verification**: Run `python -m unittest tests/test_extractor_prototype.py` (9 tests, 100% pass).
+**Misora Editor:** https://github.com/ImaterialC/Misora-Editor
 
----
+For editor implementation work, the application's current checkout is authoritative. Read its `AGENTS.md`, `PROJECT_STATE.md`, relevant source files, and tests. `Misora-Reference` does not replace that source of truth.
 
-## 📚 Repository Map & Navigation
+## Repository map
 
-```
+```text
 Misora-Reference/
-├── README.md                           # Master project documentation
-├── INSTANT_ONBOARDING_PROMPT.md        # Instant briefing for new AI instances (GPT, Gemini, Qwen)
-├── extractor_prototype/                # 🚀 Headless Extractor Prototype (3 Pillars)
-│   ├── local_scanner.py                # Pillar 1: DMM local cache scanner
-│   ├── story_codec.py                  # Pillar 2: In-memory streaming ADV codec (Direct-to-CSIF)
-│   ├── db_metadata.py                  # Pillar 3: SQLite master.db speaker & chapter resolver
-│   ├── service.py                      # Unified public API service
-│   └── __init__.py
-├── tests/
-│   └── test_extractor_prototype.py     # 9 unit tests & benchmark (< 1ms target)
-├── reference_toolchains/               # 🛠️ Curated Reference Reverse-Engineering Suites
-│   ├── README.md                       # Master reference hub
-│   ├── PROGRAM_LINEAGE_AND_ALIASES.md  # V1/V2/V3 lineage, aliases, and missing files audit
-│   ├── EXTRACTOR_PLUGIN_PROPOSAL.md    # Detailed architectural design for Misora Editor
-│   ├── community_heritage/
-│   │   └── HERITAGE_AND_SOURCES.md     # Robo Ninon master.db, Expugn, and MightyZanark roots
-│   ├── v3_kyouka_suite/                # 🟢 ACTIVE GOLDEN REFERENCE (V3 Unified GUI & Engines)
-│   ├── v2_modular_tools/               # 🟢 ACTIVE GOLDEN REFERENCE (V2 NewDataMiner & ADV scripts)
-│   └── archives/                       # 🧊 Token-protected zip archives for legacy/redundant code
+├── README.md
+├── AGENTS.md
+├── .gitignore
+├── INSTANT_ONBOARDING_PROMPT.md
+├── SECRETARY_PLAYBOOK.md
+├── plan_multi_ai_workflow_and_db_strategy.md
+├── plan_multi_ai_roster_and_workflow_strategy.md
 ├── active_debates/
-│   └── extractor_plugin/               # Active discussion dossiers and review records
+│   └── extractor_plugin/
+│       └── 01_KICKOFF_BRIEFING_EXTRACTOR_PLUGIN.md
+├── archives/                         # Historical debate and reference archives
+├── extractor_prototype/              # Experimental headless extraction code
+│   ├── local_scanner.py              # Local DMM cache discovery
+│   ├── story_codec.py                # ADV bytecode parsing / CSIF generation
+│   ├── db_metadata.py                # Optional read-only SQLite metadata lookup
+│   └── service.py                    # Prototype service facade
+├── reference_toolchains/             # Historical/community reference code
+│   ├── community_heritage/
+│   ├── v2_modular_tools/
+│   ├── v3_kyouka_suite/
+│   └── archives/
+├── references/                       # Visual assets and prompting/reference guides
+├── templates/                        # New reusable workflow templates
+├── tests/                             # Prototype tests
 └── tools/
-    └── secretary.py                    # Secretary Assistant CLI (status, verify-zips)
+    └── secretary.py                  # Small local records/archive helper
 ```
 
----
+This tree is a navigation summary, not a promise that every path exists in every branch or checkout. Verify the current Git tree before relying on it.
 
-## ⚡ Instant AI Onboarding Prompt
+## Prototype status
 
-> **For the Human User:** Copy and paste the block below into ChatGPT, Claude, Gemini, or Qwen to onboard them instantly onto the Extractor Plugin task:
+`extractor_prototype/` is a reference prototype. It contains a local cache scanner, an ADV/story codec, and a SQLite metadata resolver. Do **not** describe it as integrated into Misora Editor unless the current editor source demonstrates that integration. Do not repeat historical benchmark or test-pass claims without running the relevant commands on the current checkout.
 
-```plaintext
-# HANDOFF & CATCH-UP BRIEFING — MISORA MULTI-AI ENGINEERING BOARD
-Date: 2026-11-22 | Target: https://github.com/ImaterialC/Misora-Editor | Reference: https://github.com/ImaterialC/Misora-Reference
+Suggested local test command:
 
-You are stepping into the multi-AI review board for Princess Connect! Re:Dive (Priconne JP) reverse engineering and story tooling.
-
-ROLES & DISCIPLINE:
-- GPT: Arbiter & lock authority.
-- Gemini: Technical reviewer, Tkinter/threading safety auditor.
-- Qwen: Precision code & AST integrity checker.
-- Antigravity: Coding agent executing local prompts on D:\Misora-Editor.
-- User: Product owner.
-- Language Rules: Address USER in BAHASA INDONESIA; technical discussion/prompts in ENGLISH.
-
-CURRENT ACTIVE DEBATE: MISORA EXTRACTOR PLUGIN INTEGRATION
-We have built and verified a Headless Extractor Prototype in `Misora-Reference/extractor_prototype/`:
-- Pillar 1 (LocalScanner): Scans DMM client cache (%USERPROFILE%\AppData\LocalLow\Cygames\PrincessConnectReDive\a\).
-- Pillar 2 (StoryCodec): Memory stream decoder using _invert_every_third_byte (0.34 ms benchmark).
-- Pillar 3 (DatabaseMetadata): SQLite reader for Robo Ninon's master.db (auto-resolves 118201 -> Misora / ミソラ).
-
-TASK: Deliver your Phase 0 Independent Review & Proposals on integrating this engine into Misora-Editor under plugins/datamine_extractor/:
-1. Module placement & public API contract.
-2. In-memory bridge directly to core/story_ast.py without intermediate disk files.
-3. Threading safety to keep Tkinter GUI responsive during cache scanning.
-4. Proposed slice sequence (D1 to D4).
-
-Please confirm you have digested this state and state your readiness in Bahasa Indonesia.
+```bash
+python -m unittest tests.test_extractor_prototype -v
 ```
 
----
+Record the actual Python version, environment, test count, failures, errors, and skips. A command listed here is not evidence that it has passed.
 
-## 🛠️ CLI Operations (`tools/secretary.py`)
+## `master.db` note
 
-- **Check Active Desk Status**:
-  ```bash
-  python tools/secretary.py status
-  ```
-- **Verify Cold Storage Zip Archives**:
-  ```bash
-  python tools/secretary.py verify-zips
-  ```
-- **Run Prototype Test Suite**:
-  ```bash
-  python -m unittest tests/test_extractor_prototype.py
-  ```
+`master.db` is an optional local dependency for `extractor_prototype/db_metadata.py`. In the inspected `main` tree on 2026-11-23, no `.db` or `.sqlite` database file was tracked. The resolver searches a small set of local paths, opens SQLite in read-only mode, and has static fallback values. The code does not implement automatic upstream download or synchronization.
+
+Keep the real database outside Git and outside this repository's archives. Do not assume a download URL, file size, update schedule, or redistribution permission without current evidence. The root `.gitignore` excludes local database files, Python caches, temporary files, logs, and Unity binary payloads. A `.gitignore` does not untrack files that are already committed.
+
+## Secretary CLI
+
+Run from the repository root:
+
+```bash
+python tools/secretary.py status
+python tools/secretary.py verify-zips
+python tools/secretary.py ingest path/to/transcript.md
+```
+
+These are the commands currently implemented by `tools/secretary.py`. The script reports basic repository status, checks ZIP integrity, and inspects transcript headers/possible `LOCK` keywords. It does not automatically synthesize debates, append opinions, make decisions, or generate prompts.
+
+## AI collaboration principles
+
+- Obtain independent first-pass reviews before sharing conclusions between reviewers.
+- Require evidence for important technical claims; label uncertainty explicitly.
+- Preserve disagreement. AI unanimity is not a correctness test.
+- Let the human project owner approve decisions and implementation prompts.
+- Use one bounded implementation brief with allowed files, acceptance criteria, test commands, data-preservation rules, and stop conditions.
+- Record actual command output; never copy old test counts into a new verification report.
+
+See [SECRETARY_PLAYBOOK.md](SECRETARY_PLAYBOOK.md) for the operating procedure.
+
+## Current task status
+
+The active task is defined by its current brief and decision records under `active_debates/`, not by a fixed phase label in this README. Inspect the most recent brief, repository SHA, and actual code before starting work.

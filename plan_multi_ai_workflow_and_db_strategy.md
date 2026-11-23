@@ -1,120 +1,186 @@
-# Implementation Plan: Multi-AI Collaboration Workflow, Swarm Strategy & Master.db Management
+# Multi-AI Engineering Workflow and `master.db` Handling Strategy
 
-## Goal Description
-The purpose of this plan is to establish a rigorous, highly efficient workflow for multi-AI collaboration and architectural review, eliminate manual copy-pasting fatigue between web browser AI chats and Antigravity, explain and resolve the repository strategy for `master.db`, and define how to apply Antigravity's native `/boost` and `/teamwork` (Swarm) capabilities for the **Misora Extractor Plugin** development.
+**Document status:** Recommended operating design  
+**Research snapshot:** 2026-11-23  
+**Project repositories:** [Misora-Editor](https://github.com/ImaterialC/Misora-Editor) · [Misora-Reference](https://github.com/ImaterialC/Misora-Reference)
 
----
+## Executive recommendation
 
-## User Review Required
+Keep the current no-API, browser-based council as an independent review layer, but stop making every model debate every task until it agrees. Use a short evidence-led process with explicit disagreement records and a human decision gate. Keep Antigravity as the primary local implementation agent because it can inspect the working checkout and run the project's tests. Use its Orchestrator, `/swarm`, `/boost`, `/teamwork`, or `/run-workflow` only when the task fits the feature and the account has access.
 
-> [!IMPORTANT]
-> **Why `master.db` Was Excluded from the Git Repository:**
-> 1. **Binary Size & Git History Bloat**: `master.db` is ~51.4 MB of binary SQLite 3 data. In Git, binary files cannot be diffed cleanly. Every weekly or bi-weekly game update synced from Robo Ninon creates a full new 50MB packfile in `.git/objects/`, causing the repository size to rapidly balloon into gigabytes and making `git clone` / `git fetch` unacceptably slow. GitHub also triggers warnings for files > 50MB and hard blocks files > 100MB.
-> 2. **Copyright & TOS Compliance (DMCA Risk)**: `master.db` contains raw narrative scripts, unit parameters, voice audio cues, and copyrighted intellectual property of Cygames. Hosting it publicly on GitHub invites automated DMCA takedown notices.
-> 3. **Dynamic Upstream Nature**: `master.db` is an upstream-generated database produced by Robo Ninon, not repository source code. Industry best practice treats large third-party databases as an **external local dependency** managed via automated download scripts.
+Do not build an API council or database downloader as the next step. Neither is necessary to fix the current workflow, and both add maintenance or cost.
 
-> [!TIP]
-> **Proposed Solution for `master.db`**:
-> Implement an automated utility script `tools/sync_master_db.py` that checks the remote ETag/HEAD at `https://roboninon.win/db/download`, downloads the fresh database into local storage (or links to `D:\Kyouka-Asset-Explorer\master.db`), and keeps it strictly ignored via `.gitignore`.
+## 1. Recommended workflow
 
----
+### Stage 0 — Intake and repository truth
 
-## 1. Deep Dive: Multi-AI Debate Protocols & Efficient Workflows
+The secretary creates a short task brief with:
 
-### The Friction in Current Manual Web-Relay Workflow
-Currently, your workflow requires:
-1. Opening multiple web browser tabs (ChatGPT, Claude, Gemini, Qwen).
-2. Manually copying prompts, repository links, and context.
-3. Reading multiple essay-length responses across tabs.
-4. Manually summarizing and ferrying consensus back to Antigravity.
-5. Risk: High cognitive fatigue, context drift, hallucinations (since web AIs cannot inspect local files or run test runners).
+- The question or bug to resolve.
+- Target repository and exact branch/commit SHA.
+- Relevant file paths, tests, and project-state documents.
+- What is in scope and explicitly out of scope.
+- What decision the owner needs to make.
+- What evidence would prove or disprove the main assumptions.
 
-### Proposed 3-Tier Multi-AI Collaboration Hierarchy
+For a Misora-Editor task, start with `AGENTS.md`, `PROJECT_STATE.md`, `docs/COPILOT_WORKFLOW.md` (when relevant), the task brief, then the actual source and tests. For a Misora-Reference task, start with this repository's `AGENTS.md`, `README.md`, `SECRETARY_PLAYBOOK.md`, and relevant prototype/reference files.
 
-```mermaid
-flowchart TD
-    subgraph TIER1["Option A: Native Swarm & Subagents (/teamwork)"]
-        AGY["Antigravity Host Coordinator"] -->|Spawn Worker| W1["Architect Worker<br/>(System Structure)"]
-        AGY -->|Spawn Worker| W2["Critic Worker<br/>(Edge Cases & AST Risks)"]
-        AGY -->|Spawn Worker| W3["Verifier Worker<br/>(Unit Tests & Benchmarks)"]
-        W1 & W2 & W3 <-->|Shared Message Board| AGY
-    end
+A GitHub URL is a navigation aid, not proof that a model has read every file. Ask the reviewer to list the files it actually inspected and any files it could not access. For a specific snapshot, provide a ZIP or selected source files only when the receiving product actually supports them.
 
-    subgraph TIER2["Option B: Automated API Council Script (Zero Copy-Paste)"]
-        SCRIPT["tools/debate_council.py"] -->|API Call| OPENAI["OpenAI API (GPT-4o / o1)"]
-        SCRIPT -->|API Call| ANTHROPIC["Anthropic API (Claude 3.5 Sonnet)"]
-        SCRIPT -->|API Call| QWEN["DashScope / OpenRouter (Qwen-2.5-Coder)"]
-        OPENAI & ANTHROPIC & QWEN -->|Aggregate Responses| DOSSIER["active_debates/extractor_plugin/council_review.md"]
-        DOSSIER --> AGY
-    end
+### Stage 1 — Independent first-pass reviews
 
-    subgraph TIER3["Option C: Optimized Manual Relay (Single Dossier Template)"]
-        PROMPT_FILE["INSTANT_ONBOARDING_PROMPT.md"] -->|1-Click Copy| WEB_CHAT["Web Browser Chats"]
-        WEB_CHAT -->|Paste Raw Opinion| INGEST_CLI["python tools/secretary.py ingest-dossier"]
-        INGEST_CLI --> SYNTHESIS["Unified Synthesis"]
-    end
+Send the same compact brief to two reviewers independently. Do not show them each other's answers yet. Prefer different providers or different model families when practical.
+
+Ask each reviewer to return:
+
+1. Findings with file path and line/function where applicable.
+2. Evidence and a reproducible test or inspection method.
+3. Assumptions and unknowns.
+4. Potential regressions and edge cases.
+5. A recommended next step, not an implementation prompt yet.
+
+This reduces anchoring: a model that reads another model's answer first may simply repeat it.
+
+### Stage 2 — Adversarial review
+
+Give the independent findings to one strong critic (often ChatGPT Thinking for a high-risk question, or Claude/Gemini when available). Ask it to attack the evidence, not to attack the author. It must identify which findings are confirmed, contradicted, duplicated, or still unknown.
+
+Do not ask “make everyone agree”. Ask “what evidence would settle the disagreement?”
+
+### Stage 3 — Evidence gate and decision record
+
+The secretary puts each important statement into one category:
+
+- `SOURCE-VERIFIED`: seen in current source or current official documentation.
+- `REPRODUCED`: demonstrated by a test or controlled run.
+- `USER-OBSERVATION`: experience reported by the owner.
+- `INFERENCE`: plausible conclusion, not yet proven.
+- `PROPOSAL`: future design suggestion.
+- `UNKNOWN`: unresolved.
+
+A finding is not accepted because two or more models repeat it. Require source paths, line references, official URLs, test logs, or a small experiment. Preserve unresolved dissent in the decision record.
+
+The owner approves, rejects, or defers the proposal. Unanimous AI agreement is not a gate.
+
+### Stage 4 — One bounded implementation brief
+
+Only after the decision gate, create one self-contained execution prompt for Antigravity (or a bounded Copilot task). Every prompt must contain:
+
+- Target repository, branch, and starting SHA.
+- Problem and supporting evidence.
+- Exact goal and expected behavior.
+- Allowed files and forbidden files.
+- Constraints and compatibility requirements.
+- Acceptance criteria and exact test commands.
+- Data-preservation and rollback rules.
+- Stop conditions.
+- Required completion report with changed files, diff summary, test output, and unverified items.
+
+Do not make another AI rewrite the prompt indefinitely. Allow one critique pass and one correction pass. If a real issue remains, revise the brief; otherwise stop.
+
+### Stage 5 — Local implementation and verification
+
+Antigravity is the primary writer for normal Misora changes. Use its local checkout as the implementation source of truth. One agent should own a given file at a time. Parallel workers should be read-only or assigned clearly disjoint files/workspaces.
+
+Before implementation, the agent must report working directory, branch, HEAD, and `git status`. Review the diff before accepting it. Run the stated tests and record actual output. Never treat a test count copied from an old transcript as a current result.
+
+Do not commit or push unless the owner requests it.
+
+### Stage 6 — Record and archive
+
+Keep a concise task brief, review findings, decision, and final execution brief in the active debate folder. Store raw transcripts as historical evidence; archive them after a milestone is closed. Do not let a huge transcript become the only source of current project state.
+
+Suggested files for a task folder:
+
+```text
+active_debates/<topic>/
+  BRIEF.md
+  REVIEW_01_<reviewer>.md
+  REVIEW_02_<reviewer>.md
+  ADVERSARIAL_REVIEW.md
+  DECISION.md
+  EXECUTION_BRIEF.md
+  VERIFICATION.md
 ```
 
----
+These are suggested files, not existing automated features. Copy the templates from `templates/` as needed.
 
-## 2. Analysis of Slash Commands: `/boost` vs `/teamwork`
+## 2. Which Antigravity feature should be used?
 
-| Command | Mechanism & Internal Behavior | Best Fit in Misora Project |
-| :--- | :--- | :--- |
-| **`/boost`** | Triggers deep, multi-perspective chain-of-thought, structural risk assessment, and rigorous verification before taking action. The model self-interrogates: *"What could break? How will Tkinter thread safety be impacted? What are the edge cases in FlatBuffer parsing?"* | **Use when designing complex single components** (e.g. designing the CSIF memory bridge or writing Tkinter background threading in `Misora-Editor`). |
-| **`/teamwork`** | Launches Antigravity's **Swarm Architecture** (`swarm` tool). Spawns multiple autonomous worker agents on a shared message board with specialized briefs (e.g., Worker 1: `cache_scanner`, Worker 2: `flatbuffer_codec`, Worker 3: `sqlite_metadata`). Workers report findings, cross-review code, and collaborate in parallel. | **Use when tackling broad multi-module milestones** (e.g. simultaneously building the UI modal, the backend codec, and the unit test suite). |
+The official Antigravity documentation distinguishes these features (availability and quota consumption can change; check the account UI before a run):
 
----
+| Feature | Documented purpose | Best fit for Misora |
+|---|---|---|
+| Orchestrator | A planner explores the code, plans and reviews; an executor searches, edits, builds, and tests | Normal multi-file feature work when the account exposes it |
+| `/boost` | Multi-agent deep reasoning with iterative challenge and verification | Difficult root-cause, algorithm, or concurrency investigation |
+| `/swarm` | Named workers and a verifier coordinate on a shared message board | Read-only parallel audit or independent work on disjoint files |
+| `/teamwork` | Longer-horizon multi-agent project with milestones and review gates | Large, multi-day integration/migration or deep research |
+| `/run-workflow` | A generated workflow script runs agents in parallel/sequential phases | Repeatable multi-step audit or test/fix pipeline |
 
-## Proposed Changes
+Practical starting point: use ordinary Plan mode for small/medium changes; use Orchestrator for a well-scoped coding task; use `/swarm` for a read-only multi-perspective audit. Try `/teamwork` only for a genuinely large project. `/boost` is not a substitute for clear task scope. `/run-workflow` creates a script and asks for approval before running unless permissions already allow it; read that generated script before approving.
 
-### Component 1: `master.db` Automated Sync & Git Guard
-Protect the repository from accidental large file commits and provide an automated sync utility.
+Official references (accessed 2026-11-23):
 
-#### [NEW] `tools/sync_master_db.py`
-A lightweight, resilient CLI utility that:
-- Checks if local `master.db` exists in `D:\Kyouka-Asset-Explorer\master.db` or local directory.
-- Queries `https://roboninon.win/db/download` using HTTP HEAD / ETag / Content-Length to determine if an upstream update exists.
-- Downloads and unpacks the fresh SQLite 3 database safely with progress display.
-- Verifies database integrity via `PRAGMA integrity_check;`.
+- [Choose a model and Orchestrator](https://antigravity.google/docs/models)
+- [Slash commands overview](https://antigravity.google/docs/slash-commands)
+- [Boost](https://antigravity.google/docs/boost/)
+- [Swarm](https://antigravity.google/docs/swarm/)
+- [Teamwork](https://antigravity.google/docs/teamwork/)
+- [Dynamic Workflows](https://antigravity.google/docs/dynamic-workflows/)
 
-#### [NEW] `.gitignore`
-Ensures `.db`, `.sqlite`, `.unity3d`, `__pycache__`, and temporary test artifacts never pollute git history.
+Important distinctions: `/swarm` is the command explicitly documented as using a shared message board; `/teamwork` has Sentinel, a Project Orchestrator, auditors, and milestone handoffs. `/teamwork` is a paid-plan feature; `/swarm` and `/run-workflow` are documented for all plans; `/boost` is paid-plan only. Check current availability inside the app because preview status and plan tables can change.
 
----
+## 3. Master database (`master.db`) strategy
 
-### Component 2: Multi-AI Debate Council Automation
+### What the current repository actually shows
 
-#### [NEW] `tools/debate_council.py` (Optional API Runner)
-If API keys (such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `OPENROUTER_API_KEY`) are present in the environment:
-- Sends `active_debates/extractor_plugin/01_KICKOFF_BRIEFING_EXTRACTOR_PLUGIN.md` in parallel to external models.
-- Records structured feedback directly into `active_debates/extractor_plugin/council_dossier.md`.
-- Completely removes the need for manual copy-pasting across browser windows.
+- No `master.db`, `.db`, or `.sqlite` file is tracked in the current `Misora-Reference` main-branch tree inspected on 2026-11-23.
+- `extractor_prototype/db_metadata.py` looks for a local database at `D:\\Kyouka-Asset-Explorer\\master.db`, `D:\\Reference\\Misora-Reference\\master.db`, or `.`/`master.db`.
+- The current `DatabaseMetadata` connection uses SQLite read-only mode (`mode=ro`) and has static fallbacks when the database is absent.
+- The code does not implement an upstream download or automatic update operation.
 
-#### [NEW] `tools/secretary.py` (Dossier Ingest Extension)
-If manual web browsers are still preferred:
-- Adds command `python tools/secretary.py record-dossier --ai [gpt|claude|qwen] --file response.txt`.
-- Automatically formats and appends the critique to the active debate log without manual markdown editing.
+Therefore the database is currently an optional local dependency, not a source file that the repository must contain. Keep that arrangement unless the owner explicitly approves a different distribution design.
 
----
+### Recommended policy
 
-### Component 3: Swarm Configuration for Extractor Plugin
+1. Keep the real database outside Git and outside the replacement archive.
+2. Add `.gitignore` rules for `*.db`, `*.sqlite`, `*.sqlite3`, and SQLite sidecars. The package includes these rules.
+3. Do not invent or hardcode an upstream URL, 51.4 MB size, update cadence, ETag behavior, or checksum. Verify the actual source and current file metadata first.
+4. Do not make legal conclusions from the database's presumed contents. Treat raw game data as third-party material and do not redistribute it without an established right to do so.
+5. If a future downloader is approved, require a documented legitimate source, explicit user consent, timeout/retry behavior, temporary-file download, checksum or trusted signature, SQLite `PRAGMA integrity_check`, rollback on failure, and a clear opt-out. Do not silently overwrite a working database.
+6. If a developer must share a permitted large database, use an approved file-distribution mechanism rather than ordinary Git history. GitHub warns above 50 MiB and blocks regular Git files above 100 MiB; its documentation specifically says Git is not designed for large SQL files.
 
-#### [NEW] `active_debates/extractor_plugin/SWARM_ROSTER.md`
-Defines the specialized worker agent briefs for `/teamwork`:
-1. **`worker-architect`**: Focuses on `plugins/datamine_extractor/` API contracts and `StoryAST` integration in `Misora-Editor`.
-2. **`worker-codec`**: Focuses on memory-stream FlatBuffer parsing and `_invert_every_third_byte` optimization.
-3. **`worker-verifier`**: Focuses on mock test bundles, boundary cases, and performance benchmarking (< 1ms).
+Official reference: [About large files on GitHub](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github), accessed 2026-11-23.
 
----
+### One repository hygiene issue
 
-## Verification Plan
+The current reference tree contains a tracked `tests/__pycache__/test_extractor_prototype.cpython-312.pyc`, and the repository root had no `.gitignore` at the time of this audit. Adding `.gitignore` does not remove an already tracked file from Git history or the index. Ask the local coding agent to remove the tracked bytecode from the index in a separate, reviewed cleanup task; do not run a broad destructive clean command.
 
-### Automated Tests
-1. Run `python tools/sync_master_db.py --check-only` to verify remote Robo Ninon connectivity and local path detection.
-2. Run `python -m unittest tests/test_extractor_prototype.py` to confirm 100% pass on all 9 unit tests.
-3. Verify git cleanliness: `git status` confirms zero binary `.db` files staged.
+## 4. Secretary CLI: current behavior versus future ideas
 
-### Manual Verification
-1. User tests running `python tools/sync_master_db.py` to observe automatic database synchronization.
-2. User reviews `SWARM_ROSTER.md` and decides whether to trigger native `/teamwork` or run the API council script.
+The current `tools/secretary.py` implements only:
+
+- `status`: prints a basic repository status summary.
+- `verify-zips`: checks ZIP integrity in `archives/` and `reference_toolchains/archives/`.
+- `ingest <file>`: counts lines, reports Markdown headers, and lists possible `LOCK` keywords.
+
+It does **not** currently append an opinion to a dossier, synthesize a consensus, generate a prompt, create a decision record, or archive/delete files automatically. Any such behavior must be clearly marked as a future feature until code and tests exist.
+
+Recommended priority:
+
+1. Adopt the templates and evidence-led process now (no code changes required).
+2. Later, if manual filing remains painful, add a small `record-opinion` command that copies a selected response into a dated file without trying to interpret it.
+3. Only later consider synthesis automation. Keep AI judgment visible and reviewable; never silently turn AI opinions into approved decisions.
+
+## 5. Stop conditions and quality gates
+
+Stop and return to the owner when:
+
+- The requested change touches files outside the approved scope.
+- The current branch or working tree contains unexplained changes.
+- A critical claim has no source or reproducible experiment.
+- Two reviewers disagree on a high-impact fact and no safe experiment is available.
+- A test cannot run because a dependency/fixture/platform is missing. Report the blocker; do not invent a pass.
+- A proposed database operation would distribute or overwrite third-party data without a verified source and explicit approval.
+
+A successful debate is not “all AIs agree”. It is “the owner understands the evidence, risks, unresolved questions, and the next reversible step”.
