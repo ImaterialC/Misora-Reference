@@ -1,0 +1,117 @@
+/plan Implement S14: Select Box, left drawer, empty state, multi-open in Misora Editor.
+
+Suggested surface: Antigravity App, or CLI `agy`, on the user's Windows checkout of https://github.com/ImaterialC/Misora-Editor.
+Do not use /grill-me, /boost, /swarm, /teamwork, /run-workflow, /browser, or /automation in this paste.
+Requirements are already locked. This is a Tkinter desktop app, not a web page.
+After the user clicks Proceed, they may optionally send the matching /goal snippet from AFTER_PROCEED_GOAL_SNIPPETS.txt. Do not apply that /goal during the plan phase.
+
+CONTEXT POINTERS (READ THESE PATHS FROM DISK; DO NOT TRUST CHAT SUMMARIES AS SOURCE):
+@misora.py
+
+PINNED UPSTREAM: 683724edaf2afac89d2695a80e30a471a0da9195 (Misora-Editor main, v1.4.0).
+This session covers Phase 2.5 IDs only: BUG-41, FEAT-05, FEAT-06, FEAT-07.
+
+==================================================
+PART 0 — EXECUTION MODE, GATE, AND NON-NEGOTIABLE GUARDRAILS
+==================================================
+1. Planning-First Gate (STRICT):
+   - This paste starts with /plan. Do NOT modify any source or test file during the plan phase.
+   - Read the live Windows workspace from disk. Produce an Implementation Plan artifact.
+   - WAIT for the user to approve with Proceed before any edit.
+   - After Proceed, execute failing-first TDD and produce a Walkthrough artifact with real command output.
+2. Workspace and Git hygiene:
+   - Report the real branch, HEAD hash, `git status --short`, and the Python 3.12 path and version (`py -3.12 -c "import sys; print(sys.executable); print(sys.version)"`).
+   - Expected starting point for Session 01 is commit 683724edaf2afac89d2695a80e30a471a0da9195.
+   - Later sessions start from the previous session's uncommitted or user-committed tree. Do not assume line numbers still match 683724e.
+   - If unexpected local edits conflict with this session, STOP and list them in the plan. Do not revert them.
+   - NEVER run git reset, git clean, git stash, destructive git checkout, git commit, or git push.
+   - NEVER overwrite untracked misora_config.json. NEVER print API keys or DPAPI blobs.
+3. Allowed file ownership applies only after Proceed. Touch nothing else.
+4. No new third-party dependencies. requirements.txt stays UnityPy and Pillow only.
+5. Never delete, skip, weaken, xfail, or mock an existing test to force green. No live network in tests.
+6. Tkinter calls stay on the main thread. Workers communicate only through queue.Queue.
+7. Preserve LF on files that are LF. Do not mass-convert the repo to CRLF.
+8. Stop when this session's IDs are done. Do not implement later-session IDs, DEF-*, or NO-* items.
+9. Ledger line numbers are hints from commit 683724e. Bind by symbol name. Shifted lines are not a discrepancy. Missing behavior is a STOP: report it and do not invent a replacement design.
+
+3. Allowed file ownership (after Proceed):
+   - Allowed to create or modify:
+     * misora.py inside select-box mode, continuous card headers, dialogue header, left dock collapse, empty state, on_open_file
+     * tests/test_p3_s14_nav.py
+   - DO NOT modify:
+     * .misora workspace format (S17)
+     * MTL drawer (S20, S21)
+     * Pixel rulers (S15)
+
+==================================================
+PART 1 — PREFLIGHT (PUT THIS IN THE IMPLEMENTATION PLAN)
+==================================================
+Inspect live source on disk and report the real function names and current line ranges for:
+1. _on_toggle_select_box_mode and _render_continuous_view card 0
+2. Dialogue view header widgets
+3. _toggle_dock_collapse, _dock_collapsed, left_frame
+4. on_open_file and the opened-files tab
+5. locked_box_uids restored by S06
+
+Also report: branch, HEAD, git status --short, whether misora_config.json is untracked, and any behavior that contradicts this prompt. Stop before editing if behavior contradicts. Do not stop only because line numbers moved.
+
+==================================================
+PART 2 — REQUIRED IMPLEMENTATION (BUG-41, FEAT-05, FEAT-06, FEAT-07)
+==================================================
+### A. BUG-41 and FEAT-05 — Select Box in both views, lock slot reserved
+All Script card 0 (box index -1 or the metadata card, whichever the code uses) has a Select Box checkbutton.
+Dialogue view must not show a no-op toast that says Select Box mode is enabled while doing nothing. It shows an inline header checkbox: Select Box #N and a selected count.
+The Translation Lock icon sits immediately to the right of that checkbox in a reserved slot, so toggling Select mode does not shift the header horizontally.
+Copy and Cut already exist; this session only makes selection work in both views.
+Depends on per-document locks from S06. Do not reimplement lock storage.
+### B. FEAT-06 — pane collapse, not a place() overlay
+Extend _toggle_dock_collapse so the left Search Results / Opened Files pane collapses cleanly.
+Use the paned window and minsize. Do NOT use place() for a floating overlay.
+### C. FEAT-07 — empty state and batched multi-open
+When zero files are open, show a centered Open Files button and a hint that the user can drop .unity3d story files or open a .misora workspace.
+Double-clicking the Opened Files tab calls the same open action.
+on_open_file uses filedialog.askopenfilenames.
+Open every selected path with the existing S1 staged safety rules, refresh the UI once, and activate once.
+Do not implement .misora parsing here. The hint may mention the extension.
+
+==================================================
+PART 3 — FAILING-FIRST TESTS (AFTER PROCEED)
+==================================================
+Create or extend `tests/test_p3_s14_nav.py` with unittest.
+In setUp/tearDown: point misora.CONFIG_PATH and app.backup_folder at a TemporaryDirectory, and restore them. Suppress modal messagebox during automated error paths. Zero network.
+
+- Defect / behavior probes (MUST FAIL before the patch, PASS after):
+  1. [Probe] Dialogue view select control selects an arbitrary box index instead of only toasting.
+  2. [Probe] All Script card 0 contains a select checkbutton.
+  3. [Probe] Toggling select mode does not change the x position of the lock control's reserved column.
+  4. [Probe] Dock collapse uses the paned window API and the source of _toggle_dock_collapse contains no place( call.
+  5. [Probe] askopenfilenames returning three paths results in one activation and three open documents.
+
+- Regression guards (MUST PASS before AND after; pre-patch contracts only; do not mention new attributes):
+  1. [Guard] Opening a single path still works when askopenfilenames returns one path.
+  2. [Guard] A locked box still cannot be cut (S07 guard still passes).
+
+==================================================
+OUT OF SCOPE (DO NOT IMPLEMENT IN THIS SESSION)
+==================================================
+- FEAT-08
+- FEAT-12
+- FEAT-13
+- Every DEF-* item (DEF-01 through DEF-10) and every NO-* item (NO-01 through NO-12).
+- Any Phase 2.5 ID not listed in Part 2.
+
+==================================================
+PART 4 — VERIFICATION COMMANDS AND DELIVERABLES
+==================================================
+1. Now (/plan, ZERO file edits): Implementation Plan artifact, then WAIT for Proceed.
+2. After Proceed:
+   - Add the probes and guards.
+   - Run the new test module once BEFORE the product patch. Record each Probe failing and each Guard passing.
+   - If a Probe already passes, STOP. The defect is not where this prompt says, or an earlier session already fixed it. Report evidence. Do not weaken the probe.
+   - Implement only this session.
+   - Then run, and paste the real output into the Walkthrough:
+     * py -3.12 -m compileall -q misora.py core assets tests
+     * py -3.12 -m unittest tests.test_p3_s14_nav -v
+     * py -3.12 -m unittest discover -s tests -v
+   - Walkthrough must also include git status --short, a short diff summary, and the handoff sentence for the next session.
+   - Do not claim a command passed unless that exact command's output is in the Walkthrough.

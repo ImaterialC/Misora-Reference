@@ -1,0 +1,119 @@
+/plan Implement S07: Undo only after success, cut indexes, lock bypass in Misora Editor.
+
+Suggested surface: Antigravity App, or CLI `agy`, on the user's Windows checkout of https://github.com/ImaterialC/Misora-Editor.
+Do not use /grill-me, /boost, /swarm, /teamwork, /run-workflow, /browser, or /automation in this paste.
+Requirements are already locked. This is a Tkinter desktop app, not a web page.
+After the user clicks Proceed, they may optionally send the matching /goal snippet from AFTER_PROCEED_GOAL_SNIPPETS.txt. Do not apply that /goal during the plan phase.
+
+CONTEXT POINTERS (READ THESE PATHS FROM DISK; DO NOT TRUST CHAT SUMMARIES AS SOURCE):
+@misora.py @core/undo_journal.py @core/story_ast.py
+
+PINNED UPSTREAM: 683724edaf2afac89d2695a80e30a471a0da9195 (Misora-Editor main, v1.4.0).
+This session covers Phase 2.5 IDs only: BUG-13, BUG-15, BUG-16, BUG-17.
+
+==================================================
+PART 0 — EXECUTION MODE, GATE, AND NON-NEGOTIABLE GUARDRAILS
+==================================================
+1. Planning-First Gate (STRICT):
+   - This paste starts with /plan. Do NOT modify any source or test file during the plan phase.
+   - Read the live Windows workspace from disk. Produce an Implementation Plan artifact.
+   - WAIT for the user to approve with Proceed before any edit.
+   - After Proceed, execute failing-first TDD and produce a Walkthrough artifact with real command output.
+2. Workspace and Git hygiene:
+   - Report the real branch, HEAD hash, `git status --short`, and the Python 3.12 path and version (`py -3.12 -c "import sys; print(sys.executable); print(sys.version)"`).
+   - Expected starting point for Session 01 is commit 683724edaf2afac89d2695a80e30a471a0da9195.
+   - Later sessions start from the previous session's uncommitted or user-committed tree. Do not assume line numbers still match 683724e.
+   - If unexpected local edits conflict with this session, STOP and list them in the plan. Do not revert them.
+   - NEVER run git reset, git clean, git stash, destructive git checkout, git commit, or git push.
+   - NEVER overwrite untracked misora_config.json. NEVER print API keys or DPAPI blobs.
+3. Allowed file ownership applies only after Proceed. Touch nothing else.
+4. No new third-party dependencies. requirements.txt stays UnityPy and Pillow only.
+5. Never delete, skip, weaken, xfail, or mock an existing test to force green. No live network in tests.
+6. Tkinter calls stay on the main thread. Workers communicate only through queue.Queue.
+7. Preserve LF on files that are LF. Do not mass-convert the repo to CRLF.
+8. Stop when this session's IDs are done. Do not implement later-session IDs, DEF-*, or NO-* items.
+9. Ledger line numbers are hints from commit 683724e. Bind by symbol name. Shifted lines are not a discrepancy. Missing behavior is a STOP: report it and do not invent a replacement design.
+
+3. Allowed file ownership (after Proceed):
+   - Allowed to create or modify:
+     * misora.py inside _on_dialogue_edited, _on_card_text_edited, _flush_continuous_card_edits, on_replace_next (only the undo/dirty order), on_box_cut, _apply_delta for BoxStructuralDelta, on_clear_dialogue_skeleton, TranslatorAssistantDialog._on_apply
+     * core/undo_journal.py record() coalesce rule
+     * tests/test_p3_s07_undo_locks.py
+   - DO NOT modify:
+     * Replace-all cache keys (S10)
+     * MTL drawer replacement (S20)
+     * Raw Commands editor (S18)
+
+==================================================
+PART 1 — PREFLIGHT (PUT THIS IN THE IMPLEMENTATION PLAN)
+==================================================
+Inspect live source on disk and report the real function names and current line ranges for:
+1. _on_dialogue_edited, _on_card_text_edited, _flush_continuous_card_edits
+2. on_box_cut and _apply_delta(BoxStructuralDelta)
+3. on_clear_dialogue_skeleton and TranslatorAssistantDialog._on_apply
+4. MasterUndoJournal.record coalesce
+
+Also report: branch, HEAD, git status --short, whether misora_config.json is untracked, and any behavior that contradicts this prompt. Stop before editing if behavior contradicts. Do not stop only because line numbers moved.
+
+==================================================
+PART 2 — REQUIRED IMPLEMENTATION (BUG-13, BUG-15, BUG-16, BUG-17)
+==================================================
+### A. BUG-13 — mutate, then record undo, never swallow
+Call inject_box first. Record the undo delta and mark dirty only if it succeeds.
+Remove bare `except Exception: pass` on these paths. Log with logger.exception and set a status-bar error.
+A failing inject_box leaves the undo stack and dirty flag unchanged.
+### B. BUG-15 — non-contiguous cut restores exact indexes
+BoxStructuralDelta stores the original index of each snapshot.
+Undo puts each snapshot back at that index. Redo deletes those exact indexes.
+Cut refuses or skips locked boxes.
+Cutting indexes 1 and 4, then Undo, then Redo, restores the original order.
+### C. BUG-16 — locks bind Clear Skeleton and Assistant Apply
+is_box_locked() is enforced in both handlers, not only in the UI.
+Clear Skeleton skips locked boxes and reports how many were preserved.
+Assistant Apply blocks a locked box with a toast and reads the widget with get("1.0", "end-1c"). Do not .strip() the applied text.
+Leading and trailing spaces and newlines survive.
+### D. BUG-17 — coalesce only the same box uid
+If both prev_delta.box_uid and delta.box_uid are not None, coalesce only when they are equal.
+Fall back to box_index only when at least one uid is None.
+When coalescing a BoxEditDelta, update new_seg_texts as well as new_text (the fields S05 added).
+Two different non-None uids at the same index must not coalesce.
+
+==================================================
+PART 3 — FAILING-FIRST TESTS (AFTER PROCEED)
+==================================================
+Create or extend `tests/test_p3_s07_undo_locks.py` with unittest.
+In setUp/tearDown: point misora.CONFIG_PATH and app.backup_folder at a TemporaryDirectory, and restore them. Suppress modal messagebox during automated error paths. Zero network.
+
+- Defect / behavior probes (MUST FAIL before the patch, PASS after):
+  1. [Probe] inject_box raising leaves undo length and is_dirty unchanged and sets a status error string.
+  2. [Probe] Cut of indexes [1, 4] round-trips through undo and redo to the original text order, and a locked index is not removed.
+  3. [Probe] Clear Skeleton and Assistant Apply do not change a locked box. Apply keeps leading and trailing whitespace.
+  4. [Probe] Two BoxEditDelta records with different uids and the same index both remain on the stack.
+
+- Regression guards (MUST PASS before AND after; pre-patch contracts only; do not mention new attributes):
+  1. [Guard] A successful single-box dialogue edit still appends exactly one undo record and sets dirty.
+  2. [Guard] Coalesce of two edits with the same uid still collapses to one record.
+
+==================================================
+OUT OF SCOPE (DO NOT IMPLEMENT IN THIS SESSION)
+==================================================
+- BUG-24 replace-all
+- FEAT-12
+- Every DEF-* item (DEF-01 through DEF-10) and every NO-* item (NO-01 through NO-12).
+- Any Phase 2.5 ID not listed in Part 2.
+
+==================================================
+PART 4 — VERIFICATION COMMANDS AND DELIVERABLES
+==================================================
+1. Now (/plan, ZERO file edits): Implementation Plan artifact, then WAIT for Proceed.
+2. After Proceed:
+   - Add the probes and guards.
+   - Run the new test module once BEFORE the product patch. Record each Probe failing and each Guard passing.
+   - If a Probe already passes, STOP. The defect is not where this prompt says, or an earlier session already fixed it. Report evidence. Do not weaken the probe.
+   - Implement only this session.
+   - Then run, and paste the real output into the Walkthrough:
+     * py -3.12 -m compileall -q misora.py core assets tests
+     * py -3.12 -m unittest tests.test_p3_s07_undo_locks -v
+     * py -3.12 -m unittest discover -s tests -v
+   - Walkthrough must also include git status --short, a short diff summary, and the handoff sentence for the next session.
+   - Do not claim a command passed unless that exact command's output is in the Walkthrough.

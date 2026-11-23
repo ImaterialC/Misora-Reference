@@ -1,0 +1,125 @@
+/plan Implement S03: Treeview contrast, then atomic CSIF apply in Misora Editor.
+
+Suggested surface: Antigravity App, or CLI `agy`, on the user's Windows checkout of https://github.com/ImaterialC/Misora-Editor.
+Do not use /grill-me, /boost, /swarm, /teamwork, /run-workflow, /browser, or /automation in this paste.
+Requirements are already locked. This is a Tkinter desktop app, not a web page.
+After the user clicks Proceed, they may optionally send the matching /goal snippet from AFTER_PROCEED_GOAL_SNIPPETS.txt. Do not apply that /goal during the plan phase.
+
+CONTEXT POINTERS (READ THESE PATHS FROM DISK; DO NOT TRUST CHAT SUMMARIES AS SOURCE):
+@misora.py @core/script_codec.py @core/bundle_io.py @AGENTS.md
+
+PINNED UPSTREAM: 683724edaf2afac89d2695a80e30a471a0da9195 (Misora-Editor main, v1.4.0).
+This session covers Phase 2.5 IDs only: BUG-31, BUG-07, BUG-08, BUG-09.
+
+==================================================
+PART 0 — EXECUTION MODE, GATE, AND NON-NEGOTIABLE GUARDRAILS
+==================================================
+1. Planning-First Gate (STRICT):
+   - This paste starts with /plan. Do NOT modify any source or test file during the plan phase.
+   - Read the live Windows workspace from disk. Produce an Implementation Plan artifact.
+   - WAIT for the user to approve with Proceed before any edit.
+   - After Proceed, execute failing-first TDD and produce a Walkthrough artifact with real command output.
+2. Workspace and Git hygiene:
+   - Report the real branch, HEAD hash, `git status --short`, and the Python 3.12 path and version (`py -3.12 -c "import sys; print(sys.executable); print(sys.version)"`).
+   - Expected starting point for Session 01 is commit 683724edaf2afac89d2695a80e30a471a0da9195.
+   - Later sessions start from the previous session's uncommitted or user-committed tree. Do not assume line numbers still match 683724e.
+   - If unexpected local edits conflict with this session, STOP and list them in the plan. Do not revert them.
+   - NEVER run git reset, git clean, git stash, destructive git checkout, git commit, or git push.
+   - NEVER overwrite untracked misora_config.json. NEVER print API keys or DPAPI blobs.
+3. Allowed file ownership applies only after Proceed. Touch nothing else.
+4. No new third-party dependencies. requirements.txt stays UnityPy and Pillow only.
+5. Never delete, skip, weaken, xfail, or mock an existing test to force green. No live network in tests.
+6. Tkinter calls stay on the main thread. Workers communicate only through queue.Queue.
+7. Preserve LF on files that are LF. Do not mass-convert the repo to CRLF.
+8. Stop when this session's IDs are done. Do not implement later-session IDs, DEF-*, or NO-* items.
+9. Ledger line numbers are hints from commit 683724e. Bind by symbol name. Shifted lines are not a discrepancy. Missing behavior is a STOP: report it and do not invent a replacement design.
+
+3. Allowed file ownership (after Proceed):
+   - Allowed to create or modify:
+     * misora.py only inside _apply_styles, ScriptPastePreviewDialog, and _show_paste_preview_and_apply
+     * core/script_codec.py
+     * core/bundle_io.py only inside save_bundle_story non-target verification
+     * tests/test_p3_s03_csif_theme.py
+     * AGENTS.md section 9 only if BUG-09 evidence requires an honest wording change
+   - DO NOT modify:
+     * core/story_ast.py except calls you must not change
+     * MTL, search, rulers, preview frames
+     * Adding binary .unity3d fixtures to the git repo
+
+==================================================
+PART 1 — PREFLIGHT (PUT THIS IN THE IMPLEMENTATION PLAN)
+==================================================
+Inspect live source on disk and report the real function names and current line ranges for:
+1. _apply_styles and any Treeview style map
+2. ScriptPastePreviewDialog._populate_tree
+3. _show_paste_preview_and_apply
+4. script_codec.apply_to_document, serialize, and _parse_csif
+5. bundle_io.save_bundle_story versus AGENTS.md bundle-save section
+
+Also report: branch, HEAD, git status --short, whether misora_config.json is untracked, and any behavior that contradicts this prompt. Stop before editing if behavior contradicts. Do not stop only because line numbers moved.
+
+==================================================
+PART 2 — REQUIRED IMPLEMENTATION (BUG-31, BUG-07, BUG-08, BUG-09)
+==================================================
+### A. BUG-31 — theme Treeview before any other Treeview edit
+Do this first, before BUG-07 edits the paste dialog.
+Configure Treeview and Treeview.Heading background, fieldbackground, foreground, and the selected map from the active theme inside _apply_styles, using the existing best_contrast_fg() helper.
+Every shipped theme preset, light and dark, must reach a contrast ratio of at least 4.5 between Treeview text and its background.
+### B. BUG-07 — atomic sparse CSIF apply
+Add apply_metadata: bool to apply_to_document() and honor the UI checkbox.
+Validate ALL sparse absolute 1-based targets (b.index - 1) and capture target Record.uid values BEFORE mutating metadata or dialogue.
+Resolve by UID so a kind conversion cannot shift later targets.
+Apply metadata and dialogue atomically. On error, roll the document back completely.
+Preview table, BoxEditDelta, and _modified_boxes use exact b.index - 1 for sparse payloads. Cursor-relative indexes are only for non-sparse payloads.
+Unchecked metadata must leave Box 0 intact.
+### C. BUG-08 — backslash parity, one slash only
+Serialize: add exactly one leading backslash to a body line matching ^\\*@@ (zero or more backslashes immediately followed by @@).
+Parse: remove exactly one leading backslash from a line matching ^\\+@@. NEVER strip all leading backslashes.
+Round-trip these four distinct inputs unchanged in meaning: @@x, \@@x, \\@@x, \\\@@x, plus an ordinary \text line that is not followed by @@.
+### D. BUG-09 — non-target bundle bytes, fixture gated
+This item is conditional. Do not invent a .unity3d fixture and do not commit one.
+If the user has a local 9080155.unity3d or another production bundle outside the repo, verify whether packer="original" leaves non-target object raw bytes unchanged.
+If they are unchanged, enforce a per-object hash check in save_bundle_story.
+If they are not unchanged, or no fixture is present, do not fail valid saves. Write the evidence into the Walkthrough and, only if the code contract is wrong, correct AGENTS.md bundle-save wording.
+Absence of a fixture is a documented skip, not a pass that pretends the hash check exists.
+
+==================================================
+PART 3 — FAILING-FIRST TESTS (AFTER PROCEED)
+==================================================
+Create or extend `tests/test_p3_s03_csif_theme.py` with unittest.
+In setUp/tearDown: point misora.CONFIG_PATH and app.backup_folder at a TemporaryDirectory, and restore them. Suppress modal messagebox during automated error paths. Zero network.
+
+- Defect / behavior probes (MUST FAIL before the patch, PASS after):
+  1. [Probe] For each theme preset, computed Treeview foreground vs background contrast is >= 4.5.
+  2. [Probe] apply_to_document with metadata unchecked does not change Box 0.
+  3. [Probe] A sparse payload applied while the active box is not zero writes the stated 1-based targets, not cursor-relative targets.
+  4. [Probe] An invalid sparse payload leaves document bytes and box text identical to the pre-call snapshot.
+  5. [Probe] CSIF round-trip preserves @@x, one-backslash @@, two-backslash @@, and three-backslash @@ as four different bodies.
+
+- Regression guards (MUST PASS before AND after; pre-patch contracts only; do not mention new attributes):
+  1. [Guard] A valid non-sparse CSIF dialogue apply still changes the targeted box text and still records undo the way the existing codec test expects.
+  2. [Guard] save_bundle_story on the existing synthetic/unit fixture still saves when no production bundle is configured.
+
+==================================================
+OUT OF SCOPE (DO NOT IMPLEMENT IN THIS SESSION)
+==================================================
+- FEAT-14 Import from XUAT
+- Changing cmd 35 or cmd 32
+- Every DEF-* item (DEF-01 through DEF-10) and every NO-* item (NO-01 through NO-12).
+- Any Phase 2.5 ID not listed in Part 2.
+
+==================================================
+PART 4 — VERIFICATION COMMANDS AND DELIVERABLES
+==================================================
+1. Now (/plan, ZERO file edits): Implementation Plan artifact, then WAIT for Proceed.
+2. After Proceed:
+   - Add the probes and guards.
+   - Run the new test module once BEFORE the product patch. Record each Probe failing and each Guard passing.
+   - If a Probe already passes, STOP. The defect is not where this prompt says, or an earlier session already fixed it. Report evidence. Do not weaken the probe.
+   - Implement only this session.
+   - Then run, and paste the real output into the Walkthrough:
+     * py -3.12 -m compileall -q misora.py core assets tests
+     * py -3.12 -m unittest tests.test_p3_s03_csif_theme -v
+     * py -3.12 -m unittest discover -s tests -v
+   - Walkthrough must also include git status --short, a short diff summary, and the handoff sentence for the next session.
+   - Do not claim a command passed unless that exact command's output is in the Walkthrough.

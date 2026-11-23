@@ -1,0 +1,109 @@
+/plan Implement S17: .misora workspace v1 references and locks only in Misora Editor.
+
+Suggested surface: Antigravity App, or CLI `agy`, on the user's Windows checkout of https://github.com/ImaterialC/Misora-Editor.
+Do not use /grill-me, /boost, /swarm, /teamwork, /run-workflow, /browser, or /automation in this paste.
+Requirements are already locked. This is a Tkinter desktop app, not a web page.
+After the user clicks Proceed, they may optionally send the matching /goal snippet from AFTER_PROCEED_GOAL_SNIPPETS.txt. Do not apply that /goal during the plan phase.
+
+CONTEXT POINTERS (READ THESE PATHS FROM DISK; DO NOT TRUST CHAT SUMMARIES AS SOURCE):
+@misora.py @core/text_encoding.py
+
+PINNED UPSTREAM: 683724edaf2afac89d2695a80e30a471a0da9195 (Misora-Editor main, v1.4.0).
+This session covers Phase 2.5 IDs only: FEAT-08.
+
+==================================================
+PART 0 — EXECUTION MODE, GATE, AND NON-NEGOTIABLE GUARDRAILS
+==================================================
+1. Planning-First Gate (STRICT):
+   - This paste starts with /plan. Do NOT modify any source or test file during the plan phase.
+   - Read the live Windows workspace from disk. Produce an Implementation Plan artifact.
+   - WAIT for the user to approve with Proceed before any edit.
+   - After Proceed, execute failing-first TDD and produce a Walkthrough artifact with real command output.
+2. Workspace and Git hygiene:
+   - Report the real branch, HEAD hash, `git status --short`, and the Python 3.12 path and version (`py -3.12 -c "import sys; print(sys.executable); print(sys.version)"`).
+   - Expected starting point for Session 01 is commit 683724edaf2afac89d2695a80e30a471a0da9195.
+   - Later sessions start from the previous session's uncommitted or user-committed tree. Do not assume line numbers still match 683724e.
+   - If unexpected local edits conflict with this session, STOP and list them in the plan. Do not revert them.
+   - NEVER run git reset, git clean, git stash, destructive git checkout, git commit, or git push.
+   - NEVER overwrite untracked misora_config.json. NEVER print API keys or DPAPI blobs.
+3. Allowed file ownership applies only after Proceed. Touch nothing else.
+4. No new third-party dependencies. requirements.txt stays UnityPy and Pillow only.
+5. Never delete, skip, weaken, xfail, or mock an existing test to force green. No live network in tests.
+6. Tkinter calls stay on the main thread. Workers communicate only through queue.Queue.
+7. Preserve LF on files that are LF. Do not mass-convert the repo to CRLF.
+8. Stop when this session's IDs are done. Do not implement later-session IDs, DEF-*, or NO-* items.
+9. Ledger line numbers are hints from commit 683724e. Bind by symbol name. Shifted lines are not a discrepancy. Missing behavior is a STOP: report it and do not invent a replacement design.
+
+3. Allowed file ownership (after Proceed):
+   - Allowed to create or modify:
+     * misora.py workspace open/save handlers
+     * one small helper module only if misora.py cannot hold the JSON codec cleanly; stdlib json only
+     * tests/test_p3_s17_workspace.py
+   - DO NOT modify:
+     * Embedding story drafts or unity3d bytes
+     * Rewriting open_file's per-doc lock model from S06
+
+==================================================
+PART 1 — PREFLIGHT (PUT THIS IN THE IMPLEMENTATION PLAN)
+==================================================
+Inspect live source on disk and report the real function names and current line ranges for:
+1. open_documents fields from S06
+2. batched open path from S14
+3. startup restore hook from S02
+4. write_atomic_encoded
+
+Also report: branch, HEAD, git status --short, whether misora_config.json is untracked, and any behavior that contradicts this prompt. Stop before editing if behavior contradicts. Do not stop only because line numbers moved.
+
+==================================================
+PART 2 — REQUIRED IMPLEMENTATION (FEAT-08)
+==================================================
+### A. FEAT-08 — references, state, and stable lock keys
+Write an atomic JSON workspace file with extension .misora.
+Schema v1 stores: schema version, open file paths as relative plus absolute fallback, active file, active box, view and scope flags, and locks.
+Lock key is the pair (box_ordinal, sha256 of the original Japanese text). Never write Record.uid.
+Do not store unsaved draft text. Do not store .unity3d bytes.
+Reopen through the existing staged/batched opener.
+If a saved lock does not match one box confidently, leave it unresolved and notify the user. Never attach it to a different box.
+Opening a second .misora while documents are dirty prompts Save, Discard, or Cancel.
+That prompt includes a compact table of added, removed, and dirty paths. Old versus new.
+Use write_atomic_encoded or an equivalent unique-temp atomic replace. LF JSON.
+
+==================================================
+PART 3 — FAILING-FIRST TESTS (AFTER PROCEED)
+==================================================
+Create or extend `tests/test_p3_s17_workspace.py` with unittest.
+In setUp/tearDown: point misora.CONFIG_PATH and app.backup_folder at a TemporaryDirectory, and restore them. Suppress modal messagebox during automated error paths. Zero network.
+
+- Defect / behavior probes (MUST FAIL before the patch, PASS after):
+  1. [Probe] Saved JSON contains no key named uid and no unity3d payload, and contains the sha256 of the original JP text.
+  2. [Probe] A lock whose ordinal and hash do not match any box is reported unresolved and no box gains that lock.
+  3. [Probe] Dirty-open switch Cancel leaves the original open set unchanged.
+  4. [Probe] The writer output file contains zero CR bytes.
+
+- Regression guards (MUST PASS before AND after; pre-patch contracts only; do not mention new attributes):
+  1. [Guard] Opening a normal .unity3d story still works.
+  2. [Guard] In-memory lock by box.uid still survives a tab switch (S06).
+
+==================================================
+OUT OF SCOPE (DO NOT IMPLEMENT IN THIS SESSION)
+==================================================
+- NO-01 drafts inside .misora
+- Dataminer DEF-05
+- Every DEF-* item (DEF-01 through DEF-10) and every NO-* item (NO-01 through NO-12).
+- Any Phase 2.5 ID not listed in Part 2.
+
+==================================================
+PART 4 — VERIFICATION COMMANDS AND DELIVERABLES
+==================================================
+1. Now (/plan, ZERO file edits): Implementation Plan artifact, then WAIT for Proceed.
+2. After Proceed:
+   - Add the probes and guards.
+   - Run the new test module once BEFORE the product patch. Record each Probe failing and each Guard passing.
+   - If a Probe already passes, STOP. The defect is not where this prompt says, or an earlier session already fixed it. Report evidence. Do not weaken the probe.
+   - Implement only this session.
+   - Then run, and paste the real output into the Walkthrough:
+     * py -3.12 -m compileall -q misora.py core assets tests
+     * py -3.12 -m unittest tests.test_p3_s17_workspace -v
+     * py -3.12 -m unittest discover -s tests -v
+   - Walkthrough must also include git status --short, a short diff summary, and the handoff sentence for the next session.
+   - Do not claim a command passed unless that exact command's output is in the Walkthrough.

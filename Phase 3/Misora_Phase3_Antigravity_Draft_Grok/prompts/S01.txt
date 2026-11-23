@@ -1,0 +1,125 @@
+/plan Implement S01: Reconcile docs and isolate test backups in Misora Editor.
+
+Suggested surface: Antigravity App, or CLI `agy`, on the user's Windows checkout of https://github.com/ImaterialC/Misora-Editor.
+Do not use /grill-me, /boost, /swarm, /teamwork, /run-workflow, /browser, or /automation in this paste.
+Requirements are already locked. This is a Tkinter desktop app, not a web page.
+After the user clicks Proceed, they may optionally send the matching /goal snippet from AFTER_PROCEED_GOAL_SNIPPETS.txt. Do not apply that /goal during the plan phase.
+
+CONTEXT POINTERS (READ THESE PATHS FROM DISK; DO NOT TRUST CHAT SUMMARIES AS SOURCE):
+@AGENTS.md @PROJECT_STATE.md @README.md @core/search_engine.py @tests/ @.gitignore
+
+PINNED UPSTREAM: 683724edaf2afac89d2695a80e30a471a0da9195 (Misora-Editor main, v1.4.0).
+This session covers Phase 2.5 IDs only: HYG-01, HYG-02, HYG-05.
+
+==================================================
+PART 0 — EXECUTION MODE, GATE, AND NON-NEGOTIABLE GUARDRAILS
+==================================================
+1. Planning-First Gate (STRICT):
+   - This paste starts with /plan. Do NOT modify any source or test file during the plan phase.
+   - Read the live Windows workspace from disk. Produce an Implementation Plan artifact.
+   - WAIT for the user to approve with Proceed before any edit.
+   - After Proceed, execute failing-first TDD and produce a Walkthrough artifact with real command output.
+2. Workspace and Git hygiene:
+   - Report the real branch, HEAD hash, `git status --short`, and the Python 3.12 path and version (`py -3.12 -c "import sys; print(sys.executable); print(sys.version)"`).
+   - Expected starting point for Session 01 is commit 683724edaf2afac89d2695a80e30a471a0da9195.
+   - Later sessions start from the previous session's uncommitted or user-committed tree. Do not assume line numbers still match 683724e.
+   - If unexpected local edits conflict with this session, STOP and list them in the plan. Do not revert them.
+   - NEVER run git reset, git clean, git stash, destructive git checkout, git commit, or git push.
+   - NEVER overwrite untracked misora_config.json. NEVER print API keys or DPAPI blobs.
+3. Allowed file ownership applies only after Proceed. Touch nothing else.
+4. No new third-party dependencies. requirements.txt stays UnityPy and Pillow only.
+5. Never delete, skip, weaken, xfail, or mock an existing test to force green. No live network in tests.
+6. Tkinter calls stay on the main thread. Workers communicate only through queue.Queue.
+7. Preserve LF on files that are LF. Do not mass-convert the repo to CRLF.
+8. Stop when this session's IDs are done. Do not implement later-session IDs, DEF-*, or NO-* items.
+9. Ledger line numbers are hints from commit 683724e. Bind by symbol name. Shifted lines are not a discrepancy. Missing behavior is a STOP: report it and do not invent a replacement design.
+
+3. Allowed file ownership (after Proceed):
+   - Allowed to create or modify:
+     * PROJECT_STATE.md (truth reconciliation only; do not mark unfixed bugs as resolved)
+     * README.md (only where it repeats a contradicted claim or a wrong test filename)
+     * AGENTS.md (topic-accurate amendments described below; do not renumber unrelated sections)
+     * tests/test_p3_s01_hygiene.py
+     * tests/*.py only for the backup_folder redirect in setUp/tearDown of existing suites, if a shared helper does not already exist. Prefer one helper imported by suites rather than a drive-by rewrite.
+     * core/search_engine.py (HYG-05 import and annotation only)
+   - DO NOT modify:
+     * misora.py
+     * core/story_ast.py
+     * core/script_codec.py
+     * core/bundle_io.py
+     * core/mtl_engine.py
+     * core/security.py
+     * assets/
+     * requirements.txt
+
+==================================================
+PART 1 — PREFLIGHT (PUT THIS IN THE IMPLEMENTATION PLAN)
+==================================================
+Inspect live source on disk and report the real function names and current line ranges for:
+1. Live heading list of AGENTS.md. Ledger citations such as section 24 may not match this commit. Bind by topic.
+2. PROJECT_STATE.md claims that say RESOLVED but contradict current tests or missing docs/.
+3. The test count and test filenames PROJECT_STATE.md advertises, versus the real tests/ directory.
+4. core/search_engine.py imports and the two sites the ledger cites (historical lines 15 and 384 at 683724e).
+5. How existing tests set misora.CONFIG_PATH and app.backup_folder.
+
+Also report: branch, HEAD, git status --short, whether misora_config.json is untracked, and any behavior that contradicts this prompt. Stop before editing if behavior contradicts. Do not stop only because line numbers moved.
+
+==================================================
+PART 2 — REQUIRED IMPLEMENTATION (HYG-01, HYG-02, HYG-05)
+==================================================
+### A. HYG-01 — reconcile ledger, docs, and AGENTS.md
+Against HEAD behavior, not against wishful status labels:
+- Downgrade any RESOLVED claim that the code does not actually satisfy.
+- Fix test-count arithmetic and mismatched test filenames so they match tests/ on disk.
+- Record that local docs/ and storydata_1001005.unity3d were intentionally removed and that the unity3d fixture is gitignored. Do not recreate docs/ unless you are only adding a one-line pointer. Prefer staying inside PROJECT_STATE.md.
+- Clarify MULTI-TEXTASSET-TARGET as an open question (DEF-03), not as a shipped selector.
+- Topic "NGUI overflow" (live AGENTS.md section 19 at 683724e is "NGUI single source"): state the locked target in words, and mark it NOT IMPLEMENTED yet. Target: pixel measure via font.measure("1234567890" * 5), 50 digit-widths, red from line 4, no character counter. Do not implement the helper in this session.
+- Topic "MTL drawer gate" (find the real section; do not blindly edit heading 24 if heading 24 is "Scope discipline"): MTL drawer work is forbidden until the P0/P1 sessions in this pack have passed. Remove any claim that a CSIF MTL drawer already shipped if that claim is false.
+- Topic "Ctrl+H" (live section 29 area): record that the Project Lead verified Ctrl+H works on Windows v1.4.0. The remaining bind_all hygiene is HYG-07, not this session.
+- Record reference provenance exactly: Phase_1_Gemini.md is Gemini's dossier at commit 8625794; Phase_1_Claude.md is Claude's dossier; Phase_2R1_Claude.md is 22852 bytes; Claude was parked by the Project Lead after Phase 2 R1.
+- Do not invent new architecture.
+### B. HYG-02 — isolate test backup directories
+Running unittest must not write into the repo backups/ directory.
+Redirect app.backup_folder to the test TemporaryDirectory in setUp and restore it in tearDown, beside the existing CONFIG_PATH discipline.
+If many suites need the same three lines, add one test helper module and use it. Do not change production backup behavior.
+### C. HYG-05 — import Any in search_engine.py
+Import Any from typing at the sites that need it. Add a test that typing.get_type_hints() resolves the annotated search functions without NameError.
+No behavior change to matching.
+
+==================================================
+PART 3 — FAILING-FIRST TESTS (AFTER PROCEED)
+==================================================
+Create or extend `tests/test_p3_s01_hygiene.py` with unittest.
+In setUp/tearDown: point misora.CONFIG_PATH and app.backup_folder at a TemporaryDirectory, and restore them. Suppress modal messagebox during automated error paths. Zero network.
+
+- Defect / behavior probes (MUST FAIL before the patch, PASS after):
+  1. [Probe] typing.get_type_hints on the public matcher/search callables in core.search_engine raises NameError or fails to resolve Any before the import fix, and succeeds after.
+  2. [Probe] A test that sets backup_folder to a temp dir and performs the existing backup path construction does not create files under ./backups.
+
+- Regression guards (MUST PASS before AND after; pre-patch contracts only; do not mention new attributes):
+  1. [Guard] Importing core.search_engine does not require a network connection and does not change match behavior of an existing search test (run one existing search test as the guard).
+  2. [Guard] unittest discovery still collects the pre-existing tests/test_s9a_search_unicode.py module.
+
+==================================================
+OUT OF SCOPE (DO NOT IMPLEMENT IN THIS SESSION)
+==================================================
+- Implementing pixel rulers, MTL UI, or any BUG/FEAT.
+- Deleting sections of AGENTS.md whose heading does not match the topic you verified.
+- Every DEF-* item (DEF-01 through DEF-10) and every NO-* item (NO-01 through NO-12).
+- Any Phase 2.5 ID not listed in Part 2.
+
+==================================================
+PART 4 — VERIFICATION COMMANDS AND DELIVERABLES
+==================================================
+1. Now (/plan, ZERO file edits): Implementation Plan artifact, then WAIT for Proceed.
+2. After Proceed:
+   - Add the probes and guards.
+   - Run the new test module once BEFORE the product patch. Record each Probe failing and each Guard passing.
+   - If a Probe already passes, STOP. The defect is not where this prompt says, or an earlier session already fixed it. Report evidence. Do not weaken the probe.
+   - Implement only this session.
+   - Then run, and paste the real output into the Walkthrough:
+     * py -3.12 -m compileall -q misora.py core assets tests
+     * py -3.12 -m unittest tests.test_p3_s01_hygiene -v
+     * py -3.12 -m unittest discover -s tests -v
+   - Walkthrough must also include git status --short, a short diff summary, and the handoff sentence for the next session.
+   - Do not claim a command passed unless that exact command's output is in the Walkthrough.

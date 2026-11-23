@@ -1,0 +1,121 @@
+/plan Implement S12: Ribbon commits, gutter refresh, tooltips in Misora Editor.
+
+Suggested surface: Antigravity App, or CLI `agy`, on the user's Windows checkout of https://github.com/ImaterialC/Misora-Editor.
+Do not use /grill-me, /boost, /swarm, /teamwork, /run-workflow, /browser, or /automation in this paste.
+Requirements are already locked. This is a Tkinter desktop app, not a web page.
+After the user clicks Proceed, they may optionally send the matching /goal snippet from AFTER_PROCEED_GOAL_SNIPPETS.txt. Do not apply that /goal during the plan phase.
+
+CONTEXT POINTERS (READ THESE PATHS FROM DISK; DO NOT TRUST CHAT SUMMARIES AS SOURCE):
+@misora.py @AGENTS.md
+
+PINNED UPSTREAM: 683724edaf2afac89d2695a80e30a471a0da9195 (Misora-Editor main, v1.4.0).
+This session covers Phase 2.5 IDs only: BUG-28, BUG-30, HYG-03, HYG-07.
+
+==================================================
+PART 0 — EXECUTION MODE, GATE, AND NON-NEGOTIABLE GUARDRAILS
+==================================================
+1. Planning-First Gate (STRICT):
+   - This paste starts with /plan. Do NOT modify any source or test file during the plan phase.
+   - Read the live Windows workspace from disk. Produce an Implementation Plan artifact.
+   - WAIT for the user to approve with Proceed before any edit.
+   - After Proceed, execute failing-first TDD and produce a Walkthrough artifact with real command output.
+2. Workspace and Git hygiene:
+   - Report the real branch, HEAD hash, `git status --short`, and the Python 3.12 path and version (`py -3.12 -c "import sys; print(sys.executable); print(sys.version)"`).
+   - Expected starting point for Session 01 is commit 683724edaf2afac89d2695a80e30a471a0da9195.
+   - Later sessions start from the previous session's uncommitted or user-committed tree. Do not assume line numbers still match 683724e.
+   - If unexpected local edits conflict with this session, STOP and list them in the plan. Do not revert them.
+   - NEVER run git reset, git clean, git stash, destructive git checkout, git commit, or git push.
+   - NEVER overwrite untracked misora_config.json. NEVER print API keys or DPAPI blobs.
+3. Allowed file ownership applies only after Proceed. Touch nothing else.
+4. No new third-party dependencies. requirements.txt stays UnityPy and Pillow only.
+5. Never delete, skip, weaken, xfail, or mock an existing test to force green. No live network in tests.
+6. Tkinter calls stay on the main thread. Workers communicate only through queue.Queue.
+7. Preserve LF on files that are LF. Do not mass-convert the repo to CRLF.
+8. Stop when this session's IDs are done. Do not implement later-session IDs, DEF-*, or NO-* items.
+9. Ledger line numbers are hints from commit 683724e. Bind by symbol name. Shifted lines are not a discrepancy. Missing behavior is a STOP: report it and do not invent a replacement design.
+
+3. Allowed file ownership (after Proceed):
+   - Allowed to create or modify:
+     * misora.py inside _insert_text_wrapper, apply_ngui_wrapper, on_insert_ruby, on_insert_font_size, _select_result_index, _on_dialogue_edited, _commit_widget_edit, _on_card_text_edited, _on_box0_metadata_edited, tooltip helper, _bind_shortcuts Control-h
+     * tests/test_p3_s12_ribbon.py
+   - DO NOT modify:
+     * Renaming views (S13)
+     * Pixel rulers (S15)
+     * Preview frames (S16)
+
+==================================================
+PART 1 — PREFLIGHT (PUT THIS IN THE IMPLEMENTATION PLAN)
+==================================================
+Inspect live source on disk and report the real function names and current line ranges for:
+1. _insert_text_wrapper, apply_ngui_wrapper, on_insert_ruby, on_insert_font_size
+2. _get_card_text_widget, _focus_continuous_box, _select_result_index
+3. _update_gutter_clean, _commit_widget_edit
+4. Existing tooltip class if any
+5. bind_all Control-h handler
+
+Also report: branch, HEAD, git status --short, whether misora_config.json is untracked, and any behavior that contradicts this prompt. Stop before editing if behavior contradicts. Do not stop only because line numbers moved.
+
+==================================================
+PART 2 — REQUIRED IMPLEMENTATION (BUG-28, BUG-30, HYG-03, HYG-07)
+==================================================
+### A. BUG-28 — wrappers hit the active card and dirty once
+_insert_text_wrapper and on_insert_ruby must resolve the editor with _get_card_text_widget(self.current_box_idx).
+Never send bundle Continuous View inserts to the hidden txt_continuous.
+Remove the extra _on_dialogue_edited call inside _insert_text_wrapper so apply_ngui_wrapper's _commit_widget_edit commits once and calls _dirty_state_changed.
+on_insert_font_size must call _commit_widget_edit(target).
+Bold, Ruby, and Size in both Page and Continuous views must update the AST, show *, and push Undo.
+### B. BUG-30 — focus, gutter, and arrow keys
+Do not call txt_continuous.focus_set() after _focus_continuous_box for a bundle Continuous View search jump.
+_on_dialogue_edited must call _update_gutter_clean so Page View line numbers update on Enter, Delete, and Paste.
+_on_card_text_edited and _on_box0_metadata_edited return bool. _dirty_state_changed runs only when the text changed.
+Arrow keys must not rebuild the dock.
+### C. HYG-03 — tooltips on icon-only controls
+Add one ToolTip timer of 350 ms and a Unicode text fallback for every icon-only control that lacks them: Ruby, Player, bold/italic/underline/strike/sub/sup, Preview, All Script (whatever the widget is named today), and Select Box.
+Follow AGENTS.md UI-safety rules. Do not rename the view in this session; tooltip text may use the current label.
+### D. HYG-07 — Control-h returns break
+The bind_all <Control-h> handler must return the string break so non-editor widgets do not also run BackSpace.
+This is hygiene only. The Project Lead already verified Ctrl+H works. Do not redesign the shortcut table (that is S13).
+
+==================================================
+PART 3 — FAILING-FIRST TESTS (AFTER PROCEED)
+==================================================
+Create or extend `tests/test_p3_s12_ribbon.py` with unittest.
+In setUp/tearDown: point misora.CONFIG_PATH and app.backup_folder at a TemporaryDirectory, and restore them. Suppress modal messagebox during automated error paths. Zero network.
+
+- Defect / behavior probes (MUST FAIL before the patch, PASS after):
+  1. [Probe] Bold and font-size helpers call _commit_widget_edit once and mark the document dirty.
+  2. [Probe] Continuous view insert uses the card widget, not txt_continuous, when a card exists.
+  3. [Probe] _on_dialogue_edited triggers a gutter update.
+  4. [Probe] A no-op card edit returns false and does not call _dirty_state_changed.
+  5. [Probe] Control-h handler return value is break.
+
+- Regression guards (MUST PASS before AND after; pre-patch contracts only; do not mention new attributes):
+  1. [Guard] A real text change in the dialogue widget still marks dirty and still updates the AST.
+  2. [Guard] Existing Ctrl+S / save binding still exists in the shortcut table.
+
+==================================================
+OUT OF SCOPE (DO NOT IMPLEMENT IN THIS SESSION)
+==================================================
+- BUG-29 full shortcut reconciliation
+- BUG-39 toolbar clipping
+- FEAT-02
+- FEAT-03
+- FEAT-04
+- Every DEF-* item (DEF-01 through DEF-10) and every NO-* item (NO-01 through NO-12).
+- Any Phase 2.5 ID not listed in Part 2.
+
+==================================================
+PART 4 — VERIFICATION COMMANDS AND DELIVERABLES
+==================================================
+1. Now (/plan, ZERO file edits): Implementation Plan artifact, then WAIT for Proceed.
+2. After Proceed:
+   - Add the probes and guards.
+   - Run the new test module once BEFORE the product patch. Record each Probe failing and each Guard passing.
+   - If a Probe already passes, STOP. The defect is not where this prompt says, or an earlier session already fixed it. Report evidence. Do not weaken the probe.
+   - Implement only this session.
+   - Then run, and paste the real output into the Walkthrough:
+     * py -3.12 -m compileall -q misora.py core assets tests
+     * py -3.12 -m unittest tests.test_p3_s12_ribbon -v
+     * py -3.12 -m unittest discover -s tests -v
+   - Walkthrough must also include git status --short, a short diff summary, and the handoff sentence for the next session.
+   - Do not claim a command passed unless that exact command's output is in the Walkthrough.
