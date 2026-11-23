@@ -1,5 +1,0 @@
-# Core features (master.db search, CSV/JSON export, DB re-injector, Glossary, JP CDN downloader)
-# require ZERO third-party packages (Python 3.10+ Standard Library only).
-
-# Optional: required ONLY for extracting/repacking .unity3d story & subtitle bundles
-UnityPy>=1.10.0
