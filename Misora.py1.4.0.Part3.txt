@@ -1,0 +1,3148 @@
+
+    def _on_misora_shortcut(self, event: tk.Event) -> Optional[str]:
+        """Central shortcut dispatcher on the MisoraShortcuts bindtag (Rule 12)."""
+        # 1. Skip if modal grab is active (unless it's self)
+        current_grab = self.grab_current()
+        if current_grab is not None and current_grab != self:
+            return None
+
+        # 2. Skip IME composition / dead keys / empty keysyms
+        keysym = getattr(event, "keysym", "")
+        if not keysym or keysym.startswith("dead_") or keysym in ("Next_Virtual_Key", "VoidSymbol"):
+            return None
+
+        key_lower = keysym.lower()
+        state = getattr(event, "state", 0)
+
+        # Modifier bitmasks (Windows Tkinter standard):
+        # Shift: 0x0001
+        # CapsLock: 0x0002 (mask out)
+        # Control: 0x0004
+        # Alt: 0x0008 (Mod1) or 0x0020 (Mod3)
+        # NumLock: 0x0100 (mask out)
+        is_shift = bool(state & 0x0001)
+        is_ctrl = bool(state & 0x0004)
+        is_alt = bool((state & 0x0008) or (state & 0x0020))
+
+        # 3. Protect against AltGr (Ctrl+Alt)
+        if is_ctrl and is_alt:
+            return None
+
+        # 4. Standard Ctrl+C / Ctrl+X / Ctrl+A: let native widget handlers process them
+        if is_ctrl and not is_shift and not is_alt:
+            if key_lower in ("c", "x", "a"):
+                return None
+
+        # 5. Ctrl+V in editor widget: CSIF detection
+        if is_ctrl and not is_shift and not is_alt and key_lower == "v":
+            clip_text = self.safe_clipboard_get()
+            if clip_text and sniff_format(clip_text) == "csif":
+                w = event.widget if isinstance(event.widget, tk.Widget) else self._get_active_text_widget()
+                self._handle_editor_csif_paste(w, clip_text)
+                return "break"
+            return None  # Let standard paste proceed
+
+        # 6. Whitelisted Application Shortcuts (return "break" on match)
+        if is_ctrl and not is_alt:
+            if not is_shift:
+                if key_lower == "h":
+                    self.on_show_replace()
+                    return "break"
+                elif key_lower == "s":
+                    self.on_save()
+                    return "break"
+                elif key_lower == "o":
+                    self.on_open_file()
+                    return "break"
+                elif key_lower == "f":
+                    self.on_show_find()
+                    return "break"
+                elif key_lower == "n":
+                    self.on_box_new()
+                    return "break"
+                elif key_lower == "z":
+                    self.on_undo()
+                    return "break"
+                elif key_lower == "y":
+                    self.on_redo()
+                    return "break"
+                elif key_lower == "t":
+                    self.on_copy_ai_prompt()
+                    return "break"
+                elif key_lower == "b":
+                    self._shortcut_wrap("[b]", "[/b]")
+                    return "break"
+                elif key_lower == "i":
+                    self._shortcut_wrap("[i]", "[/i]")
+                    return "break"
+                elif key_lower == "u":
+                    self._shortcut_wrap("[u]", "[/u]")
+                    return "break"
+                elif key_lower == "p":
+                    self.on_insert_playername()
+                    return "break"
+                elif key_lower == "l":
+                    self.on_toggle_lock_current_box()
+                    return "break"
+            else:  # is_shift
+                if key_lower == "z":
+                    self.on_redo()
+                    return "break"
+                elif key_lower == "c":
+                    self.on_copy_script()
+                    return "break"
+                elif key_lower == "v":
+                    self.on_paste_cross_box()
+                    return "break"
+                elif key_lower == "t":
+                    self.on_copy_ai_prompt()
+                    return "break"
+                elif key_lower == "i":
+                    self.on_import_script()
+                    return "break"
+                elif key_lower == "e":
+                    self.on_export_script()
+                    return "break"
+
+        return None
+
+    def _show_csif_paste_chooser(self, clip_text: str) -> Optional[str]:
+        """Display modal 4-way chooser dialog when CSIF content is pasted into an editor (Part C.4)."""
+        t = self.theme
+        dlg = tk.Toplevel(self)
+        dlg.title("CSIF Script Detected")
+        dlg.transient(self)
+        dlg.resizable(False, False)
+        dlg.configure(bg=t["bg_panel"])
+
+        choice: List[Optional[str]] = [None]
+
+        def _choose(val: Optional[str]) -> None:
+            choice[0] = val
+            try:
+                dlg.grab_release()
+            except Exception:
+                pass
+            dlg.destroy()
+
+        parsed = parse(clip_text)
+        block_count = len(parsed.blocks)
+        first_sp = ", ".join(
+            (b.speaker if b.speaker else "Narration") for b in parsed.blocks[:3]
+        )
+        if block_count > 3:
+            first_sp += f", ... (+{block_count - 3} more)"
+
+        frame = tk.Frame(dlg, bg=t["bg_panel"], padx=16, pady=14)
+        frame.pack(fill="both", expand=True)
+
+        lbl_hdr = tk.Label(
+            frame,
+            text="Misora CSIF Script Detected in Clipboard",
+            font=("Segoe UI", 11, "bold"),
+            fg=t["misora_pink"],
+            bg=t["bg_panel"],
+        )
+        lbl_hdr.pack(anchor="w", pady=(0, 6))
+
+        info_txt = (
+            f"The clipboard contains {block_count} structured dialogue block(s).\n"
+            f"Speakers: {first_sp}\n\n"
+            f"Please choose how you would like to apply this clipboard content:"
+        )
+        lbl_info = tk.Label(
+            frame,
+            text=info_txt,
+            font=("Segoe UI", 9),
+            fg=t["fg_text"],
+            bg=t["bg_panel"],
+            justify="left",
+        )
+        lbl_info.pack(anchor="w", pady=(0, 12))
+
+        btn_box = tk.Frame(frame, bg=t["bg_panel"])
+        btn_box.pack(fill="x", pady=(4, 0))
+
+        btn_ins = tk.Button(
+            btn_box,
+            text="📥 Insert as New Boxes",
+            font=("Segoe UI", 9, "bold"),
+            bg=t["highlight_bg"],
+            fg=best_contrast_fg(t["highlight_bg"]),
+            relief="raised",
+            bd=1,
+            padx=10,
+            pady=4,
+            cursor="hand2",
+            command=lambda: _choose("insert"),
+        )
+        btn_ins.pack(fill="x", pady=2)
+
+        btn_rep = tk.Button(
+            btn_box,
+            text="🔄 Paste Across Boxes (Replace)",
+            font=("Segoe UI", 9),
+            bg=t["bg_editor"],
+            fg=t["fg_text"],
+            relief="raised",
+            bd=1,
+            padx=10,
+            pady=4,
+            cursor="hand2",
+            command=lambda: _choose("replace"),
+        )
+        btn_rep.pack(fill="x", pady=2)
+
+        btn_txt = tk.Button(
+            btn_box,
+            text="📝 Paste as Plain Text",
+            font=("Segoe UI", 9),
+            bg=t["bg_editor"],
+            fg=t["fg_text"],
+            relief="raised",
+            bd=1,
+            padx=10,
+            pady=4,
+            cursor="hand2",
+            command=lambda: _choose("text"),
+        )
+        btn_txt.pack(fill="x", pady=2)
+
+        btn_cancel = tk.Button(
+            btn_box,
+            text="❌ Cancel",
+            font=("Segoe UI", 9),
+            bg=t["bg_panel"],
+            fg=t["fg_muted"],
+            relief="groove",
+            bd=1,
+            padx=10,
+            pady=4,
+            cursor="hand2",
+            command=lambda: _choose(None),
+        )
+        btn_cancel.pack(fill="x", pady=(4, 0))
+
+        dlg.bind("<Escape>", lambda e: _choose(None))
+        dlg.protocol("WM_DELETE_WINDOW", lambda: _choose(None))
+
+        dlg.update_idletasks()
+        try:
+            pw = self.winfo_width()
+            ph = self.winfo_height()
+            px = self.winfo_rootx()
+            py = self.winfo_rooty()
+            dw = dlg.winfo_width()
+            dh = dlg.winfo_height()
+            dlg.geometry(f"+{px + max(0, (pw - dw) // 2)}+{py + max(0, (ph - dh) // 2)}")
+        except Exception:
+            pass
+
+        try:
+            dlg.grab_set()
+            dlg.focus_set()
+            self.wait_window(dlg)
+        except Exception:
+            pass
+
+        return choice[0]
+
+    def _handle_editor_csif_paste(self, widget: tk.Widget, clip_text: str) -> None:
+        """Show 4-way chooser dialog when CSIF content is pasted into an editor (Part C.4)."""
+        res = self._show_csif_paste_chooser(clip_text)
+        if res == "insert":
+            self.on_box_paste(confirm=False)
+        elif res == "replace":
+            self.on_paste_cross_box()
+        elif res == "text":
+            if isinstance(widget, tk.Text) and widget.winfo_exists():
+                try:
+                    sel = widget.tag_ranges("sel")
+                    if sel:
+                        widget.delete(sel[0], sel[1])
+                except Exception:
+                    pass
+                widget.insert(tk.INSERT, clip_text)
+                self._commit_widget_edit(widget)
+
+    def _bind_shortcuts(self) -> None:
+        self.bind_class("MisoraShortcuts", "<KeyPress>", self._on_misora_shortcut)
+        for w in (
+            getattr(self, "txt_dialogue", None),
+            getattr(self, "entry_speaker", None),
+            getattr(self, "txt_continuous", None),
+            getattr(self, "txt_box0_summary", None),
+            getattr(self, "entry_box0_title", None),
+            getattr(self, "entry_box0_subtitle", None),
+        ):
+            if w is not None:
+                self._install_shortcuts_bindtag(w)
+
+        self.bind("<Control-o>", lambda e: self.on_open_file())
+        self.bind("<Control-O>", lambda e: self.on_open_folder())
+        self.bind("<Control-s>", lambda e: self.on_save())
+        self.bind("<Control-q>", lambda e: self._on_app_exit())
+        self.bind("<Control-r>", lambda e: self.on_insert_ruby())
+        self.bind("<Control-p>", lambda e: self.on_insert_playername())
+        self.bind_all("<Control-f>", lambda e: self.on_show_find())
+        self.bind_all("<Control-F>", lambda e: self.on_show_find_in_files())
+        self.bind_all("<Control-h>", lambda e: self.on_show_replace())
+        self.bind("<Control-z>", lambda e: self.on_undo())
+        self.bind("<Control-y>", lambda e: self.on_redo())
+        self.bind("<Control-Shift-Z>", lambda e: self.on_redo())
+        self.bind("<Control-Shift-z>", lambda e: self.on_redo())
+        self.bind("<Control-C>", lambda e: self._toggle_continuous_shortcut())
+        self.bind("<Control-comma>", lambda e: self._toggle_side_drawer("customize"))
+        self.bind("<F1>", lambda e: self._toggle_side_drawer("glossary"))
+        self.bind("<F5>", lambda e: self.on_reload())
+        self.bind("<F9>", lambda e: self.on_launch_datamine())
+        self.bind("<F12>", lambda e: self._toggle_console_shortcut())
+        self.bind("<Alt-Left>", lambda e: self.on_prev_box())
+        self.bind("<Alt-Right>", lambda e: self.on_next_box())
+        self.bind("<Alt-Up>", lambda e: self.on_prev_box())
+        self.bind("<Alt-Down>", lambda e: self.on_next_box())
+        self.bind("<Control-t>", lambda e: self.on_open_translator_assistant())
+        self.bind("<Control-T>", lambda e: self.on_copy_ai_prompt())
+        self.bind("<Control-Shift-T>", lambda e: self.on_copy_ai_prompt())
+        self.bind("<Control-Shift-t>", lambda e: self.on_copy_ai_prompt())
+        self.bind("<Control-Shift-C>", lambda e: self.on_copy_script())
+        self.bind("<Control-Shift-c>", lambda e: self.on_copy_script())
+        self.bind("<Control-Shift-V>", lambda e: self.on_paste_cross_box())
+        self.bind("<Control-Shift-v>", lambda e: self.on_paste_cross_box())
+        self.bind("<Control-Shift-I>", lambda e: self.on_import_script())
+        self.bind("<Control-Shift-i>", lambda e: self.on_import_script())
+        self.bind("<Control-Shift-E>", lambda e: self.on_export_script())
+        self.bind("<Control-Shift-e>", lambda e: self.on_export_script())
+        self.bind("<Control-l>", lambda e: self.on_toggle_lock_current_box())
+        self.bind("<Control-L>", lambda e: self.on_toggle_lock_current_box())
+        self.bind("<F8>", lambda e: self.on_translate_current_box())
+
+    def _toggle_continuous_shortcut(self) -> None:
+        self.var_continuous_view.set(not self.var_continuous_view.get())
+        self._on_toggle_continuous_view()
+
+    # -------------------------------------------------------------------------
+    # Document Loading & Box Display (Page Mode + Continuous Stream Mode)
+    # -------------------------------------------------------------------------
+    def _flush_active_widget(self) -> bool:
+        """Explicitly resolve the active editor widget and commit any pending edits (S1/S3).
+
+        Returns True if flushed cleanly or no active widget, False on commit failure.
+        """
+        if getattr(self, "current_file_path", None) is None:
+            return True
+
+        widget = None
+        is_cont = bool(getattr(self, "var_continuous_view", None) and self.var_continuous_view.get())
+        cards = getattr(self, "_card_widgets", {})
+
+        if is_cont:
+            if getattr(self, "is_box0_active", False) and -1 in cards:
+                candidate = cards[-1].get("txt")
+                if candidate is not None and candidate.winfo_exists():
+                    widget = candidate
+            elif getattr(self, "current_box_idx", -1) in cards:
+                candidate = cards[self.current_box_idx].get("txt")
+                if candidate is not None and candidate.winfo_exists():
+                    widget = candidate
+            elif getattr(self, "current_doc", None) is None:
+                candidate = getattr(self, "txt_continuous", None)
+                if candidate is not None and candidate.winfo_exists():
+                    widget = candidate
+        else:
+            if getattr(self, "is_box0_active", False):
+                candidate = getattr(self, "txt_box0_summary", None)
+                if candidate is not None and candidate.winfo_exists():
+                    widget = candidate
+            else:
+                candidate = getattr(self, "txt_dialogue", None)
+                if candidate is not None and candidate.winfo_exists():
+                    widget = candidate
+
+        if widget is not None:
+            try:
+                self._commit_widget_edit(widget)
+            except Exception as e:
+                self.logger.exception("Failed to flush pending edit:", e)
+                messagebox.showerror("Edit Commit Error", f"Could not preserve the current edit:\n{e}")
+                return False
+
+        try:
+            if hasattr(self, "focus_get") and self.focus_get() == getattr(self, "entry_speaker", None):
+                self._commit_speaker_edit()
+        except Exception:
+            pass
+        return True
+
+    def open_file(self, file_path: Union[str, Path], reload_from_disk: bool = False) -> None:
+        """Open and display a .unity3d bundle or plain-text script file."""
+        file_path = Path(file_path).resolve()
+        if not file_path.is_file():
+            self.logger.error("File I/O", f"Cannot find file: {file_path}")
+            messagebox.showerror("File Error", f"Cannot find file: {file_path}")
+            return
+
+        staged = None
+        ext = file_path.suffix.lower()
+
+        # Cache-hit switches do not need a disk load, but still flush the old
+        # editor context after staging/target resolution succeeds.
+        if not reload_from_disk and file_path in self.open_documents:
+            entry = self.open_documents[file_path]
+            staged = {
+                "kind": "cache",
+                "entry": entry,
+                "doc": entry.get("doc"),
+                "env": entry.get("env"),
+                "obj": entry.get("obj"),
+                "is_bundle": entry.get("is_bundle", False),
+                "dirty": entry.get("dirty", False),
+                "plain_text": entry.get("plain_text", ""),
+                "status": f"Switched to {file_path.name}",
+            }
+        elif ext in (".unity3d", ".asset"):
+            try:
+                doc, env, obj, asset_name = load_bundle_story(file_path)
+                staged = {
+                    "kind": "bundle",
+                    "doc": doc,
+                    "env": env,
+                    "obj": obj,
+                    "asset_name": asset_name,
+                    "is_bundle": True,
+                    "dirty": False,
+                    "plain_text": "",
+                    "status": (
+                        f"Loaded Bundle: {file_path.name} ({asset_name}) | "
+                        f"Size: {file_path.stat().st_size / 1024:.1f} KB | "
+                        f"{len(doc.boxes)} dialogue boxes"
+                    ),
+                    "cache": {
+                        "doc": doc,
+                        "env": env,
+                        "obj": obj,
+                        "is_bundle": True,
+                        "dirty": False,
+                        "plain_text": "",
+                        "boxes_count": len(doc.boxes),
+                    },
+                }
+            except Exception as e:
+                self.logger.exception(f"Failed to open bundle '{file_path.name}':", e)
+                messagebox.showerror("Bundle Load Error", f"Failed to open '{file_path.name}':\n{e}")
+                return
+        else:
+            try:
+                decoded = read_text_file_strictly(file_path)
+                content = decoded.text
+                if content.startswith("#!priconne-story"):
+                    doc = StoryDocument.from_v2_text(content)
+                    staged = {
+                        "kind": "v2",
+                        "doc": doc,
+                        "env": None,
+                        "obj": None,
+                        "is_bundle": False,
+                        "dirty": False,
+                        "plain_text": "",
+                        "status": f"Loaded Script: {file_path.name} | {len(doc.boxes)} dialogue boxes",
+                        "cache": {
+                            "doc": doc,
+                            "env": None,
+                            "obj": None,
+                            "is_bundle": False,
+                            "dirty": False,
+                            "plain_text": "",
+                            "boxes_count": len(doc.boxes),
+                            "encoding": decoded.encoding,
+                            "has_bom": decoded.has_bom,
+                            "newline": decoded.newline,
+                        },
+                    }
+                else:
+                    staged = {
+                        "kind": "text",
+                        "doc": None,
+                        "env": None,
+                        "obj": None,
+                        "is_bundle": False,
+                        "dirty": False,
+                        "plain_text": content,
+                        "status": f"Opened Text File: {file_path.name}",
+                        "cache": {
+                            "doc": None,
+                            "env": None,
+                            "obj": None,
+                            "is_bundle": False,
+                            "dirty": False,
+                            "plain_text": content,
+                            "boxes_count": 0,
+                            "encoding": decoded.encoding,
+                            "has_bom": decoded.has_bom,
+                            "newline": decoded.newline,
+                        },
+                    }
+            except Exception as e:
+                self.logger.exception(f"Failed to read '{file_path.name}':", e)
+                messagebox.showerror("File Load Error", f"Failed to read '{file_path.name}':\n{e}")
+                return
+
+        # Flush the previous context only after the target is ready. Resolve
+        # the actual editor widget explicitly; focus must not decide this switch.
+        if not self._flush_active_widget():
+            return
+
+        doc = staged["doc"]
+        is_bundle = staged["is_bundle"]
+        plain_text = staged["plain_text"]
+
+        self.current_file_path = file_path
+        if hasattr(self, "undo_journal") and hasattr(self.undo_journal, "set_active_file"):
+            self.undo_journal.set_active_file(str(file_path))
+        self.current_doc = doc
+        self.current_unity_env = staged["env"]
+        self.current_text_obj = staged["obj"]
+        self.is_bundle_file = is_bundle
+        self.current_box_idx = 0
+        self.is_box0_active = False
+        self.is_dirty = staged["dirty"]
+        self._plain_text_content = plain_text
+        self._modified_boxes.clear()
+        self._locked_boxes.clear()
+        self._original_box_texts = (
+            {i: b.clean_text for i, b in enumerate(doc.boxes)}
+            if doc is not None and doc.boxes
+            else {}
+        )
+
+        if hasattr(self, "recent_files"):
+            if file_path in self.recent_files:
+                self.recent_files.remove(file_path)
+        else:
+            self.recent_files = []
+        self.recent_files.insert(0, file_path)
+        self.recent_files = self.recent_files[:15]
+        self.last_opened_dir = file_path.parent
+        self.title(f"Misora Editor - {file_path.name}")
+
+        if staged["kind"] == "cache":
+            entry = staged["entry"]
+            self.is_dirty = bool(entry.get("dirty", False))
+        else:
+            self.open_documents[file_path] = staged["cache"]
+            # Record a fresh saved-state checkpoint for newly loaded documents
+            self._record_saved_checkpoint(file_path, staged.get("doc"), staged.get("plain_text", ""))
+
+        self._update_views()
+        self._dirty_state_changed()
+        self._sync_edit_menu_states()
+        self.lbl_status.config(text=staged["status"])
+
+        if staged["kind"] == "bundle":
+            self.logger.info(
+                "File I/O",
+                f"Opened bundle '{file_path}' (asset={staged['asset_name']}, boxes={len(doc.boxes)})",
+            )
+        elif staged["kind"] == "v2":
+            self.logger.info("File I/O", f"Opened v2 script '{file_path}' (boxes={len(doc.boxes)})")
+        elif staged["kind"] == "text":
+            self.logger.info("File I/O", f"Opened plain text file '{file_path}' ({len(plain_text)} chars)")
+
+    def _update_views(self) -> None:
+        """Update Game Display View (Page or Continuous, Raw or Compiled Preview) and Raw AST View."""
+        compiled = self.var_preview_compiled.get()
+
+        if not self.current_doc:
+            self._clear_card_registry()  # S4: prune stale card refs on plain-text / empty state
+            self.speaker_var.set("")
+            self.lbl_box_counter.config(text="Box: 0 / 0")
+            self.lbl_voice_cue.config(text="")
+
+            self.txt_dialogue.config(state="normal")
+            self.txt_dialogue.delete("1.0", tk.END)
+            if compiled:
+                self._insert_compiled_ngui_text(self.txt_dialogue, "1.0", self._plain_text_content)
+                self.txt_dialogue.config(state="disabled")
+            else:
+                self.txt_dialogue.insert("1.0", self._plain_text_content)
+                self._highlight_ngui_tags()
+                self._highlight_dialogue_matches()
+            self._auto_resize_dialogue_box()
+
+            self.txt_continuous.config(state="normal")
+            self.txt_continuous.delete("1.0", tk.END)
+            if compiled:
+                self._insert_compiled_ngui_text(self.txt_continuous, "1.0", self._plain_text_content)
+                self.txt_continuous.config(state="disabled")
+            else:
+                self.txt_continuous.insert("1.0", self._plain_text_content)
+                self._highlight_ngui_tags()
+                self._highlight_continuous_matches()
+
+            self.txt_raw.delete("1.0", tk.END)
+            if self.current_file_path:
+                self.txt_raw.insert("1.0", f"(Plain text file: {self.current_file_path})")
+            return
+
+        if not self.current_doc.boxes:
+            self.speaker_var.set("")
+            self.lbl_voice_cue.config(text="")
+            self.txt_dialogue.config(state="normal")
+            self.txt_dialogue.delete("1.0", tk.END)
+            self.txt_continuous.config(state="normal")
+            self.txt_continuous.delete("1.0", tk.END)
+            self.txt_raw.delete("1.0", tk.END)
+            self.lbl_box_counter.config(text="Box: 0 / 0")
+            self._auto_resize_dialogue_box()
+            return
+
+        if self.is_box0_active:
+            if not self.current_doc or not self.current_doc.has_metadata():
+                self.is_box0_active = False
+            else:
+                total_boxes = len(self.current_doc.boxes)
+                self.speaker_var.set("")
+                if hasattr(self, "entry_speaker"):
+                    self.entry_speaker.config(state="disabled")
+                if hasattr(self, "btn_speaker_dropdown"):
+                    self.btn_speaker_dropdown.config(state="disabled")
+                self.lbl_box_counter.config(text=f"Box: 0 / {total_boxes} (Story Metadata)")
+                self.lbl_voice_cue.config(text="")
+                if hasattr(self, "btn_prev"):
+                    self.btn_prev.config(state="disabled")
+                if hasattr(self, "btn_next"):
+                    self.btn_next.config(state="normal" if total_boxes > 0 else "disabled")
+
+                if self.var_continuous_view.get():
+                    self._render_continuous_view()
+                    self._focus_continuous_box(-1, move_cursor=True)
+                else:
+                    if hasattr(self, "clean_editor_row") and self._is_widget_packed(self.clean_editor_row):
+                        self.clean_editor_row.pack_forget()
+                    if hasattr(self, "ruler_clean") and self._is_widget_packed(self.ruler_clean):
+                        self.ruler_clean.pack_forget()
+                    if hasattr(self, "panel_box0_metadata") and not self._is_widget_packed(self.panel_box0_metadata):
+                        self.panel_box0_metadata.pack(fill="both", expand=True)
+
+                    meta = self.current_doc.get_metadata()
+                    self.var_box0_title.set(meta.get("title", ""))
+                    self.var_box0_subtitle.set(meta.get("subtitle", ""))
+                    self.txt_box0_summary.delete("1.0", tk.END)
+                    self.txt_box0_summary.insert("1.0", meta.get("summary", ""))
+                    self._update_box0_char_counter()
+                    self.gd_canvas.yview_moveto(0.0)
+
+                self._update_raw_view()
+                if hasattr(self, "_translator_dialog") and self._translator_dialog and self._translator_dialog.winfo_exists():
+                    self._translator_dialog.refresh_box()
+                return
+
+        if hasattr(self, "panel_box0_metadata") and self._is_widget_packed(self.panel_box0_metadata):
+            self.panel_box0_metadata.pack_forget()
+        if hasattr(self, "clean_editor_row") and not self._is_widget_packed(self.clean_editor_row):
+            if self.show_column_ruler and hasattr(self, "ruler_clean") and not self._is_widget_packed(self.ruler_clean):
+                try:
+                    self.ruler_clean.pack(before=self.clean_editor_row, side="top", fill="x", pady=(0, 2))
+                except Exception:
+                    self.ruler_clean.pack(side="top", fill="x", pady=(0, 2))
+            self.clean_editor_row.pack(fill="both", expand=True)
+
+        total_boxes = len(self.current_doc.boxes)
+        self.current_box_idx = max(0, min(self.current_box_idx, total_boxes - 1))
+        box = self.current_doc.boxes[self.current_box_idx]
+
+        if hasattr(self, "entry_speaker"):
+            self.entry_speaker.config(state="normal")
+        if hasattr(self, "btn_speaker_dropdown"):
+            self.btn_speaker_dropdown.config(state="normal")
+        self.speaker_var.set(box.speaker)
+        self.lbl_box_counter.config(text=f"Box: {self.current_box_idx + 1} / {total_boxes}")
+        self.lbl_voice_cue.config(text=f"Voice Cue: {box.voice_cue}" if box.voice_cue else "")
+
+        if hasattr(self, "btn_lock_box"):
+            is_locked = self.current_box_idx in self._locked_boxes
+            self.btn_lock_box.config(
+                text="🔒" if is_locked else "🔓",
+                bg=self.theme["accent_yellow"] if is_locked else self.theme["bg_panel"]
+            )
+        self._update_rendered_char_count(box.clean_text)
+
+        if hasattr(self, "btn_prev"):
+            can_prev = (self.current_box_idx > 0) or (self.current_doc and self.current_doc.has_metadata())
+            self.btn_prev.config(state="normal" if can_prev else "disabled")
+        if hasattr(self, "btn_next"):
+            self.btn_next.config(state="normal" if self.current_box_idx < total_boxes - 1 else "disabled")
+
+        if self.var_continuous_view.get():
+            self._render_continuous_view()
+            self._focus_continuous_box(self.current_box_idx, move_cursor=True)
+        else:
+            self.txt_dialogue.config(state="normal")
+            self.txt_dialogue.delete("1.0", tk.END)
+            if compiled:
+                self._insert_compiled_ngui_text(self.txt_dialogue, "1.0", box.clean_text)
+                self.txt_dialogue.config(state="disabled")
+            else:
+                self.txt_dialogue.insert("1.0", box.clean_text)
+                self._highlight_ngui_tags()
+                self._highlight_dialogue_matches()
+                self._highlight_secret_whitespace(self.txt_dialogue)
+            self._update_gutter_clean()
+            self.gd_canvas.yview_moveto(0.0)
+            self._auto_resize_dialogue_box()
+
+        self._update_raw_view()
+        if hasattr(self, "_translator_dialog") and self._translator_dialog and self._translator_dialog.winfo_exists():
+            self._translator_dialog.refresh_box()
+
+    def _update_raw_view(self) -> None:
+        """Render Raw AST View and highlight records associated with current_box_idx or Box 0."""
+        self.txt_raw.delete("1.0", tk.END)
+        if not self.current_doc:
+            return
+
+        active_rec_indices = set()
+        if getattr(self, "is_box0_active", False) and self.current_doc:
+            for idx, r in enumerate(self.current_doc.records):
+                if (r.cmd_id == 0 and len(r.args) > 1 and r.args[1]) or \
+                   (r.cmd_id == 32 and len(r.args) > 0 and r.args[0]) or \
+                   (r.cmd_id == 1 and len(r.args) > 0 and r.args[0]):
+                    active_rec_indices.add(idx)
+        elif self.current_doc and self.current_doc.boxes and 0 <= self.current_box_idx < len(self.current_doc.boxes):
+            active_box = self.current_doc.boxes[self.current_box_idx]
+            active_uids = {s.record.uid for s in active_box.segs}
+            active_rec_indices = {i for i, r in enumerate(self.current_doc.records) if r.uid in active_uids}
+
+        raw_lines = []
+        first_active_line = None
+        for i, r in enumerate(self.current_doc.records):
+            args_str = "  ".join(f"'{a}'" for a in r.args)
+            is_active = i in active_rec_indices
+            if is_active and first_active_line is None:
+                first_active_line = i + 1
+            marker = " >> " if is_active else "    "
+            raw_lines.append(f"{marker}[{i:03d}] {r.cmd_name:<14} {args_str}")
+
+        self.txt_raw.insert("1.0", "\n".join(raw_lines))
+        if first_active_line is not None:
+            self.txt_raw.see(f"{first_active_line}.0")
+
+    # -------------------------------------------------------------------------
+    # Continuous View: Box Card Stream Architecture & Two-Way Sync
+    # -------------------------------------------------------------------------
+    def _flush_continuous_card_edits(self) -> None:
+        """Flush any uncommitted edits from active Box Cards or plain text back into model."""
+        if not self.current_doc:
+            if hasattr(self, "txt_continuous") and self.txt_continuous.winfo_exists():
+                new_tx = self.txt_continuous.get("1.0", "end-1c")
+                if self._plain_text_content != new_tx:
+                    old_tx = self._plain_text_content
+                    self.undo_journal.record(
+                        PlainTextDelta(
+                            file_path=str(self.current_file_path or ""),
+                            old_content=old_tx,
+                            new_content=new_tx,
+                        ),
+                        label=f"Edit {self.current_file_path.name if self.current_file_path else 'text'}"
+                    )
+                    self._plain_text_content = new_tx
+                    if self.current_file_path and self.current_file_path in self.open_documents:
+                        self.open_documents[self.current_file_path]["plain_text"] = new_tx
+                    self._mark_document_dirty(self.current_file_path)
+            return
+
+        if not getattr(self, "_card_widgets", None):
+            return
+
+        for b_idx, card_info in list(self._card_widgets.items()):
+            if b_idx == -1:
+                continue
+            if 0 <= b_idx < len(self.current_doc.boxes):
+                txt_w = card_info.get("txt")
+                if txt_w and txt_w.winfo_exists():
+                    new_tx = txt_w.get("1.0", "end-1c")
+                    box = self.current_doc.boxes[b_idx]
+                    if box.clean_text != new_tx:
+                        old_sp = box.speaker
+                        old_tx = box.clean_text
+                        self.undo_journal.record(
+                            BoxEditDelta(
+                                box_index=b_idx,
+                                old_speaker=old_sp,
+                                new_speaker=old_sp,
+                                old_text=old_tx,
+                                new_text=new_tx,
+                                file_path=str(self.current_file_path or ""),
+                                source=getattr(self, "_current_edit_source", "keyboard"),
+                            ),
+                            label=f"Edit box #{b_idx + 1}"
+                        )
+                        self._modified_boxes.add(b_idx)
+                        self._mark_document_dirty(self.current_file_path)
+                        try:
+                            self.current_doc.inject_box(b_idx, None, new_tx)
+                        except Exception:
+                            pass
+
+    def _on_card_text_edited(self, box_idx: int, txt_w: tk.Text, gutter: Optional[tk.Text] = None) -> None:
+        """Handle inline typing inside a Box Card."""
+        if getattr(self, "_suppress_continuous_events", False) or self.var_preview_compiled.get():
+            return
+        if not self.current_doc or not (0 <= box_idx < len(self.current_doc.boxes)):
+            return
+
+        new_tx = txt_w.get("1.0", "end-1c")
+        box = self.current_doc.boxes[box_idx]
+        if box.clean_text != new_tx:
+            old_sp = box.speaker
+            old_tx = box.clean_text
+            self.undo_journal.record(
+                BoxEditDelta(
+                    box_index=box_idx,
+                    old_speaker=old_sp,
+                    new_speaker=old_sp,
+                    old_text=old_tx,
+                    new_text=new_tx,
+                    file_path=str(self.current_file_path or ""),
+                    source=getattr(self, "_current_edit_source", "keyboard"),
+                ),
+                label=f"Edit box #{box_idx + 1}"
+            )
+            self._modified_boxes.add(box_idx)
+            self._mark_document_dirty(self.current_file_path)
+            try:
+                self.current_doc.inject_box(box_idx, None, new_tx)
+                self._update_raw_view()
+                if box_idx == getattr(self, "current_box_idx", -1):
+                    self._update_rendered_char_count(new_tx)
+            except Exception:
+                pass
+
+        # Dynamically adjust text widget height to fit content (min 2, max 10)
+        line_count = max(1, new_tx.count("\n") + 1)
+        eff_height = max(2, min(10, line_count))
+        try:
+            if int(txt_w.cget("height")) != eff_height:
+                txt_w.config(height=eff_height)
+        except Exception:
+            pass
+
+        if gutter:
+            try:
+                gutter.config(state="normal", height=eff_height)
+                gutter.delete("1.0", tk.END)
+                gutter.insert("1.0", "\n".join(str(n) for n in range(1, line_count + 1)))
+                gutter.config(state="disabled")
+            except Exception:
+                pass
+
+        if hasattr(self, "cont_canvas"):
+            self.cont_canvas.configure(scrollregion=self.cont_canvas.bbox("all"))
+
+        self._highlight_ngui_tags_for_widget(txt_w)
+
+    def _on_card_focus_in(self, box_idx: int) -> None:
+        """Update active indicators and controls when a Box Card gains focus."""
+        if getattr(self, "_suppress_continuous_events", False) or not self.current_doc:
+            return
+
+        self.is_box0_active = (box_idx == -1)
+        if box_idx != -1 and 0 <= box_idx < len(self.current_doc.boxes):
+            self.current_box_idx = box_idx
+
+        self._highlight_active_card_header(box_idx)
+        self._sync_header_controls_for_card(box_idx)
+        self._update_raw_view()
+
+    def _clear_card_registry(self) -> None:
+        """Destroy and prune all stale card widget references (S4 / STALE-CARD-REGISTRY).
+
+        Safe to call even if widgets are already destroyed. Clears _card_widgets entirely.
+        Must be called whenever the document that produced the cards is unloaded so that
+        destroyed Tk widget references do not persist in the registry (Rule 3 / Rule 11).
+        """
+        for _b_idx, card_info in list(self._card_widgets.items()):
+            card = card_info.get("card")
+            try:
+                if card is not None and card.winfo_exists():
+                    card.destroy()
+            except Exception:
+                pass
+        self._card_widgets.clear()
+
+    def _highlight_active_card_header(self, active_idx: int) -> None:
+        """Highlight the header background of the active card in Continuous View."""
+        t = self.theme
+        if not hasattr(self, "_card_widgets"):
+            return
+        for b_idx, card_info in self._card_widgets.items():
+            hdr = card_info.get("hdr")
+            if not hdr or not hdr.winfo_exists():
+                continue
+            is_active = (b_idx == active_idx)
+            if b_idx == -1:
+                bg_col = t["highlight_bg"] if is_active else ("#dfd1f5" if self._is_light_theme() else "#2d1d29")
+            else:
+                bg_col = t["highlight_bg"] if is_active else t["bg_panel"]
+            try:
+                hdr.configure(bg=bg_col)
+                for child in hdr.winfo_children():
+                    if isinstance(child, (tk.Label, tk.Frame)):
+                        child.configure(bg=bg_col)
+            except Exception:
+                pass
+
+    def _sync_header_controls_for_card(self, box_idx: int) -> None:
+        """Sync top ribbon controls (speaker, voice cue, box counter) to active card."""
+        if not self.current_doc:
+            return
+        total = len(self.current_doc.boxes) if self.current_doc.boxes else 0
+        if box_idx == -1:
+            if not (self._is_speaker_pinned and self.speaker_var.get()):
+                self.speaker_var.set("")
+            if hasattr(self, "entry_speaker"):
+                self.entry_speaker.config(state="disabled")
+            if hasattr(self, "btn_speaker_dropdown"):
+                self.btn_speaker_dropdown.config(state="disabled")
+            self.lbl_box_counter.config(text=f"Box: 0 / {total} (Story Metadata)")
+            self.lbl_voice_cue.config(text="")
+            if hasattr(self, "btn_prev"):
+                self.btn_prev.config(state="disabled")
+            if hasattr(self, "btn_next"):
+                self.btn_next.config(state="normal" if total > 0 else "disabled")
+        elif 0 <= box_idx < total:
+            box = self.current_doc.boxes[box_idx]
+            if hasattr(self, "entry_speaker"):
+                self.entry_speaker.config(state="normal")
+            if hasattr(self, "btn_speaker_dropdown"):
+                self.btn_speaker_dropdown.config(state="normal")
+            if not (self._is_speaker_pinned and self.speaker_var.get()):
+                self.speaker_var.set(box.speaker)
+            self.lbl_box_counter.config(text=f"Box: {box_idx + 1} / {total}")
+            self.lbl_voice_cue.config(text=f"Voice Cue: {box.voice_cue}" if box.voice_cue else "")
+            if hasattr(self, "btn_prev"):
+                can_prev = (box_idx > 0) or (self.current_doc and self.current_doc.has_metadata())
+                self.btn_prev.config(state="normal" if can_prev else "disabled")
+            if hasattr(self, "btn_next"):
+                self.btn_next.config(state="normal" if box_idx < total - 1 else "disabled")
+
+    def _copy_single_card_dialogue(self, box_idx: int) -> None:
+        """Copy dialogue from a single Box Card to clipboard."""
+        if self.current_doc and 0 <= box_idx < len(self.current_doc.boxes):
+            text = self.current_doc.boxes[box_idx].clean_text
+            self.clipboard_clear()
+            self.clipboard_append(text)
+            self.show_toast(f"📋 Copied dialogue from Box #{box_idx + 1}")
+
+    def _card_shortcut_wrap(self, w: tk.Text, open_t: str, close_t: str) -> None:
+        """Wrap selected text in card editor with NGUI tags."""
+        try:
+            sel_first = w.index("sel.first")
+            sel_last = w.index("sel.last")
+            txt = w.get(sel_first, sel_last)
+            w.delete(sel_first, sel_last)
+            w.insert(sel_first, f"{open_t}{txt}{close_t}")
+        except tk.TclError:
+            w.insert(tk.INSERT, f"{open_t}{close_t}")
+        self._commit_widget_edit(w)
+
+    def _highlight_ngui_tags_for_widget(self, w: tk.Text) -> None:
+        """Syntax-color NGUI tags within a specific Text widget."""
+        if self.var_preview_compiled.get() or not w.winfo_exists():
+            return
+        w.tag_remove("ngui_tag", "1.0", tk.END)
+        tx = w.get("1.0", "end-1c")
+        for m in NGUI_TAG_RE.finditer(tx):
+            w.tag_add("ngui_tag", f"1.0 + {m.start()}c", f"1.0 + {m.end()}c")
+        w.tag_raise("ngui_tag")
+
+    def on_copy_script(self) -> None:
+        """Copy dialogue across all boxes using CSIF format (Part C.3)."""
+        if not self.current_doc or not self.current_doc.boxes:
+            self.show_toast("No story document loaded")
+            return
+
+        self._commit_widget_edit()
+        csif_text = serialize(self.current_doc, scope="all", include_metadata="auto")
+        self.safe_clipboard_set(csif_text)
+        box_count = len(self.current_doc.boxes)
+        self.show_toast(f"📋 Copied {box_count} boxes (CSIF format)")
+        self.lbl_status.config(text=f"Copied script ({box_count} boxes in CSIF format) to clipboard")
+
+    on_copy_script_triple_enter = on_copy_script
+
+    def _on_cont_mousewheel(self, event) -> str:
+        """Scroll continuous stream canvas smoothly and prevent child widgets from eating the scroll event."""
+        if hasattr(self, "cont_canvas") and self.cont_canvas.winfo_exists():
+            delta = getattr(event, "delta", 0)
+            if delta:
+                self.cont_canvas.yview_scroll(int(-1 * (delta / 120)), "units")
+        return "break"
+
+    def _resize_cont_canvas(self, width: int) -> None:
+        """Debounced canvas window resize to eliminate sash-drag stutter."""
+        self._cont_resize_job = None
+        if hasattr(self, "cont_canvas") and hasattr(self, "cont_canvas_window") and self.cont_canvas.winfo_exists():
+            try:
+                self.cont_canvas.itemconfig(self.cont_canvas_window, width=width)
+            except Exception:
+                pass
+
+    def _on_toggle_select_box_mode(self) -> None:
+        """Toggle multi-box selection mode in continuous view and update UI."""
+        enabled = bool(self.var_select_box_mode.get())
+        if not enabled:
+            self._selected_boxes.clear()
+        if self.var_continuous_view.get():
+            self._render_continuous_view()
+        self.show_toast(f"Select Box mode {'enabled' if enabled else 'disabled'}")
+
+    def _on_toggle_pin_speaker(self) -> None:
+        """Toggle persistent speaker pinning across box navigation."""
+        self._is_speaker_pinned = not self._is_speaker_pinned
+        t = self.theme
+        if self._is_speaker_pinned:
+            if hasattr(self, "btn_pin_speaker"):
+                self.btn_pin_speaker.config(bg=t["highlight_bg"], relief="sunken")
+            sp = self.speaker_var.get()
+            self.show_toast(f"📌 Speaker Pinned: '{sp}' locked across navigation")
+        else:
+            if hasattr(self, "btn_pin_speaker"):
+                btn_bg = t.get("bg_editor", "#faf8fe")
+                self.btn_pin_speaker.config(bg=btn_bg, relief="raised")
+            self.show_toast("Speaker Unpinned")
+
+    def on_select_whole_story(self) -> None:
+        """Select whole story / all text across document."""
+        if self.var_continuous_view.get():
+            if hasattr(self, "_card_widgets") and self._card_widgets:
+                first_card = self._card_widgets.get(0) or self._card_widgets.get(-1)
+                if first_card and "txt" in first_card:
+                    txt = first_card["txt"]
+                    txt.focus_set()
+                    txt.tag_add("sel", "1.0", "end-1c")
+            self.show_toast("Selected active story")
+        else:
+            if hasattr(self, "txt_dialogue"):
+                self.txt_dialogue.focus_set()
+                self.txt_dialogue.tag_add("sel", "1.0", "end-1c")
+                self.show_toast("Selected all text in current box")
+
+    def on_text_cut(self) -> None:
+        """Cut text in active editor to clipboard."""
+        target = self.txt_dialogue
+        if self.var_continuous_view.get() and hasattr(self, "_card_widgets") and self.current_box_idx in self._card_widgets:
+            target = self._get_card_text_widget(self.current_box_idx)
+        self._current_edit_source = "cut"
+        try:
+            target.event_generate("<<Cut>>")
+        except Exception:
+            pass
+        finally:
+            self._current_edit_source = "keyboard"
+
+    def on_text_copy(self) -> None:
+        """Copy text in active editor to clipboard."""
+        target = self.txt_dialogue
+        if self.var_continuous_view.get() and hasattr(self, "_card_widgets") and self.current_box_idx in self._card_widgets:
+            target = self._get_card_text_widget(self.current_box_idx)
+        try:
+            target.event_generate("<<Copy>>")
+        except Exception:
+            pass
+
+    def on_text_paste(self) -> None:
+        """Paste text in active editor with delimiter-awareness."""
+        target = self.txt_dialogue
+        idx = self.current_box_idx
+        if self.var_continuous_view.get() and hasattr(self, "_card_widgets") and self.current_box_idx in self._card_widgets:
+            target = self._get_card_text_widget(self.current_box_idx)
+        res = self._on_card_paste_caret(idx, target)
+        if res != "break":
+            try:
+                target.event_generate("<<Paste>>")
+            except Exception:
+                pass
+
+    def _push_undo(self, label: str = "Edit") -> None:
+        """Fallback hook for callers expecting _push_undo; structural handlers record typed deltas."""
+        pass
+
+    # -------------------------------------------------------------------------
+    # S2: Per-Document Dirty Contract Helpers
+    # -------------------------------------------------------------------------
+
+    def _mark_document_dirty(self, file_path: Optional[Union[str, Path]]) -> None:
+        """Flag-only dirty marker — ZERO Tk calls, ZERO dock/title rebuilds (Rule 13 / S2).
+
+        Mutates only open_documents[path]["dirty"] and self.is_dirty.
+        Safe to call from worker threads (BatchTranslateDialog.worker) provided ZERO Tk ops follow.
+        """
+        if not file_path:
+            return
+        p = Path(file_path).resolve()
+        if p in self.open_documents:
+            self.open_documents[p]["dirty"] = True
+        if self.current_file_path and Path(self.current_file_path).resolve() == p:
+            self.is_dirty = True
+
+    def _dirty_state_changed(self) -> None:
+        """Pure UI synchronization: title *, Opened Files dock, undo/redo menu states (S2).
+
+        Mirrors self.is_dirty from open_documents[path]["dirty"] when the active document is cached.
+        When the active path is NOT in open_documents (e.g., test_34 synthetic tmp path), PRESERVES
+        the current self.is_dirty value unchanged.
+        Calls _refresh_opened_files_list() exactly once.
+        NEVER derives dirty state from undo_journal.is_clean() — that was the cross-file clobber bug.
+        """
+        if self.current_file_path:
+            p = Path(self.current_file_path).resolve()
+            if p in self.open_documents:
+                # Mirror from authoritative per-document entry
+                self.is_dirty = bool(self.open_documents[p].get("dirty", False))
+            # If NOT in open_documents: preserve self.is_dirty unchanged (do not reset to False)
+
+        dirty_marker = "*" if self.is_dirty else ""
+        file_name = self.current_file_path.name if self.current_file_path else "Untitled"
+        try:
+            self.title(f"Misora Editor - {file_name}{dirty_marker}")
+        except Exception:
+            pass
+
+        self._refresh_opened_files_list()
+        self._sync_edit_menu_states()
+
+    def _record_saved_checkpoint(self, file_path: Optional[Union[str, Path]],
+                                  doc: Optional[Any], plain_text: str = "") -> None:
+        """Record saved-state fingerprint for a document (S2 / Rule 13).
+
+        Story docs: SHA-256 of doc.to_v2_text(). Plain-text: SHA-256 of plain_text.
+        Called at: open_file() fresh load, open_file() reload_from_disk=True, on_save() primary success.
+        Never mutates dirty flags; purely stores a comparison baseline.
+        """
+        if not file_path:
+            return
+        key = str(Path(file_path).resolve())
+        try:
+            if doc is not None:
+                content = doc.to_v2_text()
+            else:
+                content = plain_text
+            self._saved_state_checkpoints[key] = hashlib.sha256(
+                content.encode("utf-8", errors="replace")
+            ).hexdigest()
+        except Exception:
+            pass
+
+    def _evaluate_checkpoints_for_op(self, op: Any) -> None:
+        """After undo/redo delta loop: compare live fingerprints to saved checkpoints (S2).
+
+        For each path touched by the op:
+        - If a checkpoint exists and the live fingerprint matches → mark clean.
+        - If no checkpoint exists → leave dirty as set by _mark_document_dirty (never clear speculatively).
+        """
+        touched: set = set()
+        for delta in op.deltas:
+            fp = getattr(delta, "file_path", None)
+            if fp:
+                try:
+                    touched.add(Path(fp).resolve())
+                except Exception:
+                    pass
+            elif hasattr(delta, "per_file"):
+                for item in delta.per_file:
+                    try:
+                        fpath_str = item[0]
+                        touched.add(Path(fpath_str).resolve())
+                    except Exception:
+                        pass
+        if self.current_file_path:
+            try:
+                touched.add(Path(self.current_file_path).resolve())
+            except Exception:
+                pass
+
+        for p in touched:
+            key = str(p)
+            entry = self.open_documents.get(p)
+            if entry is not None:
+                if key not in self._saved_state_checkpoints:
+                    # No baseline — cannot determine clean; leave dirty flag as-is
+                    continue
+                saved_fp = self._saved_state_checkpoints[key]
+                try:
+                    doc = entry.get("doc")
+                    if doc is not None:
+                        live_content = doc.to_v2_text()
+                    else:
+                        live_content = entry.get("plain_text", "")
+                    live_fp = hashlib.sha256(live_content.encode("utf-8", errors="replace")).hexdigest()
+                except Exception:
+                    continue
+
+                is_clean = (live_fp == saved_fp)
+                entry["dirty"] = not is_clean
+                if self.current_file_path:
+                    try:
+                        if Path(self.current_file_path).resolve() == p:
+                            self.is_dirty = not is_clean
+                    except Exception:
+                        pass
+            elif self.current_file_path:
+                try:
+                    if Path(self.current_file_path).resolve() == p and hasattr(self, "undo_journal"):
+                        is_clean = self.undo_journal.is_clean(p)
+                        self.is_dirty = not is_clean
+                except Exception:
+                    pass
+
+    def _sync_clean_view_to_current_box(self) -> None:
+        """
+        Synchronize Page View dialogue and header controls to current_box_idx
+        without tearing down the entire Continuous View canvas.
+        """
+        if not self.current_doc or not self.current_doc.boxes:
+            return
+        total = len(self.current_doc.boxes)
+        self.current_box_idx = max(0, min(self.current_box_idx, total - 1))
+        box = self.current_doc.boxes[self.current_box_idx]
+
+        if hasattr(self, "speaker_var"):
+            self.speaker_var.set(box.speaker)
+        if hasattr(self, "lbl_box_counter"):
+            self.lbl_box_counter.config(text=f"Box: {self.current_box_idx + 1} / {total}")
+        if hasattr(self, "lbl_voice_cue"):
+            self.lbl_voice_cue.config(text=f"Voice Cue: {box.voice_cue}" if box.voice_cue else "")
+
+        if hasattr(self, "txt_dialogue") and self.txt_dialogue.winfo_exists() and not self.var_continuous_view.get():
+            self.txt_dialogue.config(state="normal")
+            self.txt_dialogue.delete("1.0", tk.END)
+            if self.var_preview_compiled.get():
+                self._insert_compiled_ngui_text(self.txt_dialogue, "1.0", box.clean_text)
+                self.txt_dialogue.config(state="disabled")
+            else:
+                self.txt_dialogue.insert("1.0", box.clean_text)
+                self._highlight_ngui_tags()
+                self._highlight_dialogue_matches()
+            self._auto_resize_dialogue_box()
+
+        if hasattr(self, "btn_prev"):
+            can_prev = (self.current_box_idx > 0) or (self.current_doc and self.current_doc.has_metadata())
+            self.btn_prev.config(state="normal" if can_prev else "disabled")
+        if hasattr(self, "btn_next"):
+            self.btn_next.config(state="normal" if self.current_box_idx < total - 1 else "disabled")
+
+        self._update_raw_view()
+
+    def on_box_new(self) -> None:
+        """Create and insert a new dialogue box after current box."""
+        if not self.current_doc:
+            self.show_toast("No story document loaded")
+            return
+
+        cur_sp = self.speaker_var.get() if (self._is_speaker_pinned and self.speaker_var.get()) else ""
+        ins_idx = self.current_box_idx + 1 if self.current_doc.boxes else 0
+        new_snap = BoxSnapshot(
+            speaker=cur_sp,
+            voice_cue="",
+            kind="print" if cur_sp else "tag",
+            seg_texts=[""],
+        )
+        self.current_doc.insert_box(ins_idx, new_snap)
+        self.undo_journal.record(
+            BoxStructuralDelta(
+                op_type="insert",
+                box_index=ins_idx,
+                snapshots=[new_snap],
+                file_path=str(self.current_file_path or ""),
+            ),
+            label="New Box"
+        )
+        self.current_box_idx = ins_idx
+        self._mark_document_dirty(self.current_file_path)
+        self._modified_boxes.add(ins_idx)
+        self._render_continuous_view()
+        self._sync_clean_view_to_current_box()
+        self._dirty_state_changed()
+        self.show_toast(f"➕ Created new Box #{ins_idx + 1}")
+
+    def on_box_copy(self) -> None:
+        """Copy selected box(es) or current box to box clipboard using CSIF format (Part C.1)."""
+        if not self.current_doc or not self.current_doc.boxes:
+            self.show_toast("No story document loaded")
+            return
+        self._commit_widget_edit()
+        targets = sorted(self._selected_boxes) if self._selected_boxes else [self.current_box_idx]
+        targets = [idx for idx in targets if 0 <= idx < len(self.current_doc.boxes)]
+        if not targets:
+            return
+
+        include_meta = "auto"
+        if getattr(self, "is_box0_active", False) or (-1 in getattr(self, "_selected_boxes", set())):
+            include_meta = True
+
+        csif_str = serialize(
+            self.current_doc,
+            scope="selection",
+            box_indices=targets,
+            include_metadata=include_meta
+        )
+
+        self._box_clipboard = [BoxSnapshot.from_box(self.current_doc.boxes[idx]) for idx in targets]
+        self._box_clipboard_text = csif_str
+        self.safe_clipboard_set(csif_str)
+        self.show_toast(f"📋📦 Copied {len(targets)} box(es) (CSIF)")
+        self.lbl_status.config(text=f"Copied {len(targets)} box(es) in CSIF format to clipboard")
+
+    def on_box_cut(self) -> None:
+        """Cut selected box(es) or current box in one undo batch."""
+        if not self.current_doc or not self.current_doc.boxes:
+            self.show_toast("No story document loaded")
+            return
+        targets = sorted(self._selected_boxes) if self._selected_boxes else [self.current_box_idx]
+        targets = [idx for idx in targets if 0 <= idx < len(self.current_doc.boxes)]
+        if not targets:
+            return
+        self.on_box_copy()
+        deleted_snapshots = self.current_doc.delete_boxes(targets)
+        self.undo_journal.record(
+            BoxStructuralDelta(
+                op_type="delete",
+                box_index=targets[0],
+                snapshots=deleted_snapshots,
+                file_path=str(self.current_file_path or ""),
+            ),
+            label="Cut Box(es)"
+        )
+        self._selected_boxes.clear()
+        if self.current_box_idx >= len(self.current_doc.boxes):
+            self.current_box_idx = max(0, len(self.current_doc.boxes) - 1)
+        self._mark_document_dirty(self.current_file_path)
+        self._dirty_state_changed()
+        self._render_continuous_view()
+        self._sync_clean_view_to_current_box()
+        self.show_toast(f"✂📦 Cut {len(targets)} box(es)")
+
+    def on_box_paste(self, confirm: bool = True) -> None:
+        """Paste box(es) from clipboard as new boxes after current box (Part C.2)."""
+        if not self.current_doc:
+            self.show_toast("No story document loaded")
+            return
+
+        clip_text = self.safe_clipboard_get()
+        if getattr(self, "_box_clipboard_text", None) != clip_text:
+            self._box_clipboard = None
+            self._box_clipboard_text = None
+
+        parsed_blocks = []
+        if getattr(self, "_box_clipboard", None):
+            parsed_blocks = [
+                DialogueBlock(
+                    speaker=snap.speaker,
+                    text=snap.clean_text,
+                    is_narration=(snap.kind == "tag" or not snap.speaker),
+                )
+                for snap in self._box_clipboard
+            ]
+        elif clip_text.strip():
+            result = parse(clip_text)
+            parsed_blocks = result.blocks
+
+        if not parsed_blocks:
+            self.show_toast("Box clipboard is empty")
+            return
+
+        ins_idx = self.current_box_idx + 1 if self.current_doc.boxes else 0
+        block_count = len(parsed_blocks)
+        first_speakers = [
+            (b.speaker if b.speaker else "(Narration)")
+            for b in parsed_blocks[:3]
+        ]
+        sp_desc = ", ".join(first_speakers)
+        if block_count > 3:
+            sp_desc += f", ... (+{block_count - 3} more)"
+
+        if confirm:
+            ins_desc = f"after Box #{self.current_box_idx + 1}" if self.current_doc.boxes else "at beginning"
+            msg = f"Insert {block_count} box(es) {ins_desc}?\n\nSpeakers: {sp_desc}"
+            ans = messagebox.askyesno("Paste Box(es)", msg, parent=self)
+            if not ans:
+                return
+
+        snaps_to_ins = [
+            BoxSnapshot(
+                speaker="" if b.is_narration else b.speaker,
+                voice_cue="",
+                kind="tag" if (b.is_narration or not b.speaker) else "print",
+                seg_texts=[b.text]
+            )
+            for b in parsed_blocks
+        ]
+
+        self.undo_journal.begin_batch(f"Paste {block_count} Box(es)")
+        try:
+            for offset, snap in enumerate(snaps_to_ins):
+                target_idx = ins_idx + offset
+                self.current_doc.insert_box(target_idx, snap)
+                self._modified_boxes.add(target_idx)
+
+            self.undo_journal.record(
+                BoxStructuralDelta(
+                    op_type="insert",
+                    box_index=ins_idx,
+                    snapshots=snaps_to_ins,
+                    file_path=str(self.current_file_path or ""),
+                )
+            )
+        finally:
+            self.undo_journal.end_batch()
+
+        self.current_box_idx = ins_idx + len(snaps_to_ins) - 1
+        self._mark_document_dirty(self.current_file_path)
+        self._dirty_state_changed()
+        self._render_continuous_view()
+        self._sync_clean_view_to_current_box()
+        self.show_toast(f"📥📦 Pasted {len(snaps_to_ins)} box(es)")
+
+    def _on_card_paste_caret(self, box_idx: int, txt_widget: tk.Text) -> str:
+        """Intercept paste on card editors to perform caret-aware paste or CSIF handling."""
+        clip_text = self.safe_clipboard_get()
+        if not clip_text:
+            return ""
+
+        if sniff_format(clip_text) == "csif":
+            self._handle_editor_csif_paste(txt_widget, clip_text)
+            return "break"
+
+        if "\n\n\n" not in clip_text:
+            return ""
+
+        chunks = clip_text.split("\n\n\n")
+        if len(chunks) <= 1:
+            return ""
+
+        try:
+            sel_ranges = txt_widget.tag_ranges("sel")
+            if sel_ranges:
+                head = txt_widget.get("1.0", sel_ranges[0])
+                tail = txt_widget.get(sel_ranges[1], "end-1c")
+            else:
+                ins = txt_widget.index("insert")
+                head = txt_widget.get("1.0", ins)
+                tail = txt_widget.get(ins, "end-1c")
+        except Exception:
+            head = txt_widget.get("1.0", "end-1c")
+            tail = ""
+
+        if not self.current_doc or not self.current_doc.boxes:
+            return "break"
+
+        self.undo_journal.begin_batch("Multi-box Delimiter Paste")
+        try:
+            b0 = self.current_doc.boxes[box_idx]
+            first_text = head + chunks[0]
+            self.undo_journal.record(
+                BoxEditDelta(
+                    box_index=box_idx,
+                    old_speaker=b0.speaker,
+                    new_speaker=b0.speaker,
+                    old_text=b0.clean_text,
+                    new_text=first_text,
+                    file_path=str(self.current_file_path or ""),
+                    box_uid=b0.uid,
+                    source="paste_caret",
+                )
+            )
+            self.current_doc.inject_box(box_idx, None, first_text)
+            self._modified_boxes.add(box_idx)
+
+            for offset, chunk in enumerate(chunks[1:], start=1):
+                target_idx = box_idx + offset
+                is_last = (offset == len(chunks) - 1)
+                if target_idx < len(self.current_doc.boxes):
+                    orig_b = self.current_doc.boxes[target_idx]
+                    orig_text = orig_b.clean_text
+                    new_text = (chunk + tail + orig_text) if is_last else (chunk + orig_text)
+                    self.undo_journal.record(
+                        BoxEditDelta(
+                            box_index=target_idx,
+                            old_speaker=orig_b.speaker,
+                            new_speaker=orig_b.speaker,
+                            old_text=orig_text,
+                            new_text=new_text,
+                            file_path=str(self.current_file_path or ""),
+                            box_uid=orig_b.uid,
+                            source="paste_caret",
+                        )
+                    )
+                    self.current_doc.inject_box(target_idx, None, new_text)
+                    self._modified_boxes.add(target_idx)
+                else:
+                    new_text = (chunk + tail) if is_last else chunk
+                    snap = BoxSnapshot(speaker="", voice_cue="", kind="tag", seg_texts=[new_text])
+                    self.current_doc.insert_box(target_idx, snap)
+                    self.undo_journal.record(
+                        BoxStructuralDelta(
+                            op_type="insert",
+                            box_index=target_idx,
+                            snapshots=[snap],
+                            file_path=str(self.current_file_path or ""),
+                        )
+                    )
+                    self._modified_boxes.add(target_idx)
+        finally:
+            self.undo_journal.end_batch()
+
+        self.is_dirty = True
+        self._render_continuous_view()
+        self._sync_clean_view_to_current_box()
+        self._dirty_state_changed()
+        self.show_toast(f"Pasted across {len(chunks)} boxes")
+        return "break"
+
+    def _on_size_dropdown_clicked(self) -> None:
+        """Show dropdown menu for selecting font size scaling tags."""
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Small (80%)", command=lambda: self.on_insert_font_size("80%"))
+        menu.add_command(label="Normal (100% / Reset)", command=lambda: self.on_insert_font_size(None))
+        menu.add_command(label="Large (130%)", command=lambda: self.on_insert_font_size("130%"))
+        menu.add_command(label="Extra Large / Roar (160%)", command=lambda: self.on_insert_font_size("160%"))
+        menu.add_command(label="Huge (200%)", command=lambda: self.on_insert_font_size("200%"))
+        try:
+            x = self.winfo_pointerx()
+            y = self.winfo_pointery()
+            menu.tk_popup(x, y)
+        finally:
+            menu.grab_release()
+
+    def on_insert_font_size(self, size_val: Optional[str]) -> None:
+        """Insert font size tags (<size=...>...</size>) around selection or at caret."""
+        target = self.txt_dialogue
+        if self.var_continuous_view.get() and hasattr(self, "_card_widgets") and self.current_box_idx in self._card_widgets:
+            target = self._card_widgets[self.current_box_idx].get("txt", self.txt_dialogue)
+
+        if size_val:
+            open_t = f"<size={size_val}>"
+            close_t = "</size>"
+            try:
+                sel_first = target.index("sel.first")
+                sel_last = target.index("sel.last")
+                sel_txt = target.get(sel_first, sel_last)
+                target.delete(sel_first, sel_last)
+                target.insert(sel_first, f"{open_t}{sel_txt}{close_t}")
+            except tk.TclError:
+                target.insert(tk.INSERT, f"{open_t}{close_t}")
+                target.mark_set(tk.INSERT, f"{tk.INSERT} - {len(close_t)}c")
+        else:
+            target.insert(tk.INSERT, "</size>")
+
+    def _render_continuous_view(self) -> None:
+        """Render all dialogue boxes sequentially as a Box Card Stream."""
+        compiled = self.var_preview_compiled.get()
+        self._suppress_continuous_events = True
+        t = self.theme
+        d_fam = self.var_font_family.get() if hasattr(self, "var_font_family") else "Segoe UI"
+        d_sz = int(self.prefs.get("dialogue_font_size", 12))
+
+        try:
+            self._card_widgets.clear()
+            # If plain text file: keep legacy txt_continuous view
+            if not self.is_bundle_file and not self.current_doc:
+                if hasattr(self, "cont_canvas") and self._is_widget_packed(self.cont_canvas):
+                    self.cont_canvas.pack_forget()
+                    self.cont_scroll_y.pack_forget()
+                if hasattr(self, "txt_continuous") and not self._is_widget_packed(self.txt_continuous):
+                    self.txt_continuous.pack(side="left", fill="both", expand=True)
+                self.txt_continuous.config(state="normal")
+                self.txt_continuous.delete("1.0", tk.END)
+                if compiled:
+                    self._insert_compiled_ngui_text(self.txt_continuous, "1.0", self._plain_text_content)
+                    self.txt_continuous.config(state="disabled")
+                else:
+                    self.txt_continuous.insert("1.0", self._plain_text_content)
+                    self._highlight_ngui_tags_for_widget(self.txt_continuous)
+                return
+
+            # Multi-Box Story Documents: Box Card Stream
+            if hasattr(self, "txt_continuous") and self._is_widget_packed(self.txt_continuous):
+                self.txt_continuous.pack_forget()
+            if hasattr(self, "gutter_cont") and self._is_widget_packed(self.gutter_cont):
+                self.gutter_cont.pack_forget()
+
+            if hasattr(self, "cont_scroll_y") and not self._is_widget_packed(self.cont_scroll_y):
+                self.cont_scroll_y.pack(side="right", fill="y")
+            if hasattr(self, "cont_canvas") and not self._is_widget_packed(self.cont_canvas):
+                self.cont_canvas.pack(side="left", fill="both", expand=True)
+
+            # Clear existing cards
+            if hasattr(self, "cont_stream_frame"):
+                for child in self.cont_stream_frame.winfo_children():
+                    child.destroy()
+
+            if not self.current_doc or not self.current_doc.boxes:
+                return
+
+            gutter_bg = "#e8e8e8" if self._is_light_theme() else "#2d2d30"
+            gutter_fg = "#707070" if self._is_light_theme() else "#858585"
+
+            # 1. Card #0: Story Metadata Card
+            if self.current_doc.has_metadata():
+                meta = self.current_doc.get_metadata()
+                is_active_0 = getattr(self, "is_box0_active", False)
+                box0_bg = t["highlight_bg"] if is_active_0 else ("#dfd1f5" if self._is_light_theme() else "#2d1d29")
+                box0_border = "#bca0e8" if self._is_light_theme() else "#4a3556"
+                card_0 = tk.Frame(self.cont_stream_frame, bg=box0_bg, highlightbackground=box0_border, highlightthickness=1)
+                hdr_0 = tk.Frame(card_0, bg=box0_bg, padx=4, pady=1)
+                lbl_badge_0 = tk.Label(hdr_0, text="◆ [BOX #000]", font=("Consolas", max(8, d_sz - 3), "bold"), fg=t["misora_pink"], bg=box0_bg)
+                lbl_badge_0.pack(side="left")
+                lbl_title_0 = tk.Label(hdr_0, text="[STORY METADATA & SYNOPSIS]", font=(d_fam, max(8, d_sz - 3), "bold"), fg=t["fg_text"], bg=box0_bg)
+                lbl_title_0.pack(side="left", padx=(6, 4))
+                hdr_0.pack(fill="x")
+
+                meta_body = tk.Frame(card_0, bg=box0_bg, padx=4, pady=1)
+                tk.Label(meta_body, text=f"Title: {meta.get('title', '')}   |   Subtitle: {meta.get('subtitle', '')}", font=(d_fam, max(7, d_sz - 3)), fg=t["fg_muted"], bg=box0_bg).pack(anchor="w")
+                summary_lines = max(2, min(8, meta.get("summary", "").count("\n") + 1))
+                txt_summary = tk.Text(
+                    meta_body,
+                    wrap="word",
+                    undo=False,
+                    height=summary_lines,
+                    font=(d_fam, d_sz),
+                    bg=t["bg_editor"],
+                    fg=t["fg_text"],
+                    insertbackground=t["misora_pink"],
+                    selectbackground=t["highlight_bg"],
+                    selectforeground=t["misora_pink"],
+                    bd=1,
+                    relief="solid",
+                    highlightthickness=0,
+                    padx=8,
+                    pady=3,
+                    spacing1=2,
+                    spacing3=2
+                )
+                txt_summary.insert("1.0", meta.get("summary", ""))
+                txt_summary.pack(fill="x", pady=(1, 2))
+                meta_body.pack(fill="x")
+
+                # Bindings for Card #0
+                self._install_shortcuts_bindtag(txt_summary)
+                txt_summary.bind("<FocusIn>", lambda e: self._on_card_focus_in(-1))
+                txt_summary.bind("<KeyRelease>", lambda e, w=txt_summary: self._commit_widget_edit(w))
+                txt_summary.bind("<<Cut>>", lambda e, w=txt_summary: self.after_idle(lambda: self._commit_widget_edit(w)))
+                txt_summary.bind("<<Paste>>", lambda e, w=txt_summary: self.after_idle(lambda: self._commit_widget_edit(w)))
+                txt_summary.bind("<Control-a>", lambda e, w=txt_summary: (w.tag_add("sel", "1.0", "end-1c"), "break")[1])
+                txt_summary.bind("<Control-A>", lambda e, w=txt_summary: (w.tag_add("sel", "1.0", "end-1c"), "break")[1])
+
+                for w in (card_0, hdr_0, lbl_badge_0, lbl_title_0, meta_body, txt_summary):
+                    w.bind("<MouseWheel>", self._on_cont_mousewheel)
+
+                card_0.pack(fill="x", padx=6, pady=(1, 2))
+
+                self._card_widgets[-1] = {
+                    "card": card_0,
+                    "hdr": hdr_0,
+                    "txt": txt_summary,
+                    "lbl_badge": lbl_badge_0,
+                    "lbl_title": lbl_title_0,
+                }
+
+            # 2. Cards #1..N: Dialogue Box Cards
+            for i, box in enumerate(self.current_doc.boxes):
+                is_active = (not getattr(self, "is_box0_active", False) and i == self.current_box_idx)
+                hdr_bg = t["highlight_bg"] if is_active else t["bg_panel"]
+                card_frame = tk.Frame(self.cont_stream_frame, bg=t["bg_panel"])
+                hdr = tk.Frame(card_frame, bg=hdr_bg, padx=4, pady=0)
+
+                # Select Box Checkbox (when Select Box Mode is active)
+                if self.var_select_box_mode.get():
+                    var_box_sel = tk.BooleanVar(master=self, value=(i in self._selected_boxes))
+                    def _make_box_sel_cmd(b_idx, v):
+                        def _cmd():
+                            if v.get():
+                                self._selected_boxes.add(b_idx)
+                            else:
+                                self._selected_boxes.discard(b_idx)
+                        return _cmd
+                    cb_sel = tk.Checkbutton(
+                        hdr,
+                        variable=var_box_sel,
+                        command=_make_box_sel_cmd(i, var_box_sel),
+                        bg=hdr_bg,
+                        activebackground=hdr_bg,
+                        selectcolor=t["bg_panel"],
+                        bd=0,
+                        cursor="hand2",
+                    )
+                    cb_sel.pack(side="left", padx=(0, 2))
+                    cb_sel.bind("<MouseWheel>", self._on_cont_mousewheel)
+
+                lbl_badge = tk.Label(hdr, text=f"◆ [BOX #{i+1:03d}]", font=("Consolas", max(8, d_sz - 3), "bold"), fg=t["misora_pink"], bg=hdr_bg)
+                lbl_badge.pack(side="left")
+
+                sp_text = box.speaker if box.speaker else "(Narration)"
+                sp_fg = t["fg_text"] if box.speaker else t["fg_muted"]
+                sp_font = (d_fam, max(8, d_sz - 3), "bold" if box.speaker else "italic")
+                lbl_sp = tk.Label(hdr, text=sp_text, font=sp_font, fg=sp_fg, bg=hdr_bg)
+                lbl_sp.pack(side="left", padx=(6, 4))
+
+                vc_text = f"♪ {box.voice_cue}" if box.voice_cue else ""
+                lbl_vc = tk.Label(hdr, text=vc_text, font=("Segoe UI", max(7, d_sz - 4)), fg=t["accent_blue"], bg=hdr_bg)
+                lbl_vc.pack(side="left", padx=(2, 4))
+
+                # Translation Lock indicator (Rule 20 D8)
+                is_locked = i in getattr(self, "_locked_boxes", set())
+                lbl_lock = tk.Label(hdr, text="🔒" if is_locked else "", font=("Segoe UI", max(7, d_sz - 4)), fg=t["accent_yellow"], bg=hdr_bg)
+                lbl_lock.pack(side="left", padx=(2, 4))
+
+                # Rendered character count (Rule 19 / GAME-BOX-PREVIEW)
+                char_len = get_rendered_length(box.clean_text)
+                lbl_chars = tk.Label(hdr, text=f"({char_len} chars)", font=("Segoe UI", max(7, d_sz - 4)), fg=t["fg_muted"], bg=hdr_bg)
+                lbl_chars.pack(side="right", padx=(4, 6))
+
+                hdr.pack(fill="x", pady=0)
+
+                # Editor Row with dynamic line-number gutter
+                editor_row = tk.Frame(card_frame, bg=t["bg_panel"])
+                editor_row.pack(fill="x", padx=0, pady=0)
+
+                line_count = max(1, box.clean_text.count("\n") + 1)
+                eff_height = max(2, min(10, line_count))
+
+                gutter = tk.Text(
+                    editor_row,
+                    width=2,
+                    height=eff_height,
+                    font=("Consolas", max(8, d_sz - 2)),
+                    bg=gutter_bg,
+                    fg=gutter_fg,
+                    bd=0,
+                    relief="flat",
+                    wrap="none",
+                    takefocus=0,
+                    cursor="arrow",
+                    padx=1,
+                    pady=3,
+                    spacing1=2,
+                    spacing3=2,
+                )
+                gutter.insert("1.0", "\n".join(str(n) for n in range(1, line_count + 1)))
+                gutter.config(state="disabled")
+                if self.show_line_numbers:
+                    gutter.pack(side="left", fill="y", padx=(0, 2))
+
+                txt = tk.Text(
+                    editor_row,
+                    wrap="word",
+                    undo=False,
+                    height=eff_height,
+                    font=(d_fam, d_sz),
+                    bg=t["bg_editor"],
+                    fg=t["fg_text"],
+                    insertbackground=t["misora_pink"],
+                    selectbackground=t["highlight_bg"],
+                    selectforeground=t["misora_pink"],
+                    bd=1,
+                    relief="solid",
+                    highlightthickness=0,
+                    padx=8,
+                    pady=3,
+                    spacing1=2,
+                    spacing3=2
+                )
+                self._configure_editor_rich_tags(txt, d_fam, d_sz)
+                if compiled:
+                    self._insert_compiled_ngui_text(txt, "1.0", box.clean_text)
+                    txt.config(state="disabled")
+                else:
+                    txt.insert("1.0", box.clean_text)
+                    self._highlight_ngui_tags_for_widget(txt)
+
+                txt.pack(side="left", fill="x", expand=True)
+
+                # Bindings on card widgets
+                for w in (card_frame, hdr, lbl_badge, lbl_sp, lbl_vc, editor_row, gutter, txt):
+                    w.bind("<MouseWheel>", self._on_cont_mousewheel)
+
+                self._install_shortcuts_bindtag(txt)
+                txt.bind("<KeyRelease>", lambda e, idx=i, w=txt, g=gutter: self._commit_widget_edit(w))
+                txt.bind("<<Cut>>", lambda e, w=txt: self.after_idle(lambda: self._commit_widget_edit(w)))
+                txt.bind("<FocusIn>", lambda e, idx=i: self._on_card_focus_in(idx))
+                txt.bind("<Control-a>", lambda e, w=txt: (w.tag_add("sel", "1.0", "end-1c"), "break")[1])
+                txt.bind("<Control-A>", lambda e, w=txt: (w.tag_add("sel", "1.0", "end-1c"), "break")[1])
+                txt.bind("<Control-Shift-C>", lambda e: (self.on_copy_script(), "break")[1])
+                txt.bind("<Control-Shift-c>", lambda e: (self.on_copy_script(), "break")[1])
+                txt.bind("<Control-v>", lambda e, idx=i, w=txt: self._on_card_paste_caret(idx, w))
+                txt.bind("<<Paste>>", lambda e, idx=i, w=txt: (self._on_card_paste_caret(idx, w) or self.after_idle(lambda: self._commit_widget_edit(w))))
+                txt.bind("<Control-Shift-V>", lambda e: (self.on_paste_cross_box(), "break")[1])
+                txt.bind("<Control-Shift-v>", lambda e: (self.on_paste_cross_box(), "break")[1])
+                txt.bind("<Control-b>", lambda e, w=txt: (self._card_shortcut_wrap(w, "[b]", "[/b]"), "break")[1])
+                txt.bind("<Control-i>", lambda e, w=txt: (self._card_shortcut_wrap(w, "[i]", "[/i]"), "break")[1])
+                txt.bind("<Control-u>", lambda e, w=txt: (self._card_shortcut_wrap(w, "[u]", "[/u]"), "break")[1])
+
+                card_frame.pack(fill="x", padx=6, pady=(1, 2))
+
+                self._card_widgets[i] = {
+                    "card": card_frame,
+                    "hdr": hdr,
+                    "editor_row": editor_row,
+                    "gutter": gutter,
+                    "txt": txt,
+                    "lbl_badge": lbl_badge,
+                    "lbl_sp": lbl_sp,
+                    "lbl_vc": lbl_vc,
+                }
+
+            self._highlight_continuous_matches()
+        finally:
+            self._suppress_continuous_events = False
+
+    def _focus_continuous_box(
+        self,
+        box_idx: int,
+        move_cursor: bool = True,
+        char_offset: int = 0,
+        explicit_span: Optional[Tuple[int, int]] = None
+    ) -> None:
+        """Scroll Continuous View to `box_idx`, highlight its card header, and sync metadata."""
+        if not self.current_doc:
+            return
+
+        total = len(self.current_doc.boxes) if self.current_doc.boxes else 0
+        if box_idx == -1:
+            self.is_box0_active = True
+            target_idx = -1
+        else:
+            self.is_box0_active = False
+            self.current_box_idx = max(0, min(box_idx, total - 1)) if total > 0 else 0
+            target_idx = self.current_box_idx
+
+        self._highlight_active_card_header(target_idx)
+        self._sync_header_controls_for_card(target_idx)
+        self._update_raw_view()
+
+        if hasattr(self, "_card_widgets") and target_idx in self._card_widgets:
+            card_info = self._card_widgets[target_idx]
+            card = card_info["card"]
+            self.update_idletasks()
+            try:
+                total_h = self.cont_stream_frame.winfo_height()
+                if total_h > 0:
+                    card_y = card.winfo_y()
+                    fraction = max(0.0, min(1.0, card_y / total_h))
+                    self.cont_canvas.yview_moveto(fraction)
+            except Exception:
+                pass
+
+            txt_w = card_info["txt"]
+            if move_cursor and str(txt_w.cget("state")) != "disabled":
+                try:
+                    target_pos = f"1.0 + {max(0, char_offset)}c"
+                    txt_w.mark_set("insert", target_pos)
+                    txt_w.see("insert")
+                    txt_w.focus_set()
+                except Exception:
+                    pass
+
+            if explicit_span is not None and not self.var_preview_compiled.get():
+                s, e = explicit_span
+                if e > s:
+                    txt_w.tag_remove("search_hit", "1.0", tk.END)
+                    txt_w.tag_add("search_hit", f"1.0 + {s}c", f"1.0 + {e}c")
+                    txt_w.see(f"1.0 + {s}c")
+
+    def _find_continuous_box_at_index(self, tk_index: str) -> Optional[int]:
+        """Return active box index (compatibility shim for Card Stream architecture)."""
+        if getattr(self, "is_box0_active", False):
+            return -1
+        return self.current_box_idx
+
+    def _nearest_continuous_box_to_index(self, tk_index: str) -> int:
+        """Return active box index (compatibility shim for Card Stream architecture)."""
+        return self.current_box_idx
+
+    def _on_continuous_cursor_moved(self, event: Optional[tk.Event] = None) -> None:
+        """Compatibility shim for Card Stream (handled via _on_card_focus_in)."""
+        pass
+
+    def _on_continuous_key_guard(self, event: tk.Event) -> Optional[str]:
+        """Compatibility shim for Card Stream."""
+        return None
+
+    def _on_continuous_copy(self, _event: Optional[tk.Event] = None) -> Optional[str]:
+        """Compatibility shim for Card Stream."""
+        return None
+
+    def _on_continuous_paste_guard(self, _event: tk.Event) -> Optional[str]:
+        """Compatibility shim for Card Stream."""
+        return None
+
+    def _on_continuous_cut_guard(self, _event: tk.Event) -> Optional[str]:
+        """Compatibility shim for Card Stream."""
+        return None
+
+    def _on_continuous_key_release(self, _event: tk.Event) -> None:
+        """Compatibility shim for Card Stream."""
+        self._flush_continuous_card_edits()
+
+    def _sync_continuous_box_from_widget(self) -> None:
+        """Persist card edits to StoryDocument or plain text."""
+        self._flush_continuous_card_edits()
+
+    def _highlight_dialogue_matches(self, explicit_span: Optional[Tuple[int, int]] = None) -> None:
+        """Highlight active search keyword spans inside the single-box dialogue editor."""
+        if self.var_preview_compiled.get():
+            return
+
+        self.txt_dialogue.tag_remove("search_hit", "1.0", tk.END)
+
+        if explicit_span is not None:
+            s, e = explicit_span
+            if e > s:
+                start_idx = f"1.0 + {s}c"
+                end_idx = f"1.0 + {e}c"
+                self.txt_dialogue.tag_add("search_hit", start_idx, end_idx)
+                self.txt_dialogue.see(start_idx)
+                return
+
+        if not self.active_search_options or not self.active_search_options.query.strip():
+            return
+
+        text = self.txt_dialogue.get("1.0", "end-1c")
+        if not text:
+            return
+
+        try:
+            matcher = self.search_engine._compile_matcher(self.active_search_options)
+            matches = matcher(text)
+            for s, e, _ in matches:
+                if e > s:
+                    self.txt_dialogue.tag_add("search_hit", f"1.0 + {s}c", f"1.0 + {e}c")
+            if matches:
+                self.txt_dialogue.see(f"1.0 + {matches[0][0]}c")
+        except Exception:
+            pass
+
+    def _highlight_continuous_matches(self) -> None:
+        """Highlight active search keyword spans across all cards in Continuous View."""
+        if self.var_preview_compiled.get():
+            return
+        if not hasattr(self, "_card_widgets") or not self._card_widgets:
+            return
+
+        matcher = None
+        if self.active_search_options and self.active_search_options.query.strip():
+            try:
+                matcher = self.search_engine._compile_matcher(self.active_search_options)
+            except Exception:
+                matcher = None
+
+        for b_idx, card_info in self._card_widgets.items():
+            txt_w = card_info.get("txt")
+            if not txt_w:
+                continue
+            try:
+                txt_w.tag_remove("search_hit", "1.0", tk.END)
+                if matcher:
+                    box_tx = txt_w.get("1.0", "end-1c")
+                    for s, e, _ in matcher(box_tx):
+                        if e > s:
+                            txt_w.tag_add("search_hit", f"1.0 + {s}c", f"1.0 + {e}c")
+            except Exception:
+                pass
+
+    def _commit_speaker_edit(self) -> bool:
+        """Central edit commit path for speaker entry edits (Rule 11, F20).
+        Returns True if a mutation occurred, False if no-op or aborted.
+        """
+        if getattr(self, "_suppress_continuous_events", False):
+            return False
+        if getattr(self, "is_box0_active", False):
+            return False
+        if not self.current_doc or not self.current_doc.boxes:
+            return False
+        if not (0 <= self.current_box_idx < len(self.current_doc.boxes)):
+            return False
+
+        idx = self.current_box_idx
+        box = self.current_doc.boxes[idx]
+        old_sp = box.speaker
+        new_sp = self.speaker_var.get()
+
+        # Resolve current text cleanly from active view
+        if getattr(self, "var_continuous_view", None) and self.var_continuous_view.get():
+            if hasattr(self, "_card_widgets") and idx in self._card_widgets:
+                cur_tx = self._card_widgets[idx]["txt"].get("1.0", "end-1c")
+            else:
+                cur_tx = box.clean_text
+        else:
+            if getattr(self, "var_preview_compiled", None) and self.var_preview_compiled.get():
+                cur_tx = box.clean_text
+            elif hasattr(self, "txt_dialogue") and self.txt_dialogue.winfo_exists():
+                cur_tx = self.txt_dialogue.get("1.0", "end-1c")
+            else:
+                cur_tx = box.clean_text
+
+        if old_sp == new_sp:
+            return False
+
+        self.undo_journal.record(
+            BoxEditDelta(
+                box_index=idx,
+                old_speaker=old_sp,
+                new_speaker=new_sp,
+                old_text=box.clean_text,
+                new_text=cur_tx,
+                file_path=str(self.current_file_path or ""),
+                box_uid=box.uid,
+                source="keyboard",
+            ),
+            label=f"Rename speaker #{idx + 1}"
+        )
+
+        try:
+            self.current_doc.inject_box(idx, new_sp, cur_tx)
+        except Exception as ex:
+            self.logger.error("AST", f"Failed to inject speaker rename: {ex}")
+            return False
+
+        self._modified_boxes.add(idx)
+        self._mark_document_dirty(self.current_file_path)
+
+        if hasattr(self, "_refresh_continuous_box_header"):
+            self._refresh_continuous_box_header(idx)
+        elif hasattr(self, "_card_widgets") and idx in self._card_widgets:
+            lbl_sp = self._card_widgets[idx].get("lbl_sp")
+            if lbl_sp and lbl_sp.winfo_exists():
+                lbl_sp.config(text=new_sp if new_sp else "(Narration)")
+
+        self._update_raw_view()
+        self._dirty_state_changed()
+        return True
+
+    def _on_speaker_edited(self) -> None:
+        """Triggered when editing the pinned Speaker entry in either Page or Continuous mode."""
+        self._commit_speaker_edit()
+
+    def _refresh_continuous_box_header(self, box_idx: int) -> None:
+        """Update a single box header in Continuous View in-place when its speaker changes."""
+        if not self.current_doc or not (0 <= box_idx < len(self.current_doc.boxes)):
+            return
+        if not hasattr(self, "_card_widgets") or box_idx not in self._card_widgets:
+            return
+        box = self.current_doc.boxes[box_idx]
+        card_info = self._card_widgets[box_idx]
+        lbl_sp = card_info.get("lbl_sp")
+        if lbl_sp:
+            t = self.theme
+            speaker_disp = box.speaker if box.speaker else "(Narration)"
+            speaker_color = t["misora_pink"] if box.speaker else t["fg_muted"]
+            lbl_sp.config(text=speaker_disp, fg=speaker_color)
+
+    def _on_dialogue_key_up(self, _event: tk.Event) -> Optional[str]:
+        """Navigate to previous box when pressing Up at top line of Clean Dialogue View."""
+        if self.txt_dialogue.compare("insert linestart", "==", "1.0"):
+            if self.current_box_idx > 0:
+                self.on_prev_box()
+                self.txt_dialogue.mark_set("insert", "end-1c")
+                self.txt_dialogue.see("insert")
+                return "break"
+        return None
+
+    def _on_dialogue_key_down(self, _event: tk.Event) -> Optional[str]:
+        """Navigate to next box when pressing Down at bottom line of Clean Dialogue View."""
+        if self.txt_dialogue.compare("insert lineend", ">=", "end-1c"):
+            if self.current_doc and self.current_box_idx < len(self.current_doc.boxes) - 1:
+                self.on_next_box()
+                self.txt_dialogue.mark_set("insert", "1.0")
+                self.txt_dialogue.see("insert")
+                return "break"
+        return None
+
+    def _commit_widget_edit(self, widget: Optional[tk.Widget] = None) -> None:
+        """Central edit commit path for all widget edits, ribbon wrappers, cut/paste, and metadata (Rule 11)."""
+        if getattr(self, "_suppress_continuous_events", False):
+            return
+        if getattr(self, "var_preview_compiled", None) and self.var_preview_compiled.get():
+            return
+
+        if widget is None:
+            widget = self._get_active_text_widget()
+        if widget is None:
+            return
+
+        # 1. Continuous View Box 0 Metadata Card (-1)
+        if (
+            self.current_doc
+            and self.current_doc.has_metadata()
+            and -1 in getattr(self, "_card_widgets", {})
+            and widget == self._card_widgets[-1].get("txt")
+        ):
+            new_sum = widget.get("1.0", "end-1c")
+            meta = self.current_doc.get_metadata()
+            old_sum = meta.get("summary", "")
+            if old_sum != new_sum:
+                self.undo_journal.record(
+                    MetadataDelta(
+                        file_path=str(self.current_file_path or ""),
+                        old_title=meta.get("title", ""),
+                        new_title=meta.get("title", ""),
+                        old_subtitle=meta.get("subtitle", ""),
+                        new_subtitle=meta.get("subtitle", ""),
+                        old_summary=old_sum,
+                        new_summary=new_sum,
+                    ),
+                    label="Edit Synopsis"
+                )
+                self.current_doc.set_metadata(summary=new_sum)
+                self._mark_document_dirty(self.current_file_path)
+                if hasattr(self, "txt_box0_summary") and self.txt_box0_summary.winfo_exists():
+                    self.txt_box0_summary.delete("1.0", tk.END)
+                    self.txt_box0_summary.insert("1.0", new_sum)
+                self._update_raw_view()
+                self._dirty_state_changed()
+            return
+
+        # 2. Page View Box 0 Metadata Widgets
+        is_box0 = (
+            getattr(self, "is_box0_active", False)
+            or widget in (
+                getattr(self, "txt_box0_summary", None),
+                getattr(self, "entry_box0_title", None),
+                getattr(self, "entry_box0_subtitle", None),
+            )
+        )
+        if is_box0:
+            self._on_box0_metadata_edited()
+            self._update_box0_char_counter()
+            self._dirty_state_changed()
+            return
+
+        # 2. Speaker Entry
+        if widget == getattr(self, "entry_speaker", None):
+            self._commit_speaker_edit()
+            return
+
+        # 3. Page View Dialogue Editor (txt_dialogue)
+        if widget == getattr(self, "txt_dialogue", None):
+            if self._on_dialogue_edited():
+                self._dirty_state_changed()
+            return
+
+        # 4. Continuous View Card text widgets
+        if hasattr(self, "_card_widgets") and self._card_widgets:
+            for b_idx, card_dict in list(self._card_widgets.items()):
+                if card_dict.get("txt") == widget and b_idx >= 0:
+                    gutter = card_dict.get("gutter")
+                    self._on_card_text_edited(b_idx, widget, gutter)
+                    self._dirty_state_changed()
+                    return
+
+        # 5. Continuous View plain text fallback
+        if widget == getattr(self, "txt_continuous", None):
+            new_tx = widget.get("1.0", "end-1c")
+            if new_tx != getattr(self, "_plain_text_content", ""):
+                self.undo_journal.record(
+                    PlainTextDelta(
+                        file_path=str(self.current_file_path or ""),
+                        old_content=self._plain_text_content,
+                        new_content=new_tx,
+                    ),
+                    label=f"Edit {self.current_file_path.name if self.current_file_path else 'text'}"
+                )
+                self._plain_text_content = new_tx
+                if self.current_file_path and self.current_file_path in self.open_documents:
+                    self.open_documents[self.current_file_path]["plain_text"] = new_tx
+                self._mark_document_dirty(self.current_file_path)
+                self._dirty_state_changed()
+            return
+
+    def _on_dialogue_edited(self) -> bool:
+        """Triggered on every keystroke in the single-box Game Display dialogue editor.
+
+        Returns True if a real mutation occurred (content changed), False if no-op (S2).
+        Only marks dirty and records undo when content actually changed.
+        """
+        if self.var_preview_compiled.get():
+            return False
+
+        if self.current_doc and self.current_doc.boxes:
+            idx = self.current_box_idx
+            old_sp = self.current_doc.boxes[idx].speaker
+            old_tx = self.current_doc.boxes[idx].clean_text
+            new_tx = self.txt_dialogue.get("1.0", "end-1c")
+            # S2: guard no-op — dirty/undo only on actual change
+            if old_tx == new_tx:
+                self._auto_resize_dialogue_box()
+                self._highlight_ngui_tags()
+                self._highlight_dialogue_matches()
+                return False
+            self.undo_journal.record(
+                BoxEditDelta(
+                    box_index=idx,
+                    old_speaker=old_sp,
+                    new_speaker=old_sp,
+                    old_text=old_tx,
+                    new_text=new_tx,
+                    file_path=str(self.current_file_path or ""),
+                    source=getattr(self, "_current_edit_source", "keyboard"),
+                ),
+                label=f"Edit box #{idx + 1}"
+            )
+            self._modified_boxes.add(idx)
+            self._mark_document_dirty(self.current_file_path)
+            try:
+                self.current_doc.inject_box(idx, None, new_tx)
+                self._update_raw_view()
+            except Exception:
+                pass
+            self._auto_resize_dialogue_box()
+            self._highlight_ngui_tags()
+            self._highlight_dialogue_matches()
+            self._update_rendered_char_count(new_tx)
+            return True
+        else:
+            old_content = self._plain_text_content
+            new_content = self.txt_dialogue.get("1.0", "end-1c")
+            # S2: guard no-op
+            if old_content == new_content:
+                self._auto_resize_dialogue_box()
+                return False
+            self.undo_journal.record(
+                PlainTextDelta(
+                    file_path=str(self.current_file_path or ""),
+                    old_content=old_content,
+                    new_content=new_content,
+                ),
+                label=f"Edit {self.current_file_path.name if self.current_file_path else 'text'}"
+            )
+            self._plain_text_content = new_content
+            if self.current_file_path and self.current_file_path in self.open_documents:
+                self.open_documents[self.current_file_path]["plain_text"] = new_content
+            self._mark_document_dirty(self.current_file_path)
+            self._auto_resize_dialogue_box()
+            self._highlight_ngui_tags()
+            self._highlight_dialogue_matches()
+            return True
+
+    def _update_box0_char_counter(self) -> None:
+        if not hasattr(self, "lbl_box0_summary_len") or not hasattr(self, "txt_box0_summary"):
+            return
+        txt = self.txt_box0_summary.get("1.0", "end-1c")
+        chars = len(txt)
+        lines = txt.count("\n") + (1 if txt else 0)
+        self.lbl_box0_summary_len.config(
+            text=f"Summary: {chars} chars | {lines} lines (In-game display: ~3-4 lines)"
+        )
+
+    def _on_box0_metadata_edited(self) -> None:
+        """Triggered on keystroke when editing Episode Title, Subtitle, or Synopsis in Box 0."""
+        if not self.current_doc or not self.current_doc.has_metadata():
+            return
+        meta = self.current_doc.get_metadata()
+        old_title = meta.get("title", "")
+        old_subtitle = meta.get("subtitle", "")
+        old_summary = meta.get("summary", "")
+
+        new_title = self.var_box0_title.get()
+        new_subtitle = self.var_box0_subtitle.get()
+        new_summary = self.txt_box0_summary.get("1.0", "end-1c")
+
+        if (old_title, old_subtitle, old_summary) != (new_title, new_subtitle, new_summary):
+            self.undo_journal.record(
+                MetadataDelta(
+                    file_path=str(self.current_file_path or ""),
+                    old_title=old_title,
+                    new_title=new_title,
+                    old_subtitle=old_subtitle,
+                    new_subtitle=new_subtitle,
+                    old_summary=old_summary,
+                    new_summary=new_summary,
+                ),
+                label="Edit story metadata (Box 0)"
+            )
+            self.current_doc.set_metadata(title=new_title, subtitle=new_subtitle, summary=new_summary)
+            self._mark_document_dirty(self.current_file_path)
+            if hasattr(self, "_card_widgets") and -1 in self._card_widgets:
+                c0_txt = self._card_widgets[-1].get("txt")
+                if c0_txt and c0_txt.winfo_exists():
+                    c0_txt.delete("1.0", tk.END)
+                    c0_txt.insert("1.0", new_summary)
+            self._update_box0_char_counter()
+            self._update_raw_view()
+
+    def on_prev_box(self) -> None:
+        if self.is_box0_active:
+            return
+
+        if self.current_doc and self.current_box_idx == 0:
+            if self.current_doc.has_metadata():
+                self.is_box0_active = True
+                if self.var_continuous_view.get():
+                    self._focus_continuous_box(-1, move_cursor=True)
+                else:
+                    self._update_views()
+            return
+
+        if self.current_doc and self.current_box_idx > 0:
+            self.current_box_idx -= 1
+            if self.var_continuous_view.get():
+                self._focus_continuous_box(self.current_box_idx, move_cursor=True)
+            else:
+                self._update_views()
+
+    def on_next_box(self) -> None:
+        if self.is_box0_active:
+            self.is_box0_active = False
+            self.current_box_idx = 0
+            if self.var_continuous_view.get():
+                self._focus_continuous_box(0, move_cursor=True)
+            else:
+                self._update_views()
+            return
+
+        if self.current_doc and self.current_box_idx < len(self.current_doc.boxes) - 1:
+            self.current_box_idx += 1
+            if self.var_continuous_view.get():
+                self._focus_continuous_box(self.current_box_idx, move_cursor=True)
+            else:
+                self._update_views()
+
+    def is_box_locked(self, box_idx: int) -> bool:
+        """Check if dialogue box at box_idx is locked against translation / batch mutations (Rule 20 D8)."""
+        return box_idx in getattr(self, "_locked_boxes", set())
+
+    def on_toggle_lock_current_box(self) -> None:
+        """Toggle Translation Lock on active dialogue box (Ctrl+L / Rule 20 D8)."""
+        if not self.current_doc or not self.current_doc.boxes:
+            return
+        if getattr(self, "is_box0_active", False):
+            self.show_toast("Box 0 metadata cannot be locked.")
+            return
+        b_idx = self.current_box_idx
+        if b_idx in self._locked_boxes:
+            self._locked_boxes.remove(b_idx)
+            self.show_toast(f"🔓 Box {b_idx + 1} unlocked")
+        else:
+            self._locked_boxes.add(b_idx)
+            self.show_toast(f"🔒 Box {b_idx + 1} locked from batch/paste edits")
+        self._update_views()
+
+    def _update_rendered_char_count(self, text: str) -> None:
+        """Update live rendered character counter and warn if text overflows dialogue frame (Rule 19 / GAME-BOX-PREVIEW)."""
+        if not hasattr(self, "lbl_char_count") or not self.lbl_char_count.winfo_exists():
+            return
+        t = self.theme
+        lines_info = measure_line_lengths(text)
+        total_len = sum(l[1] for l in lines_info)
+        max_line = max((l[1] for l in lines_info), default=0)
+        if max_line > 45:
+            self.lbl_char_count.config(
+                text=f"Chars: {total_len} (Max: {max_line}) ⚠ Overflow",
+                fg=t["misora_pink"]
+            )
+        else:
+            self.lbl_char_count.config(
+                text=f"Chars: {total_len} (Max: {max_line})",
+                fg=t["fg_muted"]
+            )
+
+    def on_revert_box(self) -> None:
+        if self.current_file_path:
+            self.open_file(self.current_file_path, reload_from_disk=True)
+
+    def on_insert_playername(self) -> None:
+        self.apply_ngui_wrapper("{playername}", "")
+
+    # -------------------------------------------------------------------------
+    # Save & Patch Actions (Byte-Exact In-Place Repack)
+    # -------------------------------------------------------------------------
+    def on_save(self) -> bool:
+        """Repack and save the active file in-place, with optional XUAT dictionary sync.
+
+        Returns True on successful primary save, False on failure or no active file (S2).
+        Secondary XUAT failure logs a warning, retains _modified_boxes, and returns True.
+        """
+        if not self.current_file_path:
+            messagebox.showinfo("Nothing to Save", "No active file is open.")
+            return False
+
+        try:
+            backup_dir = self._get_backup_dir()
+            cur_p = Path(self.current_file_path).resolve()
+
+            if not self.is_bundle_file and not self.current_doc:
+                if self.current_file_path.is_file() and backup_dir:
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    bak_path = backup_dir / f"{self.current_file_path.stem}.bak_{ts}{self.current_file_path.suffix}"
+                    shutil.copy2(self.current_file_path, bak_path)
+                content = self.txt_continuous.get("1.0", "end-1c") if self.var_continuous_view.get() else self.txt_dialogue.get("1.0", "end-1c")
+                doc_entry = self.open_documents.get(cur_p, {})
+                enc = doc_entry.get("encoding", "utf-8")
+                has_bom = bool(doc_entry.get("has_bom", False))
+                nl = doc_entry.get("newline", None)
+                write_atomic_utf8(self.current_file_path, content, encoding=enc, has_bom=has_bom, newline=nl)
+                self._plain_text_content = content
+                if cur_p in self.open_documents:
+                    self.open_documents[cur_p]["dirty"] = False
+                    self.open_documents[cur_p]["plain_text"] = content
+                self.is_dirty = False
+                self._record_saved_checkpoint(self.current_file_path, None, content)
+                self.undo_journal.mark_saved(str(self.current_file_path))
+                self._dirty_state_changed()
+                self.lbl_status.config(text=f"[SAVED] {self.current_file_path.name} saved successfully!")
+                self.logger.info("File I/O", f"Saved plain text file '{self.current_file_path}' (backup in {backup_dir.name if backup_dir else 'none'})")
+                return True
+
+            if getattr(self, "is_box0_active", False):
+                self._on_box0_metadata_edited()
+            elif self.var_preview_compiled.get():
+                new_sp = self.speaker_var.get()
+                cur_tx = self.current_doc.boxes[self.current_box_idx].clean_text
+                self.current_doc.inject_box(self.current_box_idx, new_sp, cur_tx)
+            elif self.var_continuous_view.get():
+                self._sync_continuous_box_from_widget()
+                new_sp = self.speaker_var.get()
+                cur_tx = self.current_doc.boxes[self.current_box_idx].clean_text
+                self.current_doc.inject_box(self.current_box_idx, new_sp, cur_tx)
+            else:
+                new_sp = self.speaker_var.get()
+                new_tx = self.txt_dialogue.get("1.0", "end-1c")
+                self.current_doc.inject_box(self.current_box_idx, new_sp, new_tx)
+                self._modified_boxes.add(self.current_box_idx)
+
+            if self.is_bundle_file:
+                written_size = save_bundle_story(
+                    self.current_unity_env,
+                    self.current_text_obj,
+                    self.current_doc,
+                    self.current_file_path,
+                    backup_dir=backup_dir
+                )
+                if cur_p in self.open_documents:
+                    self.open_documents[cur_p]["dirty"] = False
+                self.is_dirty = False
+                self._record_saved_checkpoint(self.current_file_path, self.current_doc, "")
+                self.undo_journal.mark_saved(str(self.current_file_path))
+                self._dirty_state_changed()
+                self.lbl_status.config(text=f"[SAVED & PATCHED] {self.current_file_path.name} ({written_size / 1024:.1f} KB) in-place successfully!")
+                self.logger.info("File I/O", f"Patched bundle '{self.current_file_path}' ({written_size} bytes)")
+            else:
+                if self.current_file_path.is_file() and backup_dir:
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    bak_path = backup_dir / f"{self.current_file_path.stem}.bak_{ts}{self.current_file_path.suffix}"
+                    shutil.copy2(self.current_file_path, bak_path)
+                v2_text = self.current_doc.to_v2_text()
+                doc_entry = self.open_documents.get(cur_p, {})
+                enc = doc_entry.get("encoding", "utf-8")
+                has_bom = bool(doc_entry.get("has_bom", False))
+                nl = doc_entry.get("newline", None)
+                write_atomic_utf8(self.current_file_path, v2_text, encoding=enc, has_bom=has_bom, newline=nl)
+                if cur_p in self.open_documents:
+                    self.open_documents[cur_p]["dirty"] = False
+                self.is_dirty = False
+                self._record_saved_checkpoint(self.current_file_path, self.current_doc, "")
+                self.undo_journal.mark_saved(str(self.current_file_path))
+                self._dirty_state_changed()
+                self.lbl_status.config(text=f"[SAVED] {self.current_file_path.name} saved successfully!")
+                self.logger.info("File I/O", f"Saved v2 script '{self.current_file_path}'")
+
+            if self.var_sync_xuat.get() and self.xuat_search_roots:
+                try:
+                    boxes_to_sync = sorted(self._modified_boxes) if self._modified_boxes else [self.current_box_idx]
+                    synced_files: Set[str] = set()
+                    for b_idx in boxes_to_sync:
+                        if not (0 <= b_idx < len(self.current_doc.boxes)):
+                            continue
+                        box_obj = self.current_doc.boxes[b_idx]
+                        orig_key = self._original_box_texts.get(b_idx, box_obj.clean_text)
+                        matches = self.sync_manager.find_and_update(
+                            japanese_key=orig_key,
+                            new_english_text=box_obj.clean_text,
+                            search_roots=self.xuat_search_roots,
+                            backup=True,
+                            backup_dir=backup_dir
+                        )
+                        for m in matches:
+                            synced_files.add(m.file_path.name)
+                        self._original_box_texts[b_idx] = box_obj.clean_text
+
+                    if synced_files:
+                        files_str = ", ".join(sorted(synced_files))
+                        self.lbl_status.config(text=self.lbl_status.cget("text") + f" | Synced XUAT file(s): {files_str}")
+                        self.logger.info("XUAT Sync", f"Synced XUAT file(s): {files_str}")
+                    self._modified_boxes.clear()
+                except Exception as xuat_err:
+                    self.logger.warning("XUAT", f"Secondary XUAT sync failed (primary save succeeded): {xuat_err}")
+                    self.lbl_status.config(text=self.lbl_status.cget("text") + f" | (XUAT sync failed: {xuat_err})")
+            else:
+                self._modified_boxes.clear()
+
+            return True
+
+        except Exception as e:
+            self.logger.exception(f"Save/Patch failed for '{self.current_file_path}':", e)
+            messagebox.showerror("Save Failed", f"Failed to repack or save:\n{e}")
+            return False
+
+    def on_reload(self) -> None:
+        if self.current_file_path:
+            self.open_file(self.current_file_path, reload_from_disk=True)
+
+    # -------------------------------------------------------------------------
+    # Search Engine, Background Worker & Substring Result Highlighting
+    # -------------------------------------------------------------------------
+    def on_start_search(self) -> None:
+        query = self.search_var.get().strip()
+        if not query:
+            return
+
+        opts = SearchOptions(
+            query=query,
+            match_case=self.var_case.get(),
+            use_regex=self.var_regex.get(),
+            ignore_whitespace=self.var_ignore_ws.get(),
+            include_bundles=self.var_inc_bundles.get(),
+            include_text=self.var_inc_text.get()
+        )
+        self.active_search_options = opts
+
+        scope = self.scope_var.get()
+        target_paths: List[Path] = []
+
+        if scope == "current":
+            if getattr(self, "open_documents", None):
+                target_paths = list(self.open_documents.keys())
+            elif self.current_file_path:
+                target_paths = [self.current_file_path]
+            else:
+                messagebox.showinfo("Search", "No file is currently open.")
+                return
+        elif scope == "folder":
+            ent_val = self.folder_path_var.get().strip() if hasattr(self, "folder_path_var") else ""
+            if ent_val and Path(ent_val).is_dir():
+                self.selected_search_folder = Path(ent_val)
+            if self.selected_search_folder and self.selected_search_folder.is_dir():
+                target_paths = [self.selected_search_folder]
+            else:
+                fld = filedialog.askdirectory(title="Select Folder to Search In")
+                if not fld:
+                    return
+                self.selected_search_folder = Path(fld)
+                self.folder_path_var.set(str(fld))
+                target_paths = [self.selected_search_folder]
+        else:
+            ent_val = self.folder_path_var.get().strip() if hasattr(self, "folder_path_var") else ""
+            if ent_val and Path(ent_val).is_dir():
+                self.project_folder = Path(ent_val)
+                self.bepinex_project_folder = self.project_folder
+            active_proj = getattr(self, "project_folder", None) or getattr(self, "bepinex_project_folder", None)
+            target_paths = list(self.xuat_search_roots)
+            if active_proj and active_proj.exists():
+                text_dir = active_proj / "Text"
+                root = text_dir if text_dir.exists() else active_proj
+                if root not in target_paths:
+                    target_paths.insert(0, root)
+            for p in (Path("input"), Path("output"), SCRIPT_DIR.parent / "input", SCRIPT_DIR.parent / "output"):
+                if p.exists() and p not in target_paths:
+                    target_paths.append(p)
+
+        self._reset_search_results_state()
+        self._switch_dock_tab("search")
+        self.lbl_results_title.config(text="Searching...")
+        self.btn_find.config(state="disabled")
+        self.btn_cancel.config(state="normal")
+        self.progress_bar.pack(fill="x", padx=8, pady=(0, 2))
+        self.progress_bar["value"] = 0
+        self.search_cancel_flag = False
+        self.logger.info("Search", f"Started search query='{query}' scope={scope} roots={len(target_paths)}")
+
+        mem_docs = {}
+        if getattr(self, "open_documents", None):
+            for fp, entry in self.open_documents.items():
+                if isinstance(entry, dict) and entry.get("doc"):
+                    orig_doc = entry["doc"]
+                    # Capture immutable snapshot on UI thread before thread start (Rule 15 / SEARCH-RACE)
+                    try:
+                        snap_records = [
+                            Record(cmd_id=r.cmd_id, cmd_name=r.cmd_name, args=list(r.args), category=r.category)
+                            for r in orig_doc.records
+                        ]
+                        mem_docs[fp] = StoryDocument(snap_records)
+                    except Exception:
+                        mem_docs[fp] = orig_doc
+
+        t = threading.Thread(target=self._run_background_search, args=(target_paths, opts, mem_docs), daemon=True)
+        t.start()
+
+    def _reset_search_results_state(self) -> None:
+        self.active_search_results.clear()
+        self.search_file_groups.clear()
+        self._file_group_lookup.clear()
+        self._result_line_map.clear()
+        self._result_idx_to_line.clear()
+        self._selected_result_idx = None
+
+        self.txt_results.config(state="normal")
+        self.txt_results.delete("1.0", tk.END)
+        self.txt_results.config(state="disabled")
+
+    def on_cancel_search(self) -> None:
+        self.search_cancel_flag = True
+        self.btn_cancel.config(state="disabled")
+        self.lbl_status.config(text="Cancelling search...")
+        self.logger.info("Search", "Search cancelled by user.")
+
+    def _run_background_search(
+        self,
+        paths: List[Path],
+        options: SearchOptions,
+        mem_docs: Optional[Dict[Path, Any]] = None
+    ) -> None:
+        """Executed inside a background daemon thread (Rule 15, Part B.8)."""
+        total_found = 0
+        skipped_paths: List[str] = []
+
+        def on_prog(cur, tot, filename):
+            self.search_queue.put(("progress", cur, tot, filename))
+
+        try:
+            for target in paths:
+                if self.search_cancel_flag:
+                    break
+                try:
+                    if not target.exists():
+                        skipped_paths.append(str(target))
+                        continue
+                    if target.is_file():
+                        mem_doc = mem_docs.get(target) if mem_docs else None
+                        results = self.search_engine.search_file(target, options, doc=mem_doc)
+                    else:
+                        results = self.search_engine.search_directory(
+                            target, options, recursive=True,
+                            on_progress=on_prog,
+                            should_cancel=lambda: self.search_cancel_flag,
+                            in_memory_docs=mem_docs
+                        )
+                    total_found += len(results)
+                    self.search_queue.put(("batch", results))
+                except Exception as ex:
+                    skipped_paths.append(f"{target} ({ex})")
+        finally:
+            self.search_queue.put(("finished", total_found, skipped_paths))
+
+    def _process_search_queue(self) -> None:
+        """Polls results from background worker thread and renders highlighted hits."""
+        try:
+            while True:
+                msg = self.search_queue.get_nowait()
+                kind = msg[0]
+
+                if kind == "progress":
+                    _, cur, tot, fname = msg
+                    if tot > 0:
+                        pct = int((cur / tot) * 100)
+                        self.progress_bar["value"] = pct
+                        self.lbl_status.config(text=f"Searching ({cur}/{tot}): {fname}")
+
+                elif kind == "batch":
+                    batch_results: List[SearchResult] = msg[1]
+                    if batch_results:
+                        for r in batch_results:
+                            res_idx = len(self.active_search_results)
+                            self.active_search_results.append(r)
+                            fkey = str(r.file_path)
+                            grp = self._file_group_lookup.get(fkey)
+                            if grp is None:
+                                grp = {
+                                    "key": fkey,
+                                    "path": r.file_path,
+                                    "collapsed": False,
+                                    "indices": [],
+                                }
+                                self._file_group_lookup[fkey] = grp
+                                self.search_file_groups.append(grp)
+                            grp["indices"].append(res_idx)
+                        self._render_search_results()
+
+                elif kind == "finished":
+                    total = len(self.active_search_results)
+                    skipped = msg[2] if len(msg) > 2 else []
+                    skip_info = f" ({len(skipped)} skipped)" if skipped else ""
+                    self.lbl_results_title.config(text=f"Search Results ({total} matches{skip_info})")
+                    self.lbl_status.config(text=f"Search complete. Found {total} matches{skip_info}.")
+                    self.btn_find.config(state="normal")
+                    self.btn_cancel.config(state="disabled")
+                    self.progress_bar.pack_forget()
+                    if skipped:
+                        self.logger.warning("Search", f"Skipped inaccessible paths: {', '.join(skipped)}")
+                    self.logger.info("Search", f"Search finished. Total matches={total}")
+                    if not self.var_preview_compiled.get():
+                        if self.var_continuous_view.get():
+                            self._highlight_continuous_matches()
+                        else:
+                            self._highlight_dialogue_matches()
+
+        except queue.Empty:
+            pass
+
+        try:
+            if getattr(self, "_destroyed", False) or not self.winfo_exists():
+                return
+            self._search_poll_job = self.after(100, self._process_search_queue)
+        except Exception:
+            pass
+
+    def _render_search_results(self) -> None:
+        """Render grouped search hits with WCAG contrast-safe inline keyword highlighting."""
+        y_frac = self.txt_results.yview()[0]
+        self._result_line_map.clear()
+        self._result_idx_to_line.clear()
+
+        self.txt_results.config(state="normal")
+        self.txt_results.delete("1.0", tk.END)
+
+        line_no = 1
+        for grp in self.search_file_groups:
+            fp: Path = grp["path"]
+            indices: List[int] = grp["indices"]
+            collapsed: bool = grp["collapsed"]
+            arrow = "▶" if collapsed else "▼"
+            count_word = "match" if len(indices) == 1 else "matches"
+            header_text = f"{arrow} {fp.name} ({len(indices)} {count_word})\n"
+
+            self.txt_results.insert(f"{line_no}.0", header_text, ("file_header",))
+            self._result_line_map[line_no] = ("header", grp["key"])
+            line_no += 1
+
+            if collapsed:
+                continue
+
+            for res_idx in indices:
+                r = self.active_search_results[res_idx]
+                box_str = f"[Box #{r.box_index + 1}]" if r.box_index is not None else f"[Line {r.line_number}]"
+                prefix_indent = "  "
+                speaker_prefix = f" {r.speaker}: " if r.speaker else " "
+                snippet = r.match_snippet
+
+                row_tags = ("selected_row",) if res_idx == self._selected_result_idx else ()
+
+                self.txt_results.insert(f"{line_no}.0", prefix_indent, row_tags)
+                self.txt_results.insert(f"{line_no}.end", box_str, ("box_badge",) + row_tags)
+                if r.speaker:
+                    self.txt_results.insert(f"{line_no}.end", speaker_prefix, ("speaker_tag",) + row_tags)
+                else:
+                    self.txt_results.insert(f"{line_no}.end", speaker_prefix, row_tags)
+
+                snip_col_start = len(prefix_indent) + len(box_str) + len(speaker_prefix)
+                self.txt_results.insert(f"{line_no}.end", snippet + "\n", row_tags)
+
+                if r.match_in_speaker and r.speaker:
+                    sp_offset = len(prefix_indent) + len(box_str) + 1
+                    hs = sp_offset + max(0, r.snippet_start)
+                    he = sp_offset + max(r.snippet_start, r.snippet_end)
+                    if he > hs:
+                        self.txt_results.tag_add("match_hl", f"{line_no}.{hs}", f"{line_no}.{he}")
+                else:
+                    hs = snip_col_start + max(0, r.snippet_start)
+                    he = snip_col_start + max(r.snippet_start, r.snippet_end)
+                    if he > hs:
+                        self.txt_results.tag_add("match_hl", f"{line_no}.{hs}", f"{line_no}.{he}")
+
+                self._result_line_map[line_no] = ("item", res_idx)
+                self._result_idx_to_line[res_idx] = line_no
+                line_no += 1
+
+        self.txt_results.config(state="disabled")
+        self.txt_results.yview_moveto(y_frac)
+
+    def _on_results_click(self, event: tk.Event) -> str:
+        """Handle clicking a file header (collapse/expand) or a match row (jump & highlight)."""
+        self.txt_results.focus_set()
+        idx_str = self.txt_results.index(f"@{event.x},{event.y}")
+        line_no = int(idx_str.split(".")[0])
+        entry = self._result_line_map.get(line_no)
+        if not entry:
+            return "break"
+
+        kind, payload = entry
+        if kind == "header":
+            grp = self._file_group_lookup.get(payload)
+            if grp is not None:
+                grp["collapsed"] = not grp["collapsed"]
+                self._render_search_results()
+        elif kind == "item":
+            self._select_result_index(int(payload), jump=True)
+        return "break"
+
+    def _on_results_step(self, delta: int) -> str:
+        """Navigate up/down through visible search hits using keyboard arrow keys."""
+        if not self.active_search_results:
+            return "break"
+
+        if self._selected_result_idx is None:
+            next_idx = 0
+        else:
+            next_idx = max(0, min(len(self.active_search_results) - 1, self._selected_result_idx + delta))
+
+        self._select_result_index(next_idx, jump=True)
+        return "break"
+
+    def _select_result_index(self, idx: int, jump: bool = True) -> None:
+        """Highlight selected search row and jump to the matching file/box."""
+        if not (0 <= idx < len(self.active_search_results)):
+            return
+
+        self._selected_result_idx = idx
+        res = self.active_search_results[idx]
+
+        grp = self._file_group_lookup.get(str(res.file_path))
+        if grp and grp["collapsed"]:
+            grp["collapsed"] = False
+            self._render_search_results()
+        else:
+            self.txt_results.config(state="normal")
+            self.txt_results.tag_remove("selected_row", "1.0", tk.END)
+            target_line = self._result_idx_to_line.get(idx)
+            if target_line is not None:
+                self.txt_results.tag_add("selected_row", f"{target_line}.0", f"{target_line}.end")
+                self.txt_results.see(f"{target_line}.0")
+            self.txt_results.config(state="disabled")
+
+        if not jump:
+            return
+
+        if self.var_preview_compiled.get():
+            self.var_preview_compiled.set(False)
+
+        if not self.current_file_path or self.current_file_path != res.file_path:
+            self.open_file(res.file_path)
+
+        if (res.box_index == -1 or res.line_number == 0) and self.current_doc and self.current_doc.has_metadata():
+            self.is_box0_active = True
+            if self.var_continuous_view.get():
+                self._update_views()
+                self._focus_continuous_box(-1, move_cursor=True, char_offset=res.start_pos)
+                self.txt_continuous.focus_set()
+            else:
+                self._update_views()
+                if "Title" in res.speaker:
+                    self.entry_box0_title.focus_set()
+                    self.entry_box0_title.selection_range(res.start_pos, res.end_pos)
+                elif "Subtitle" in res.speaker:
+                    self.entry_box0_subtitle.focus_set()
+                    self.entry_box0_subtitle.selection_range(res.start_pos, res.end_pos)
+                else:
+                    self.txt_box0_summary.focus_set()
+                    self.txt_box0_summary.tag_remove("search_hit", "1.0", tk.END)
+                    self.txt_box0_summary.tag_add(
+                        "search_hit",
+                        f"1.0 + {res.start_pos}c",
+                        f"1.0 + {res.end_pos}c"
+                    )
+            return
+
+        self.is_box0_active = False
+        if res.box_index is not None and self.current_doc:
+            self.current_box_idx = res.box_index
+            if self.var_continuous_view.get():
+                self._update_views()
+                if res.match_in_speaker:
+                    self._focus_continuous_box(res.box_index, move_cursor=True)
+                    self.entry_speaker.focus_set()
+                    self.entry_speaker.selection_range(res.start_pos, res.end_pos)
+                else:
+                    self._focus_continuous_box(
+                        res.box_index,
+                        move_cursor=True,
+                        char_offset=res.start_pos,
+                        explicit_span=(res.start_pos, res.end_pos),
+                    )
+                    self.txt_continuous.focus_set()
+            else:
+                self._update_views()
+                if res.match_in_speaker:
+                    self.entry_speaker.focus_set()
+                    self.entry_speaker.selection_range(res.start_pos, res.end_pos)
+                else:
+                    self._highlight_dialogue_matches((res.start_pos, res.end_pos))
+                    self.txt_dialogue.focus_set()
+        elif not self.current_doc and res.line_number > 0:
+            self._update_views()
+            target_widget = self.txt_continuous if self.var_continuous_view.get() else self.txt_dialogue
+            target_widget.tag_remove("search_hit", "1.0", tk.END)
+            s_idx = f"{res.line_number}.{res.start_pos}"
+            e_idx = f"{res.line_number}.{res.end_pos}"
+            target_widget.tag_add("search_hit", s_idx, e_idx)
+            target_widget.see(s_idx)
+            target_widget.focus_set()
+
+    def on_clear_search(self) -> None:
+        self.active_search_options = None
+        self._reset_search_results_state()
+        self.txt_dialogue.tag_remove("search_hit", "1.0", tk.END)
+        self.txt_continuous.tag_remove("search_hit", "1.0", tk.END)
+        self.lbl_results_title.config(text="Search Results (0 matches)")
+
+    # -------------------------------------------------------------------------
+    # Dialogs & Helpers
+    # -------------------------------------------------------------------------
+    def _sync_recent_files_menu(self) -> None:
+        """Dynamically populate Recent Files submenu."""
+        if not hasattr(self, "recent_menu"):
+            return
+        self.recent_menu.delete(0, tk.END)
+        recents = getattr(self, "recent_files", [])
+        valid_recents = [p for p in recents if isinstance(p, Path) and p.exists()]
+        if not valid_recents:
+            self.recent_menu.add_command(label="(No recent files)", state="disabled")
+            return
+        for fp in valid_recents[:12]:
+            self.recent_menu.add_command(
+                label=f"{fp.name}  ({fp.parent})",
+                command=lambda p=fp: self.open_file(p),
+            )
+        self.recent_menu.add_separator()
+        self.recent_menu.add_command(
+            label="Clear Recent Files",
+            command=self._clear_recent_files,
+        )
+
+    def _clear_recent_files(self) -> None:
+        self.recent_files = []
+        self._save_user_prefs(silent=True)
+        self.show_toast("Cleared recent files history")
+
+    def on_open_file(self) -> None:
+        init_dir = str(self.last_opened_dir) if getattr(self, "last_opened_dir", None) and self.last_opened_dir.exists() else None
+        f = filedialog.askopenfilename(
+            initialdir=init_dir,
+            title="Open Story Asset or Script",
+            filetypes=[
+                ("Priconne Assets & Scripts", "*.unity3d;*.asset;*.txt;*.json"),
+                ("Unity3D Bundles", "*.unity3d;*.asset"),
+                ("Text Scripts", "*.txt;*.json"),
+                ("All Files", "*.*")
+            ]
+        )
+        if f:
+            self.last_opened_dir = Path(f).parent
+            self.open_file(f)
+            self._save_user_prefs(silent=True)
+
+    def on_open_folder(self) -> None:
+        """Open a folder from menu; prompts user to open all files or set search scope."""
+        init_dir = str(self.selected_search_folder) if getattr(self, "selected_search_folder", None) and self.selected_search_folder.exists() else (
+            str(self.last_opened_dir) if getattr(self, "last_opened_dir", None) and self.last_opened_dir.exists() else None
+        )
+        f = filedialog.askdirectory(initialdir=init_dir, title="Open Folder (Story Files or Search Scope)")
+        if f:
+            self._process_opened_folder(Path(f), source_label="Open Folder")
+
+    def _get_project_display_path(self) -> str:
+        """Return the effective project directory path (BepInEx, MelonLoader, XUAT, etc.)."""
+        p = getattr(self, "project_folder", None) or getattr(self, "bepinex_project_folder", None)
+        if p and Path(p).exists():
+            return str(p)
+        if getattr(self, "xuat_search_roots", None) and self.xuat_search_roots:
+            first_root = self.xuat_search_roots[0]
+            if first_root.exists():
+                self.project_folder = first_root
+                self.bepinex_project_folder = first_root
+                return str(first_root)
+        parent_dir = SCRIPT_DIR.parent
+        self.project_folder = parent_dir
+        self.bepinex_project_folder = parent_dir
+        return str(parent_dir)
+
+    def _on_folder_path_var_trace(self) -> None:
+        """Synchronize project_folder or selected_search_folder when user edits folder_path_var."""
+        if getattr(self, "_syncing_folder_path_var", False):
+            return
+        scope_v = getattr(self, "scope_var", None)
+        if not scope_v:
+            return
+        s = scope_v.get()
+        val = self.folder_path_var.get().strip()
+        if s == "project":
+            if val:
+                p = Path(val)
+                self.project_folder = p
+                self.bepinex_project_folder = p
+                text_dir = p / "Text"
+                root = text_dir if text_dir.exists() else p
+                if root.exists() and root not in self.xuat_search_roots:
+                    self.xuat_search_roots.insert(0, root)
+        elif s == "folder":
+            if val:
+                self.selected_search_folder = Path(val)
+
+    def _sync_scope_widgets(self) -> None:
+        """Update folder/project path entry and browse button based on scope selection."""
+        if not (hasattr(self, "folder_path_entry") and hasattr(self, "btn_browse_search_folder")):
+            return
+        scope = self.scope_var.get()
+        self._syncing_folder_path_var = True
+        try:
+            if scope == "folder":
+                self.folder_path_entry.config(state="normal")
+                self.btn_browse_search_folder.config(state="normal")
+                if getattr(self, "selected_search_folder", None):
+                    self.folder_path_var.set(str(self.selected_search_folder))
+                else:
+                    self.folder_path_var.set("")
+            elif scope == "project":
+                self.folder_path_entry.config(state="normal")
+                self.btn_browse_search_folder.config(state="normal")
+                self.folder_path_var.set(self._get_project_display_path())
+            else:  # "current"
+                if getattr(self, "current_file_path", None):
+                    self.folder_path_var.set(str(self.current_file_path.parent))
+                elif getattr(self, "open_documents", None) and self.open_documents:
+                    first_path = next(iter(self.open_documents.keys()))
+                    self.folder_path_var.set(str(first_path.parent) if isinstance(first_path, Path) else "(Current Open Files)")
+                else:
+                    self.folder_path_var.set("(Current Open Files)")
+                self.folder_path_entry.config(state="readonly")
+                self.btn_browse_search_folder.config(state="disabled")
+        finally:
+            self._syncing_folder_path_var = False
+
+    def on_browse_scope_path(self) -> None:
+        """Browse button handler for the active search scope ([...] on left of directory entry)."""
+        scope = self.scope_var.get()
+        if scope == "project":
+            self.on_browse_project_folder()
+        elif scope == "folder":
+            self.on_open_folder()
+
+    def on_browse_project_folder(self) -> None:
+        """Browse and configure the Project Root / Mod Translation Folder."""
+        init_dir = self._get_project_display_path()
+        d = filedialog.askdirectory(initialdir=init_dir, title="Select Project Root / Mod Folder (BepInEx, MelonLoader, etc.)")
+        if d:
+            p = Path(d)
+            self.project_folder = p
+            self.bepinex_project_folder = p
+            self.folder_path_var.set(str(p))
+            text_dir = p / "Text"
+            root = text_dir if text_dir.exists() else p
+            if root not in self.xuat_search_roots:
+                self.xuat_search_roots.insert(0, root)
+            self._save_user_prefs(silent=True)
+            self.lbl_status.config(text=f"Project folder set to: {p}")
+            self.show_toast(f"Project folder set to: {p.name}")
+
+    # -------------------------------------------------------------------------
+    # Search & Replace Actions (Find, Replace, Replace All, Multi-File Confirmation)
+    # -------------------------------------------------------------------------
+    def on_show_find(self) -> None:
+        if not getattr(self, "_search_bar_visible", False):
+            # search_frame and h_paned are both direct children of self (root)
+            self.search_frame.pack(before=self.h_paned, fill="x", padx=8, pady=(6, 4))
+            self._search_bar_visible = True
+        self._sync_scope_widgets()
+        if getattr(self, "_replace_row_visible", False):
+            self.row_replace.pack_forget()
+            self._replace_row_visible = False
+        self.search_entry.focus_set()
+        self.search_entry.select_range(0, tk.END)
+
+    def on_show_find_in_files(self) -> None:
+        self.scope_var.set("project")
+        self.on_show_find()
+
+    def on_show_replace(self) -> None:
+        if not getattr(self, "_search_bar_visible", False):
+            self.search_frame.pack(before=self.h_paned, fill="x", padx=8, pady=(6, 4))
+            self._search_bar_visible = True
+        if not getattr(self, "_replace_row_visible", False):
+            children = self.search_frame.winfo_children()
+            row1 = children[0] if children else None
+            if row1:
+                self.row_replace.pack(fill="x", padx=8, pady=(0, 4), after=row1)
+            else:
+                self.row_replace.pack(fill="x", padx=8, pady=(0, 4))
+            self._replace_row_visible = True
+        self.search_entry.focus_set()
+        self.search_entry.select_range(0, tk.END)
+
+    def _hide_search_bar(self) -> None:
+        if hasattr(self, "search_frame"):
+            self.search_frame.pack_forget()
+            self._search_bar_visible = False
+            target = self.txt_continuous if self.var_continuous_view.get() else self.txt_dialogue
+            target.focus_set()
+
+    def on_replace_next(self) -> None:
+        """Find and replace the next occurrence in the active file."""
+        find_text = self.search_var.get()
+        replace_text = self.replace_var.get()
+        if not find_text:
+            return
+
+        if not self.current_file_path:
+            messagebox.showinfo("Replace", "No active file open to replace in.")
+            return
+
+        if self.current_doc and self.current_doc.boxes:
+            box = self.current_doc.boxes[self.current_box_idx]
+            if find_text in box.clean_text:
+                if self.is_box_locked(self.current_box_idx):
+                    self.show_toast(f"🔒 Box {self.current_box_idx + 1} is locked against edits.")
+                else:
+                    old_sp = box.speaker
+                    old_tx = box.clean_text
+                    new_tx = box.clean_text.replace(find_text, replace_text, 1)
+                    self.undo_journal.record(
+                        BoxEditDelta(
+                            box_index=self.current_box_idx,
+                            old_speaker=old_sp,
+                            new_speaker=old_sp,
+                            old_text=old_tx,
+                            new_text=new_tx,
+                            file_path=str(self.current_file_path),
+                            box_uid=box.uid,
+                            source="replace",
+                        ),
+                        label=f"Replace in box #{self.current_box_idx + 1}"
+                    )
+                    self.current_doc.inject_box(self.current_box_idx, None, new_tx)
+                    self._modified_boxes.add(self.current_box_idx)
+                    self._mark_document_dirty(self.current_file_path)
+                    self._dirty_state_changed()
+                    self._update_views()
+                    self.lbl_status.config(text=f"Replaced 1 occurrence in Box #{self.current_box_idx + 1}")
+                    return
+
+            total = len(self.current_doc.boxes)
+            for i in range(1, total):
+                next_idx = (self.current_box_idx + i) % total
+                if find_text in self.current_doc.boxes[next_idx].clean_text:
+                    self.current_box_idx = next_idx
+                    self._update_views()
+                    self.lbl_status.config(text=f"Found match in Box #{next_idx + 1}. Press Replace again to replace.")
+                    return
+            messagebox.showinfo("Replace", f"No more occurrences of '{find_text}' found.")
+        elif not self.current_doc and self.current_file_path:
+            cur_tx = self._plain_text_content
+            if find_text in cur_tx:
+                new_tx = cur_tx.replace(find_text, replace_text, 1)
+                self.undo_journal.record(
+                    PlainTextDelta(
+                        file_path=str(self.current_file_path),
+                        old_content=cur_tx,
+                        new_content=new_tx,
+                    ),
+                    label=f"Replace in {self.current_file_path.name}"
+                )
+                self._plain_text_content = new_tx
+                if self.current_file_path and self.current_file_path in self.open_documents:
+                    self.open_documents[self.current_file_path]["plain_text"] = new_tx
+                self._mark_document_dirty(self.current_file_path)
+                self._dirty_state_changed()
+                self._update_views()
+                self.lbl_status.config(text=f"Replaced 1 occurrence in {self.current_file_path.name}")
+            else:
+                messagebox.showinfo("Replace", f"'{find_text}' not found in current file.")
+
