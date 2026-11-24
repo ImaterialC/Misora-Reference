@@ -6,13 +6,12 @@ import sys
 import urllib.parse
 from pathlib import Path
 
-# === KONFIGURASI DEFAULT (auto-detect dari git remote & branch jika ada) ===
 DEFAULT_OWNER = "ImaterialC"
 DEFAULT_REPO = "Misora-Reference"
 DEFAULT_BRANCH = "main"
 
-DEFAULT_MAX_LINES = 1500   # Batas aman anti-terpotong untuk mayoritas AI web-fetch
-DEFAULT_MAX_KB = 65        # Batas aman ukuran per file bundle (~65 KB)
+DEFAULT_MAX_LINES = 1500
+DEFAULT_MAX_KB = 65
 
 IGNORE_DIRS = {".git", ".agents", "__pycache__", ".vscode", "node_modules", "split_output"}
 IGNORE_EXTS = {".bat", ".exe", ".pyc", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".zip", ".7z"}
@@ -81,18 +80,14 @@ def build_chunked_bundles(
     max_lines: int,
     max_bytes: int,
 ) -> list[tuple[Path, int, int, str]]:
-    """Bundle text files into 1+ parts that never exceed max_lines or max_bytes."""
     safe_name = target.name.replace(" ", "_")
-
-    # Hapus bundle lama di folder target agar tidak ada sisa part usang
     for old in target.glob(f"_BUNDLE_{safe_name}*.md"):
         try:
             old.unlink()
         except OSError:
             pass
 
-    # Siapkan segmen-segmen teks (jika 1 file sendiri > max_lines/max_bytes, pecah aman per baris)
-    segments = []  # list of (rel_path, seg_text, seg_lines, seg_bytes)
+    segments = []
     for fp in files:
         if fp.suffix.lower() not in TEXT_BUNDLE_EXTS:
             continue
@@ -102,23 +97,15 @@ def build_chunked_bundles(
         text = raw_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
         all_lines = text.splitlines()
 
-        header_budget = 10
-        eff_max_lines = max(50, max_lines - header_budget)
+        eff_max_lines = max(50, max_lines - 10)
         eff_max_bytes = max(4096, max_bytes - 512)
 
-        # Cek apakah muat utuh dalam 1 segmen
-        block = (
-            f"{'=' * 70}\n"
-            f"FILE: {rel} | LINES: {len(all_lines)} | SIZE: {len(raw_bytes)} B | SHA-256: {sha}\n"
-            f"{'=' * 70}\n"
-            f"{text.rstrip()}\n\n"
-        )
+        block = f"--- FILE: {rel} | L:{len(all_lines)} | SHA:{sha[:12]} ---\n{text.rstrip()}\n\n"
         b_bytes = len(block.encode("utf-8"))
         b_lines = block.count("\n")
         if b_lines <= max_lines and b_bytes <= max_bytes:
             segments.append((rel, block, b_lines, b_bytes))
         else:
-            # Pecah file besar ini secara aman per rentang baris asli
             idx = 0
             sub_idx = 1
             while idx < len(all_lines):
@@ -134,18 +121,13 @@ def build_chunked_bundles(
                     chunk_bytes += ln_b
                     idx += 1
                 end_ln = start_ln + len(chunk_lines) - 1
-                seg_header = (
-                    f"{'=' * 70}\n"
-                    f"FILE: {rel} [CHUNK {sub_idx} | ORIG LINES {start_ln}-{end_ln} / {len(all_lines)}] | SHA-256(full): {sha[:16]}\n"
-                    f"{'=' * 70}\n"
-                )
+                seg_header = f"--- FILE: {rel} [PART {sub_idx} | L{start_ln}-{end_ln}/{len(all_lines)} | SHA:{sha[:12]}] ---\n"
                 seg_body = "\n".join(chunk_lines).rstrip() + "\n\n"
                 full_seg = seg_header + seg_body
                 segments.append((rel, full_seg, full_seg.count("\n"), len(full_seg.encode("utf-8"))))
                 sub_idx += 1
 
-    # Gabungkan segmen ke dalam part-part bundle
-    buckets = []  # list of list of segments
+    buckets = []
     cur_bucket = []
     cur_lines = 0
     cur_bytes = 0
@@ -172,11 +154,7 @@ def build_chunked_bundles(
             b_path = target / f"_BUNDLE_{safe_name}_part{part_no:02d}of{total_parts:02d}.md"
 
         included_names = sorted({s[0] for s in bucket})
-        top_banner = (
-            f"# COMBINED BUNDLE: {target.name} (Part {part_no}/{total_parts})\n"
-            f"# Limits: max {max_lines} lines / {max_bytes // 1024} KB per part | Files in this part: {len(included_names)}\n"
-            f"# Included: {', '.join(included_names)}\n\n"
-        )
+        top_banner = f"# BUNDLE {target.name} ({part_no}/{total_parts}) | Files: {', '.join(included_names)}\n\n"
         content = top_banner + "".join(s[1] for s in bucket)
         raw_out = content.encode("utf-8")
         b_path.write_bytes(raw_out)
@@ -197,19 +175,15 @@ def main():
             d for d in repo_root.iterdir()
             if d.is_dir() and d.name not in IGNORE_DIRS and not d.name.startswith(".")
         ])
-        print("=" * 64)
-        print("  MISORA-REFERENCE — AUTO MEETING SCANNER & SAFE BUNDLER")
-        print("=" * 64)
-        print(f"Repo terdeteksi : {owner}/{repo} (branch: {branch})")
-        print(f"Root folder     : {repo_root}\n")
-        print("[0] SCAN SEMUA FOLDER (Root + semua sub-folder)")
+        print("=" * 60)
+        print("  MISORA-REFERENCE — SCANNER & SAFE BUNDLER")
+        print("=" * 60)
+        print(f"Repo: {owner}/{repo} ({branch}) | Root: {repo_root}\n")
+        print("[0] SEMUA FOLDER")
         for idx, d in enumerate(subdirs, 1):
             print(f"[{idx}] {d.name}")
-        choice = input("\nPilih nomor folder (Enter = semua): ").strip()
-        if not choice or choice == "0":
-            target = repo_root
-        else:
-            target = subdirs[int(choice) - 1]
+        choice = input("\nPilih nomor (Enter = semua): ").strip()
+        target = repo_root if (not choice or choice == "0") else subdirs[int(choice) - 1]
 
     files = []
     for root, dirs, filenames in os.walk(target):
@@ -223,48 +197,45 @@ def main():
             files.append(fp)
 
     if not files:
-        print("Tidak ada file referensi teks ditemukan di:", target)
+        print("Tidak ada file teks di:", target)
         return
 
     max_lines = DEFAULT_MAX_LINES
     max_kb = DEFAULT_MAX_KB
     if sys.stdin.isatty():
-        make_bundle = input("\nBuat file bundle anti-terpotong (_BUNDLE_*.md)? [Y/n]: ").strip().lower()
+        make_bundle = input("\nBuat bundle (_BUNDLE_*.md)? [Y/n]: ").strip().lower()
         do_bundle = (make_bundle != "n")
         if do_bundle:
-            ml_in = input(f"Batas maksimal baris per bundle [Enter = {DEFAULT_MAX_LINES}]: ").strip()
+            ml_in = input(f"Maks baris/bundle [Enter={DEFAULT_MAX_LINES}]: ").strip()
             if ml_in.isdigit() and int(ml_in) >= 200:
                 max_lines = int(ml_in)
-            mk_in = input(f"Batas maksimal KB per bundle [Enter = {DEFAULT_MAX_KB}]: ").strip()
+            mk_in = input(f"Maks KB/bundle [Enter={DEFAULT_MAX_KB}]: ").strip()
             if mk_in.isdigit() and int(mk_in) >= 16:
                 max_kb = int(mk_in)
     else:
         do_bundle = True
 
-    bundle_entries = []
-    if do_bundle:
-        bundle_entries = build_chunked_bundles(target, repo_root, files, max_lines, max_kb * 1024)
+    bundle_entries = build_chunked_bundles(target, repo_root, files, max_lines, max_kb * 1024) if do_bundle else []
 
     lines = [
-        f"# MEETING REFERENCE INDEX — `{target.name}`",
-        f"Repo: `https://github.com/{owner}/{repo}` | Branch: `{branch}` | Files: {len(files)}",
+        f"# INDEX `{target.name}` ({owner}/{repo}@{branch}, {len(files)} files)",
         "",
     ]
 
     bundle_clip_lines = []
     if bundle_entries:
-        lines.append(f"## Safe Chunked Bundles (max {max_lines} lines / {max_kb} KB per part)")
-        lines.append("| Bundle Part | Lines | Size | SHA-256 (12) | Raw URL |")
+        lines.append(f"## Bundles (max {max_lines}L / {max_kb}KB)")
+        lines.append("| Bundle | Lines | Bytes | SHA12 | URL |")
         lines.append("| :--- | ---: | ---: | :--- | :--- |")
         for b_path, b_lines, b_size, b_sha in bundle_entries:
             rel_b = b_path.relative_to(repo_root).as_posix()
             url_b = make_raw_url(owner, repo, branch, rel_b)
-            lines.append(f"| `{rel_b}` | {b_lines} | {b_size} B | `{b_sha[:12]}` | {url_b} |")
-            bundle_clip_lines.append(f"- `{rel_b}` ({b_lines} lines, {b_size} B, sha256:`{b_sha[:12]}`)\n  {url_b}")
+            lines.append(f"| `{rel_b}` | {b_lines} | {b_size} | `{b_sha[:12]}` | {url_b} |")
+            bundle_clip_lines.append(f"- `{rel_b}` ({b_lines}L, {b_size}B, `{b_sha[:12]}`)\n  {url_b}")
         lines.append("")
 
-    lines.append("## Individual Source Files")
-    lines.append("| File | Lines | Size | SHA-256 (12) | Note | Raw URL |")
+    lines.append("## Files")
+    lines.append("| File | Lines | Bytes | SHA12 | Flag | URL |")
     lines.append("| :--- | ---: | ---: | :--- | :--- | :--- |")
 
     plain_urls = []
@@ -274,42 +245,29 @@ def main():
         line_cnt = raw_bytes.decode("utf-8", errors="replace").count("\n") + 1
         rel = fp.relative_to(repo_root).as_posix()
         url = make_raw_url(owner, repo, branch, rel)
-        note = "LARGE (use bundle/split)" if (line_cnt > max_lines or len(raw_bytes) > max_kb * 1024) else "OK"
-        lines.append(f"| `{rel}` | {line_cnt} | {len(raw_bytes)} B | `{sha[:12]}` | {note} | {url} |")
-        plain_urls.append(f"- `{rel}` ({line_cnt} lines, {len(raw_bytes)} B, sha256:`{sha[:12]}`)\n  {url}")
+        flag = "LARGE" if (line_cnt > max_lines or len(raw_bytes) > max_kb * 1024) else "OK"
+        lines.append(f"| `{rel}` | {line_cnt} | {len(raw_bytes)} | `{sha[:12]}` | {flag} | {url} |")
+        plain_urls.append(f"- `{rel}` ({line_cnt}L, {len(raw_bytes)}B, `{sha[:12]}`)\n  {url}")
 
     out_index = target / "MANIFEST_AUTO.md"
     out_index.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
-    rel_idx = out_index.relative_to(repo_root).as_posix()
-    idx_url = make_raw_url(owner, repo, branch, rel_idx)
+    idx_url = make_raw_url(owner, repo, branch, out_index.relative_to(repo_root).as_posix())
 
-    print(f"\n[OK] Tersimpan index : {out_index}")
-    print(f"     Raw URL index   : {idx_url}")
+    print(f"\n[OK] Index : {out_index}")
     for b_path, b_lines, b_size, _ in bundle_entries:
-        print(f"[OK] Tersimpan bundle: {b_path.name} ({b_lines} lines, {b_size} B)")
+        print(f"[OK] Bundle: {b_path.name} ({b_lines}L, {b_size}B)")
 
-    bundle_section = ""
-    if bundle_clip_lines:
-        bundle_section = (
-            f"\nSafe Chunked Bundle(s) (max {max_lines} lines / {max_kb} KB):\n"
-            + "\n".join(bundle_clip_lines)
-            + "\n"
-        )
-
+    bundle_section = ("Bundles:\n" + "\n".join(bundle_clip_lines) + "\n\n") if bundle_clip_lines else ""
     clipboard_block = (
-        f"Reference Index for `{target.name}` (push ke GitHub dulu sebelum kirim ke AI):\n"
-        f"- Index: {idx_url}\n"
-        f"{bundle_section}\n"
-        f"Individual Raw URLs ({len(files)} files):\n"
-        + "\n".join(plain_urls)
-        + "\n"
+        f"Index: {idx_url}\n\n"
+        f"{bundle_section}"
+        f"Files ({len(files)}):\n" + "\n".join(plain_urls) + "\n"
     )
 
     if copy_to_clipboard(clipboard_block):
-        print("\n[OK] Daftar URL + SHA-256 sudah otomatis DISALIN ke Clipboard! Tinggal Ctrl+V.")
+        print("\n[OK] URL disalin ke Clipboard! Tinggal push & Ctrl+V.")
     else:
-        print("\n--- COPY BLOK DI BAWAH INI ---\n")
-        print(clipboard_block)
+        print("\n" + clipboard_block)
 
 
 if __name__ == "__main__":

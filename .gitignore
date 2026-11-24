@@ -1,4 +1,4 @@
-# OS & Editor junk
+# OS & Editor
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -8,6 +8,6 @@ __pycache__/
 .vscode/
 .agents/
 
-# Jangan pernah commit tool pemecah kode lokal atau hasil pecahannya ke repo ini
+# Local splitter tool & output (keep outside repo)
 split_output/
 split_code_for_ai.bat

@@ -1,42 +1,40 @@
-# Misora-Reference — Multi-AI Engineering Council Workspace (Clean Cycle Template)
+# Misora-Reference — Lean Multi-AI Council Kit (Token-Minimal Edition)
 
-Repositori ini berfungsi sebagai **ruang rapat & indeks artefak** untuk siklus diskusi Multi-AI (Gemini, GPT, Claude, Qwen, Grok) sebelum eksekusi di Google Antigravity.
+Repositori kerja hemat-token untuk rapat Multi-AI (`Misora-Editor` yang sudah besar + kompatibel dengan AI Web gratis seperti DeepSeek).
 
-> **Prinsip Kebersihan:**
-> - Rencana implementasi & *changelog* resmi milik kode berada di repositori proyek (`Misora-Editor`).
-> - Folder `tools/` dan `references/` sengaja dikosongkan setiap siklus baru — isi **hanya** dengan referensi yang relevan untuk debat siklus saat ini.
-> - **Jangan gunakan spasi** pada nama folder/file agar Raw URL GitHub tetap bersih (tanpa `%20`).
+## Prinsip Hemat Token (Strategi Baru)
+1. **English-only untuk semua prompt & hasil AI:** Tidak ada lagi ringkasan 2 bahasa (ID + EN) yang memboroskan ~30–40% token output & *context window*.
+2. **Prompt super-ringkas:** Seluruh basa-basi & format hiasan dihapus; hanya menyisakan pagar anti-halusinasi, anti-terpotong, sitasi baris asli, dan pelacakan `U-xx`.
+3. **Dua Jalur Audit Phase 1 (sesuai kapasitas AI):**
+   - **Jalur A (`P1_Full.md`):** Untuk AI ber-konteks besar + bisa *fetch* GitHub Raw (Gemini, GPT, Qwen, Grok).
+   - **Jalur B (`P1_Scoped_Upload.md`):** Untuk AI Web gratis / batas upload ketat (DeepSeek, Claude Free, dll.) — dipecah per **Batch domain** (maks 3–4 file / $\le$150 KB per chat baru).
+4. **Folder `tools/` dan `references/` selalu kosong** di awal siklus — isi hanya dengan referensi siklus aktif (termasuk `references/misora_parts/` dari `split_code_for_ai.bat`).
 
----
-
-## Struktur Folder Standar
-
+## Struktur Folder
 ```text
 Misora-Reference/
-├── README.md                 # Panduan ini
-├── USER_WISHLIST.md          # Daftar bug, keluhan, dan fitur keinginan Project Lead (U-01..U-N)
-├── scan_meeting.bat          # Scanner otomatis: buat MANIFEST_AUTO.md + _BUNDLE aman + salin URL ke Clipboard
-├── templates/                # Prompt standar Phase 0 s.d. Phase 6 + Late-Join (AI masuk di tengah rapat)
-├── tools/                    # (Kosong) Isi dengan skrip/alat referensi khusus siklus ini saja
-├── references/               # (Kosong) Isi dengan gambar/contoh data/log khusus siklus ini saja
-├── Phase_0_Baseline/         # Bukti akses & baseline SHA dari semua AI
-├── Phase_1_Research/         # Dossier riset mandiri (P1_Gemini.md, P1_GPT.md, P1_Qwen.md, P1_Grok.md)
-├── Phase_2_CrossCheck/       # Rapat silang & kritik temuan (P2R1_..., P2R2_...)
-├── Phase_3_Ledger/           # Canonical Ledger terkunci (100% cakupan ID + grafik dependensi)
-├── Phase_4_Drafts/           # Draft arsitektur perintah (Aturan 2-Exemplar: peta sesi + 2 contoh prompt)
-├── Phase_5_KitAudit/         # 1 Paket ZIP final dari Sole Compiler + audit byte/hash korektor
-└── Phase_6_Execution/        # Catatan feedback/temuan penting selama eksekusi Antigravity (opsional)
+├── README.md
+├── USER_WISHLIST.md         # Daftar bug & fitur Project Lead (U-01..U-N)
+├── scan_meeting.bat         # Buat MANIFEST_AUTO.md + _BUNDLE aman (<=1500L / 65KB) + salin URL
+├── templates/
+│   ├── P0_Check.md          # Phase 0: Cek akses & anti-terpotong
+│   ├── P1_Full.md           # Phase 1: Riset mandiri (AI full-fetch)
+│   ├── P1_Scoped_Upload.md  # Phase 1: Riset per-batch (DeepSeek / AI upload gratis)
+│   ├── P2_CrossCheck.md     # Phase 2: Rapat silang & kritik (maks 2-3 ronde)
+│   ├── P3_Ledger.md         # Phase 3: Kunci Canonical Ledger (1 Notulen + Auditor)
+│   ├── P4_Drafts.md         # Phase 4: Peta sesi + 2 Exemplar (bukan full ZIP)
+│   ├── P5_KitAudit.md       # Phase 5: 1 Penyusun Tunggal + Korektor Spesialis
+│   ├── P6_Execution.md      # Phase 6: Review Plan & Walkthrough Antigravity
+│   └── P_LateJoin.md        # AI masuk di tengah phase (cek singkat + langsung loncat)
+├── tools/                   # (Kosong)
+├── references/              # (Kosong — taruh misora_parts/ di sini saat siklus aktif)
+└── Phase_0_Baseline/ .. Phase_6_Execution/
 ```
 
-## Konvensi Penamaan File (Anti-Tertukar)
-- Phase 1: `P1_Gemini.md`, `P1_GPT.md`, `P1_Claude.md`, `P1_Qwen.md`, `P1_Grok.md`
-- Phase 2: `P2R1_GPT.md`, `P2R2_Qwen2Gemini.md`
-- Phase 3: `Phase_3_Canonical_Ledger_LOCKED.md`
-- Phase 5: `Phase_5_Antigravity_Kit_v1.zip`, `P5R1_QwenAudit.md`
-
-## Alur Cepat Menggunakan `scan_meeting.bat`
-1. Simpan laporan AI ke folder phase yang sesuai (mis. `Phase_1_Research/`).
-2. Klik 2x `scan_meeting.bat` (atau *drag-and-drop* folder phase ke atas `scan_meeting.bat`).
-3. Pilih buat bundle anti-terpotong (`_BUNDLE_*.md`, default maks **1500 baris / 65 KB** per bagian).
-4. `git add . && git commit -m "Phase X update" && git push`.
-5. Daftar Raw URL + SHA-256 sudah otomatis ada di Clipboard Windows — tinggal **`Ctrl+V`** ke semua AI!
+## Pembagian Batch Ideal untuk DeepSeek / AI Upload Gratis (`P1_Scoped_Upload.md`)
+Buka **chat baru** per batch (unggah maks 3–4 file, total $\le$150 KB):
+- **Batch A (AST/Codec):** `AGENTS.md` + `core/story_ast.py` + `core/script_codec.py` + `core/bundle_io.py`
+- **Batch B (Search/XUAT/Undo):** `AGENTS.md` + `core/search_engine.py` + `core/xunity_sync.py` + `core/undo_journal.py` + `core/text_encoding.py`
+- **Batch C (MTL/Sec/Log):** `AGENTS.md` + `core/mtl_engine.py` + `core/security.py` + `core/logger.py` + `core/ngui_tags.py`
+- **Batch D1..Dn (`misora.py`):** `AGENTS.md` + `00_INDEX_misora.md` + maks 2 file `misora_partXX.py` yang relevan dengan `USER_WISHLIST.md`.
+- Simpan hasilnya sebagai `P1_DS_BatchA.md`, `P1_DS_BatchB.md`, dst. di `Phase_1_Research/` lalu jalankan `scan_meeting.bat`.
