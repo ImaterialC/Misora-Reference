@@ -1,6 +1,0 @@
-Source note
-Misora-Editor tree SHA: 683724edaf2afac89d2695a80e30a471a0da9195
-misora.py git blob: d3ef8a3828db4f9dff0e4117c88c5fb979733b82
-misora.py size: 543343 bytes, 12144 lines, LF, identical to the four-part fallback concatenated.
-Misora-Reference tree SHA: 49be42ad6802c6fe200557e6753a3fbf27a11ef9
-Ledger raw sha256: 73d79e00770ead5964ebf3cab3095cf1e45f1447576865b73838dd127eaf35cd

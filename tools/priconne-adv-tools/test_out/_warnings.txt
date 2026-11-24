@@ -1,3 +1,0 @@
-[FUZZY] 9080155#016 vo_adv_9080155_016
-  raw : ……………………
-  dict: .........! ......  (C:\[Gacha]\PriconneRe-TL\src\BepInEx\Translation\en\Text\Story\2_\Chapter_6.txt:286)
