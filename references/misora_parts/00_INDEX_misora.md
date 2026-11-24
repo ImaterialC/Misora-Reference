@@ -1,0 +1,18 @@
+# CODE SPLIT INDEX — `misora.py`
+- **Source Path:** `D:\Misora-Editor\misora.py`
+- **Total Lines:** `12835` | **Size:** `589,674 B`
+- **Source SHA-256:** `d23baae2be82fe93a18da7d3769af30d19ebe02a8b5f6a3645d56a6f53c0710e`
+- **Split Mode:** `max_lines=1500` -> **`10` parts** (dipotong rapi di batas `class`/`def`, tidak memotong fungsi di tengah)
+
+| Part | File | Original Lines | Line Count | Size | Key Symbols (Sample) |
+| :---: | :--- | :---: | ---: | ---: | :--- |
+| 01/10 | `misora_part01_L00001-L01495.py` | `L1–L1495` | 1495 | 59,566 B | `def _get_app_version()` (L87), `class ToolTip` (L110), `ToolTip.__init__ (def)` (L113), `ToolTip.on_enter (def)` (L126), `ToolTip.on_leave (def)` (L135) ... (+41 more) |
+| 02/10 | `misora_part02_L01496-L02880.py` | `L1496–L2880` | 1385 | 67,892 B | `MisoraApp._install_exception_hooks (def)` (L1496), `MisoraApp.report_callback_exception (def)` (L1505), `MisoraApp._on_app_exit (def)` (L1514), `MisoraApp._on_root_destroy (def)` (L1549), `MisoraApp.destroy (def)` (L1572) ... (+26 more) |
+| 03/10 | `misora_part03_L02881-L03686.py` | `L2881–L3686` | 806 | 36,952 B | `MisoraApp._apply_styles (def)` (L2881), `MisoraApp._build_menu (def)` (L3143), `MisoraApp._build_search_bar (def)` (L3522) |
+| 04/10 | `misora_part04_L03687-L05182.py` | `L3687–L5182` | 1496 | 64,781 B | `MisoraApp._build_main_panels (def)` (L3687), `MisoraApp._on_debug_settings_changed (def)` (L4868), `MisoraApp._sync_debug_menu_states (def)` (L4881), `MisoraApp._on_open_debug_log_file (def)` (L4889), `MisoraApp._on_clear_debug_log_file (def)` (L4901) ... (+19 more) |
+| 05/10 | `misora_part05_L05183-L06652.py` | `L5183–L6652` | 1470 | 65,922 B | `MisoraApp.apply_ngui_wrapper (def)` (L5183), `MisoraApp._on_toggle_preview_compiled (def)` (L5193), `MisoraApp._get_or_create_compiled_style_tag (def)` (L5205), `MisoraApp._insert_compiled_ngui_text (def)` (L5241), `MisoraApp._build_side_drawer (def)` (L5379) ... (+36 more) |
+| 06/10 | `misora_part06_L06653-L07933.py` | `L6653–L7933` | 1281 | 61,595 B | `MisoraApp.open_file (def)` (L6653), `MisoraApp._update_views (def)` (L6861), `MisoraApp._update_raw_view (def)` (L7016), `MisoraApp._flush_continuous_card_edits (def)` (L7055), `MisoraApp._on_card_text_edited (def)` (L7122) ... (+29 more) |
+| 07/10 | `misora_part07_L07934-L09396.py` | `L7934–L9396` | 1463 | 72,813 B | `MisoraApp._render_continuous_view (def)` (L7934), `MisoraApp._focus_continuous_box (def)` (L8199), `MisoraApp._find_continuous_box_at_index (def)` (L8253), `MisoraApp._nearest_continuous_box_to_index (def)` (L8259), `MisoraApp._on_continuous_cursor_moved (def)` (L8263) ... (+34 more) |
+| 08/10 | `misora_part08_L09397-L10873.py` | `L9397–L10873` | 1477 | 77,467 B | `MisoraApp._render_search_results (def)` (L9397), `MisoraApp._on_results_click (def)` (L9460), `MisoraApp._on_results_step (def)` (L9479), `MisoraApp._select_result_index (def)` (L9492), `MisoraApp.on_clear_search (def)` (L9579) ... (+48 more) |
+| 09/10 | `misora_part09_L10874-L12373.py` | `L10874–L12373` | 1500 | 71,122 B | `MisoraApp.on_open_paths_dialog (def)` (L10874), `MisoraApp._toggle_side_drawer_pin (def)` (L11081), `MisoraApp.on_open_mtl_settings (def)` (L11091), `MisoraApp.on_open_ai_prompt_settings (def)` (L11095), `MisoraApp.on_open_translator_assistant (def)` (L11099) ... (+33 more) |
+| 10/10 | `misora_part10_L12374-L12835.py` | `L12374–L12835` | 462 | 20,165 B | `TranslatorAssistantDialog._on_close (def)` (L12374), `TranslatorAssistantDialog._on_engine_change (def)` (L12380), `TranslatorAssistantDialog.refresh_box (def)` (L12384), `TranslatorAssistantDialog._on_prev (def)` (L12412), `TranslatorAssistantDialog._on_next (def)` (L12416) ... (+13 more) |
