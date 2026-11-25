@@ -7,7 +7,6 @@ desktop.ini
 *.ini
 __pycache__/
 .vscode/
-.agents/
 *.tmp
 *.tmp*
 # Local splitter tool & output (keep outside repo)
