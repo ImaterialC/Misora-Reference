@@ -1,0 +1,47 @@
+**Verdict: `SAFE TO PROCEED` — seluruh koreksi wajib dari ChatGPT (`#1`–`#6`), Qwen (`M-1`, `M-2`, `m-1`–`m-5`), serta 3 keputusan Project Lead telah ditutup bersih di `S11b_Implementation_Plan_2.md`.**
+
+### Audit Kepatuhan `S11b_Implementation_Plan_2.md`
+
+| Poin Review | Status | Bukti di Plan Revisi |
+| --- | --- | --- |
+| **STOP Gate A — Profiling Nyata (GPT `#1`, Qwen `M-2`)** | ✅ Tuntas | Diukur nyata 5 iterasi (`perf_counter`) di salinan sementara: Path A `Ctrl+S` (`.misora`) median **`10,797 ms`**; Path B1 `Ctrl+Shift+S` dengan XUAT sync median **`96,234 ms`** di mana **`93,725 ms` (97,4%)** berasal dari `core/xunity_sync.py` (vs `2,553 ms` tanpa XUAT); Path B3 (`.unity3d` nyata) dilabeli jujur **`UNMEASURED / BLOCKED`** dan masuk Manual QA Windows. |
+| **Data-Safety `Ctrl+S` & Siklus `_current_project_path` (GPT `#2`, Qwen `M-1`, Ruling 1)** | ✅ Tuntas | `save_project()` tidak pernah menghapus *dirty flag* / memanggil `mark_saved()`, menampilkan toast jujur, menjaga dialog *dirty-close*, memisahkan `"Save Project As (.misora)..."`, dan mengunci seluruh 7 skenario `(a)`–`(g)` plus penghapusan baris basi `"Ctrl+Shift+S = Save As"` di `README.md`. |
+| **Label Menu Konteks Tab (GPT `#3`)** | ✅ Tuntas | Menggunakan label dinamis berbasis tipe file (`Save & Patch Bundle (Ctrl+Shift+S)` vs `Save File (Ctrl+Shift+S)`) dengan uji untuk bundle, `.v2.txt`, dan plain `.txt`. |
+| **`Q-04.1.2` & Box 0 (GPT `#4`, Ruling 3)** | ✅ Tuntas | Klaim keliru `state="disabled"` sudah dihapus, seleksi/drag/scroll diuji terpisah, dan status dikunci jujur **`NOT REPRODUCED — NEEDS USER REPRODUCTION DETAILS`** tanpa mengarang tes gagal. |
+| **Baseline Historis S11 (GPT `#5`)** | ✅ Tuntas | Dilabeli jujur sebagai laporan historis Project Lead di `PROJECT_STATE.md` (tidak di-run ulang di `/plan`, tanpa klaim palsu `"0 regressions"`). |
+| **Inventaris Caller Lengkap (GPT `#6`, Qwen `m-3`)** | ✅ Tuntas | Tabel 17 baris mencakup `core/xuat_index.py`, `core/mtl_engine.py`, `core/xuat_cleanup.py`, `misora.py`, dan `tests/` untuk `len`, `bool`, `.entry_count`, `.entries`, `files_indexed`, serta `skipped_files`. |
+| **3 Perapian Presisi (`m-1`, `m-2`, `m-5`) & STOP Gate B (`Ruling 2`)** | ✅ Tuntas | Eksklusi 5 aturan XUAT memakai `endswith` *case-insensitive*; `files_scanned == len(files_indexed) + len(skipped_files)` diuji *simulated read failure* + dibedakan di UI; `test_p3_s18_game_preview.py::test_01` ditambah *assertion* `line_overflow == ()`; dan `Q-18` resmi **`DEFERRED`** ke pasca-`v1.5.0`.
+
+ |
+
+Temuan profiling `Path B1` di atas juga sangat berharga: ternyata **`97,4%` beban simpan (`93,725 ms` hanya untuk 6 box di 10 file sintetis)** berasal dari `core/xunity_sync.py` yang mengulang `rglob("*.txt")` + decode disk per box yang diedit — ini menjelaskan secara matematis kenapa *Save* terasa *hang* pada direktori XUAT Anda yang besar. Karena `core/xunity_sync.py` dan `core/bundle_io.py` masuk *Forbidden Files* di S11b, keputusan membatasi S11b pada remap `Ctrl+S` (median `10,8 ms`) dan menunda optimasi *core* ke sesi terpisah sudah tepat.
+
+---
+
+### 3 Pengaman Halus Tambahan (Bisa Langsung Ditempel Saat `Proceed`)
+
+Tidak perlu satu putaran revisi plan lagi hanya untuk 3 detail kecil ini — cukup sertakan langsung di perintah `Proceed`:
+
+1. **Menu Konteks Tab Saat Klik Kanan Tab Tidak Aktif (`misora.py:16106`):** Pastikan label dinamis `"Save & Patch Bundle (Ctrl+Shift+S)"` vs `"Save File (Ctrl+Shift+S)"` memeriksa tipe berkas dari **tab yang diklik kanan** (bukan hanya `self.is_bundle_file` milik tab yang sedang aktif) agar label selalu akurat jika pengguna mengklik kanan tab lain.
+2. **Audit Dialog Bantuan Shortcut & Anti *Double-Trigger*:** Periksa apakah ada dialog/teks *Shortcuts Reference* di `misora.py` yang masih menulis `Ctrl+S` sebagai Save & Patch, dan pastikan `_on_misora_shortcut()` mengembalikan `"break"` untuk `Ctrl+S` dan `Ctrl+Shift+S` agar tidak terpanggil dua kali bersama *root binding* di `_bind_shortcuts()`.
+3. **Cek Tes Shortcut Lama Sebelum Edit:** Pastikan lewat grep cepat tidak ada tes pra-ada (seperti `tests/test_p3_s13_ribbon_shortcuts.py`) yang langsung menguji `Ctrl+S` → `on_save()`; jika ada yang gagal saat *full discovery*, laporkan secara eksplisit (jangan diam-diam menyunting berkas di luar matriks Bagian 8 tanpa izin).
+
+---
+
+### Pesan Siap Tempel Saat Klik `Proceed` di Antigravity
+
+*(Jika Anda ingin konfirmasi cepat ChatGPT/Qwen atas `S11b_Implementation_Plan_2.md` terlebih dahulu, kirimkan berkas ini ke mereka dulu; begitu mereka setuju — atau jika Anda langsung mantap — tempel pesan berikut ke Antigravity:)*
+
+```text
+Proceed with S11b (v1.4.11) implementation per `S11b_Implementation_Plan_2.md`, preserving pre-existing working-tree files (`M assets/icons/BoxInsert.png`, `?? assets/icons/BoxReplace.png`) and keeping all Forbidden Files untouched (`v1.5.0` remains ON HOLD).
+
+Please observe these 3 surgical details while implementing:
+1. Tab context menu type check (`misora.py:16106`): Determine `"Save & Patch Bundle (Ctrl+Shift+S)"` vs `"Save File (Ctrl+Shift+S)"` from the right-clicked tab's file type (not solely `self.is_bundle_file` if the user right-clicks an inactive tab).
+2. Shortcuts help & single-fire guard: Update any Shortcuts Help dialog/reference text in `misora.py` that still lists `Ctrl+S` as Save & Patch, and verify `_on_misora_shortcut()` returns `"break"` for both `Ctrl+S` and `Ctrl+Shift+S` so root `<Control-s>` / `<Control-Shift-S>` bindings never double-fire.
+3. Existing shortcut test hygiene: Keep edits strictly within Section 8's File Change Matrix. If `full discovery` reveals any pre-existing shortcut test (e.g., `test_p3_s13_ribbon_shortcuts.py`) that still asserts old `Ctrl+S -> on_save()`, report it explicitly before modifying any undeclared test file.
+
+Run all verification gates (pre-patch failing-first probes, `compileall`, targeted suites, full `unittest discover -s tests -v` with exact counts, and baseline-relative `git status --short`) and report verbatim output in the Walkthrough.
+
+```
+
+Apakah Anda mau meneruskan `S11b_Implementation_Plan_2.md` ke ChatGPT/Qwen dulu untuk *green light* akhir, atau langsung klik `Proceed` di Antigravity sekarang?
