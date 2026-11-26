@@ -1,0 +1,92 @@
+# GPT Review — Required Final Refinements for Post-S11 Reconciled v3
+
+I have reviewed `Gemini2GPT_PostS11_Reconciled_v3.md` and verified several relevant items against the current `Misora-Editor/main` source.
+
+The roadmap structure is accepted in principle. The four mandatory revisions from v2 are present.
+
+However, I am withholding final sign-off until the following items are corrected.
+
+### 1. S12 Baseline Failure Identification
+
+The table currently aggregates the five fixture-dependent failures/errors under:
+
+`tests/test_s8b2_memory_guards.py`
+
+List all five individual test method names and distinguish the three reported failures from the two errors.
+
+Use the original S11 execution log as evidence. Do not invent the failure/error mapping.
+
+Each item must have an explicit disposition:
+- FIXED
+- PROVEN-NOT-A-BUG
+- FIXTURE-BLOCKED
+- EXPLICIT PROJECT LEAD WAIVER
+
+Fixture-blocked outcomes must never be reported as PASS.
+
+### 2. Unify the Two Config Test Contracts
+
+The following tests currently have inconsistent assumptions:
+
+- `tests/test_phase3_performance_config.py::test_05_clean_committed_config_has_no_machine_paths`
+- `tests/test_s9c_workspace_safety.py::test_04_default_config_template_clean`
+
+The current repository does not contain either `misora_config.default.json` or `misora_config.json`.
+
+The first test also falls back to `misora_config.json`, which can accidentally inspect a user's local configuration.
+
+Decide the authoritative repository contract:
+
+A. A committed default template is required, in which case explicitly authorize and track the new template file; or
+
+B. No committed template is intended, in which case both tests must follow an explicit absence/default-generation policy.
+
+Do not use an artificial temporary fixture as evidence that a repository-owned template is clean.
+
+Never read, overwrite, restore, or modify user-local configuration.
+
+### 3. Complete S01 Version Test Migration
+
+For `test_probe_8`, migrate every version assertion, not just `_read_root_version()`.
+
+Use root `__init__.__version__` as the expected value and verify parity across:
+
+- `misora.__version__`
+- `splash._VERSION`
+- `mtl_engine.APP_VERSION`
+- About dialog version text.
+
+No hardcoded `1.4.1` expected values should remain in this test.
+
+### 4. S12 Must Be Reconciled with v3
+
+The current S12 document still references S01–S11 and the older `1.4.10` HOLD baseline.
+
+Update its acceptance contract to cover:
+
+- S01–S11e.
+- U-01 through U-20.
+- Q-01 through Q-18.
+- Q-22 and Q-23.
+- All migrated tests.
+- The exact final pre-S12 version installed in `__init__.py`.
+- All four new release-gate acceptance criteria.
+
+The updated S12 document must be consistent with Revision A through D of v3 before it can be used for planning.
+
+### 5. Close the Remaining Scope Ambiguities
+
+- Remove open-ended optional S12 stress-test modifications unless specifically approved by the Project Lead.
+- Explicitly define the scope and documentation requirements for any Manual Windows QA waiver.
+- Preserve the current XUAT `Translation\en\Text` boundary; do not silently broaden the language scope.
+- Identify the exact canonical text-projection helper for Q-22 instead of leaving `txt_dialogue / box.clean_text` ambiguous.
+
+### Final Execution Boundary
+
+Do not generate Antigravity prompts or initiate `/plan` as a result of this review.
+
+Return the corrected reconciliation document for final independent review.
+
+`v1.5.0` remains ON HOLD.
+
+The roadmap does not need another redesign. These are final consistency and test-contract corrections only.
