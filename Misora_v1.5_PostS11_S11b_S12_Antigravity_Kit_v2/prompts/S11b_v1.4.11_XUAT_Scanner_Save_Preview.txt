@@ -1,0 +1,192 @@
+/plan Implement S11b (v1.4.11): Strict XUAT English Text Scanner & Canonical Metrics (`Q-01`), Save Hang 5-Stage Profiling + `Ctrl+S` Save Project Remap (`Q-02`), Manual Test Investigations (`Q-04`), Ruby Preview Bug Fix (`Q-18`), and Dialogue Preview Red-Block Removal (`Q-23`) in Misora: Story Editor.
+
+CONTEXT POINTERS (READ DIRECTLY FROM DISK BEFORE PLANNING):
+@AGENTS.md @PROJECT_STATE.md @CHANGELOG.md @README.md @__init__.py @misora.py @core/xuat_index.py @tests/test_v15_s03_all_script_preview_paste.py @tests/test_p3_s18_game_preview.py @tests/test_v15_s11_xuat_archiving_progress.py
+
+==================================================
+PART 0 — EXECUTION MODE, PLANNING GATE & HARD STOP GATES
+==================================================
+1. Planning-First Gate: Inspect live files on disk first (`core/xuat_index.py`, `misora.py`, `README.md`, and all XUAT/shortcut/preview tests in `tests/`), capture pre-session branch, `git rev-parse HEAD`, full `git status --short`, and Python 3.12 version, then output a symbol-bound Implementation Plan artifact and **STOP to wait for explicit Project Lead `Proceed`** before editing ANY file.
+2. **Version Target:** Bump `__init__.__version__` from `"1.4.10"` to `"1.4.11"` ONLY after `Proceed`. Release `v1.5.0` remains ON HOLD.
+3. **HARD STOP GATE A (`Q-02` Save Hang Architecture & Forbidden-Core Boundary):**
+   - Profile all 5 save stages during `/plan` BEFORE proposing a fix.
+   - If profiling reveals that eliminating the hang requires a major asynchronous save architecture or bundle transaction overhaul, OR requires modifying forbidden core files (`core/bundle_io.py`, `core/xunity_sync.py`, `core/story_ast.py`), **STOP in `/plan`**, report exact profiling timings and the required architectural/core dependency, and spin off the async/core save remediation into its own separately approved bounded session rather than forcing it into `S11b`.
+   - Workers MUST NEVER call Tkinter methods or mutate live `StoryDocument` objects.
+4. **HARD STOP GATE B (`Q-18` Ruby Preview Renderer Boundary):**
+   - Inspect existing `<ruby>` rendering in `misora.py::_render_dialogue_preview_frame()` during `/plan`.
+   - If repairing `<ruby>` display is a bounded bug fix within the existing preview path, implement it in `S11b`.
+   - If proper `<ruby>` display in `txt_dialogue_preview` requires building a new custom text-layout engine, **STOP on `Q-18`**, document the exact reason in `/plan`, defer `Q-18` to its own bounded session so it does not block `Q-01`/`Q-02`/`Q-23`, and do NOT require an implementation-specific failing-first test for the deferred renderer work.
+   - Auto-Furigana (MeCab) is strictly out of scope (deferred to Track B `BIG-02`).
+5. **No Test Weakening & Honest Investigation:** Never weaken assertions or manufacture failing tests for non-bugs. Separate confirmed defect probes from `Q-04` manual investigations (`1.1`, `1.2`, `1.3`).
+6. PERMANENT CARRY-FORWARD INVARIANTS (MUST NEVER REGRESS):
+- Binary/AST Lossless Integrity: Preserve `cmd_id` 35/32, adjacent narration separation (DEF-02 / QW-B01), `{playername}` <-> `{0}` parity, `box.voice_cue`, `extra_args`, and binary round-trip (`to_binary()` -> `from_binary()`).
+- Canonical `54d` Reference Contract (S09): ONE shared Nunito Bold 54-digit reference pixel width (`_get_54d_reference_safe_w()`) constant across `Global — Nunito Bold` and `Japanese` presets; actual dialogue text measured in active dialogue font; never use `tk.Text(width=54)` as pixel guarantee.
+- Box 0 Exemption (S09 `U-18`): Box 0 metadata is 100% immune to red overflow markers, red header warnings, `54d × 3` clipping, Auto Word Wrap, and Box Replace (`-1` rejected atomically).
+- Dialogue Preview Contract (S09/S09b): Read-only (`state="disabled"`), excluded from save paths (GEM-B03), pink Actor nameplate with WCAG white contrast, continuous gold borders, crisp unclipped lower-right pink `▼`, `wrap="none"` native bleed.
+- Pin ⊥ Translation Lock Orthogonality (S09b): Speaker Pin and Translation Lock are strictly independent; follow the live-verified 12-row Translation Lock Operation Matrix in `PROJECT_STATE.md` (Row 1 Manual Dialogue typing = `ALLOWED`).
+- Strict Tkinter Main-Thread Rule (`AGENTS.md` §15): Worker threads NEVER call Tkinter methods and NEVER mutate live `StoryDocument` objects; communicate exclusively via thread-safe queues/locks drained on the main thread.
+- S07/S11 XUAT Data Safety: SHA-256 stale-source guard, mandatory archive-first for destructive cleanup, per-file atomicity, original encoding/BOM/CRLF preservation, pre-pass Actor/Speaker exclusion, Document Identity Guard, and pure-core boundary (`core/*.py` zero `tkinter` and zero `misora` imports).
+- Workspace Safety: NEVER run destructive Git commands (`reset`, `clean`, `stash`, `checkout`, `restore`, `commit`, `push`), NEVER add third-party dependencies beyond Python 3.12 stdlib + Tkinter + UnityPy + Pillow, and NEVER read/overwrite/restore user's local `misora_config.json` or `backups/`.
+
+==================================================
+PART 1 — STRICT FILE OWNERSHIP BOUNDARIES (S11b)
+==================================================
+Allowed Files to Create/Modify (ONLY after `Proceed`; verify exact paths on disk during `/plan`):
+- `__init__.py` (bump `"1.4.10"` -> `"1.4.11"`)
+- `core/xuat_index.py` (`Q-01` strict resolver, additive rule exclusions, canonical `_norm_stripped_map` metrics)
+- `misora.py` (`Q-01` status/display of separated XUAT metrics, `Q-02` bounded save-hang fix & `Ctrl+S`/`Ctrl+Shift+S` shortcut/menu/tooltip update, confirmed `Q-04` fix if reproduced, bounded `Q-18` Ruby Preview fix if STOP Gate B not triggered, `Q-23` Dialogue Preview red-block removal + defensive overflow helper guard)
+- `README.md` (update `Ctrl+S` Save Project `.misora` & Save & Patch Bundle shortcut documentation)
+- `CHANGELOG.md` (add `### S11b (v1.4.11)`)
+- `PROJECT_STATE.md` (record S11b profiling report, `Q-04` investigation findings with `1.3 = NOT TESTED`, STOP gate decisions, verification baseline, and Manual Windows QA checklist)
+- `tests/test_v15_s11b_scanner_save_preview.py` (NEW — confirmed failing-first probes + regression guards)
+- `tests/test_v15_s03_all_script_preview_paste.py` (migrate `txt_dialogue_preview` `line_overflow` assertion from `>= 2` ranges -> `0` ranges while asserting Editor Preview-OFF retains red markers)
+- `tests/test_p3_s18_game_preview.py` (update Dialogue Preview red-overflow assertions to `0` red highlight blocks while preserving `54d × 3`, `wrap="none"` bleed, pink nameplate, gold border, and pink `▼`)
+- Existing shortcut / XUAT test file(s) ONLY if explicitly verified on disk during `/plan` as directly asserting old `Ctrl+S` bundle-save behavior or non-canonical temp `Text` folder layouts (MUST be declared in the `/plan` Implementation Plan for Project Lead approval before editing).
+
+Forbidden Files (DO NOT MODIFY in S11b — trigger STOP rule if required):
+- `core/story_ast.py`, `core/bundle_io.py`, `core/script_codec.py`, `core/xuat_cleanup.py`, `core/xunity_sync.py`, `core/word_wrap.py`, `core/mtl_engine.py`, `core/undo_journal.py`, `assets/*`, `requirements.txt`, `misora_config.json`, `backups/`.
+
+Out of Scope for S11b (DEFER):
+- `Q-22` Quick Edit single-box unification (`S11c`).
+- `Q-06`–`Q-12` Import UX & productivity (`S11d`).
+- `Q-03`, `Q-05`, `Q-13`–`Q-17` Word-wrap audit, Splash lifecycle, Branding, Icons, Main Menu, Tooltips (`S11e`).
+- `BIG-01`–`BIG-03` Track B post-`v1.5.0` plugins.
+
+==================================================
+PART 2 — EXACT TECHNICAL SPECIFICATIONS (S11b)
+==================================================
+
+### 1. `Q-01` — Strict XUAT English Text Scanner, Additive Rule Exclusions & Canonical Metrics (`core/xuat_index.py`, `misora.py`)
+
+#### A. Strict Canonical Root Boundary (`resolve_xuat_text_roots()`)
+Audit and tighten `core/xuat_index.py::resolve_xuat_text_roots()` (lines ~134–181) to close ALL 3 currently permissive bypasses (unvalidated direct `.txt` files, arbitrary directories named `Text`, and `p / "Text"` accepting non-English languages such as `Translation\ja\Text`).
+- **ONLY Permitted Dictionary Subtree:** Canonical **`Translation\en\Text`** (matching the Project Lead's real layout `C:\[Gacha]\PriconneRe-TL\src\BepInEx\Translation\en\Text`). Do NOT silently broaden language scope.
+- **Supported User-Selected Entry Points (ALL 5 MUST Resolve Cleanly):**
+  1. **Game Root:** supports BOTH `<GameRoot>\src\BepInEx\Translation\en\Text` (Project Lead's actual `PriconneRe-TL\src\BepInEx\...` hierarchy) AND `<GameRoot>\BepInEx\Translation\en\Text`.
+  2. **`BepInEx` folder:** `<BepInEx>\Translation\en\Text`.
+  3. **`Translation` folder:** `<Translation>\en\Text`.
+  4. **`Translation\en` folder:** `<Translation>\en\Text`.
+  5. **`Translation\en\Text` folder:** accepted directly ONLY when its trailing path segments end with `Translation\en\Text` (case-insensitive on Windows).
+- **Direct `.txt` File Selection (if supported):** Accept a direct `.txt` file ONLY when its resolved parent path lies strictly inside a canonical `Translation\en\Text` subtree; reject standalone `.txt` files outside it.
+- **Explicitly Forbidden Locations (MUST Be Rejected / Skipped):**
+  1. `Translation\ja\Text` (and any non-`en` language directory)
+  2. Arbitrary unrelated `Text` directories not under `Translation\en\Text`
+  3. Standalone `.txt` files outside `Translation\en\Text`
+  4. `Translation\en\Other`
+  5. `Translation\en\RedirectedResources`
+- **Deduplication & Path Normalization:** Deduplicate overlapping configured roots and resolved files (canonical case-folded resolved paths) while preserving Windows `\\?\` stripping (`_strip_long_path_prefix()`) and S11 cancellable `os.walk()`.
+- **Pre-Check on Existing Tests in `/plan`:** Check whether any existing XUAT test (`test_p3_s22`, `test_v15_s07`, `test_v15_s11`) creates a synthetic temp dir named `Text` without a `Translation\en\Text` parent; if so, declare the exact path update in `/plan` for Project Lead approval before editing.
+
+#### B. Additive File Exclusions (Preserve All Legacy Exclusions)
+- Add ALL 5 official XUnity AutoTranslator non-dictionary rule patterns (case-insensitive matching inside `Translation\en\Text`):
+  1. `*.font.txt`
+  2. `*.resizer.txt`
+  3. `*Postprocessors.txt`
+  4. `*Preprocessors.txt`
+  5. `*Substitutions.txt`
+- **Additive Only:** Preserve ALL existing scanner exclusions already in `core/xuat_index.py` (`.missing.txt`, `.report.txt`, `_summary.txt`, `_warnings.txt`, `.bak_`, etc.).
+
+#### C. Canonical Metric Contract (BINDING — Use `XuatIndex._norm_stripped_map`, NO Fictional `by_norm_key`)
+Use ONLY the existing verified structures in `core/xuat_index.py` (`_norm_stripped_map`, `_norm_exact_map`, `_exact_map`, `_value_map`, `normalize_xuat_key()`, `lookup_all_by_norm_key()`). **NEVER invent or create a new `by_norm_key` map or duplicate parallel map.**
+- **Authoritative Normalization:** `normalize_xuat_key(raw_key, strip_ngui=True)` backed by `XuatIndex._norm_stripped_map`.
+- **Empty / Invalid Normalized Key Guard:**
+  - `entries_read` (and canonical counted `entry_count`) MUST increment **ONLY** when `normalize_xuat_key(raw_key, strip_ngui=True) != ""`.
+  - Lines with empty/invalid normalized keys MUST NOT be inserted into `_norm_stripped_map` or counted in `entries_read`.
+  - Guard clarification: `add_entry()` already skips empty normalized keys for the norm maps. The new guard governs metric counting and norm-map consistency. Do NOT silently change `_exact_map` / `_value_map` insertion semantics; if `add_entry()` is modified, prove exact-tier and value-lookup parity with explicit regression tests.
+- **Exact Exposed Metrics on `XuatIndex` (and displayed clearly in UI/status logs where XUAT index counts appear):**
+  - `files_scanned`: count of deduplicated eligible `.txt` files scanned under `Translation\en\Text`.
+  - `entries_read`: total valid translation entries read with non-empty `normalize_xuat_key(raw_key, strip_ngui=True)`.
+  - `unique_keys = len(idx._norm_stripped_map)`
+  - `duplicate_keys = sum(1 for v in idx._norm_stripped_map.values() if len(v) > 1)`
+  - `duplicate_entries = entries_read - unique_keys`
+- **Mandatory Tested Mathematical Identity:** `entries_read == unique_keys + duplicate_entries` MUST hold across single entries, multi-file duplicates, 3x duplicates, excluded rule files, and empty/invalid normalized keys.
+
+---
+
+### 2. `Q-02` — Save Hang 5-Stage Profiling + `Ctrl+S` Save Project Shortcut Remap (`misora.py`, `README.md`)
+
+#### Sub-Task 2a: Save Hang Diagnosis & Bounded Fix (With STOP Gate A)
+- During `/plan`, profile and report measured timings for ALL 5 save stages in `misora.py`:
+  1. Widget flush & model synchronization (`_flush_pending_edit`, `_flush_quick_edit_session`, `inject_box`),
+  2. Project `.misora` serialization/write,
+  3. XUAT dictionary synchronization (`sync_manager` / disk scan / rewrite),
+  4. UnityPy bundle serialization & patch I/O (`save_bundle_story`),
+  5. Post-save UI refresh (dock, status bar, views).
+- Apply a clean, bounded main-thread-safe fix ONLY if the bottleneck is safely fixable inside S11b Allowed Files without violating Tkinter/AST threading rules. Otherwise trigger **STOP Gate A** per Part 0 Rule 3.
+
+#### Sub-Task 2b: `Ctrl+S` Shortcut Semantics Migration
+- **New Authoritative Contract:**
+  - **`Ctrl+S`** -> **Save Project (`.misora`)** (lightweight project save; must never interfere with native text editing).
+  - **Save & Patch Bundle** -> dedicated conflict-free shortcut (**candidate `Ctrl+Shift+S`**; verify during `/plan` that `Ctrl+Shift+S` does NOT collide with Save As or any existing binding in `_on_misora_shortcut` / menu accelerators — if a conflict exists, report and propose a clean non-conflicting resolution in `/plan`).
+- Update ALL surfaces consistently: File menu labels & accelerators, shortcut router (`_on_misora_shortcut` / bindings), toolbar tooltips, Shortcuts help dialog/reference, `README.md`, and regression tests.
+
+---
+
+### 3. `Q-04` — Manual S10/S11 Investigation Items (`1.1`, `1.2`, `1.3`) — Zero Manufactured Bugs
+Investigate directly against live `misora.py` during `/plan`:
+- **`1.1` (`▶` icon above >54-char textboxes that appears non-functional):**
+  - Verify exact origin (is it S10's Active Box header indicator `▶ [BOX #NNN]`, or a separate widget/indicator?).
+  - If confirmed to be the intended Active Box marker, document the finding clearly in `PROJECT_STATE.md` and **do NOT remove it or manufacture a failing test**. Only fix if a genuine unintended/broken control is found.
+- **`1.2` (Multi-match Name / Title / Subtitle boxes with >3 linebreaks — text selection, drag, and scrolling):**
+  - Reproduce text selection, drag, and scrolling **separately** in `ImportFromXUATDialog` and main view.
+  - Only implement a fix and failing-first defect probe if a concrete failure is actually reproduced; otherwise document the exact observed behavior.
+- **`1.3`:** Keep strictly labeled **`NOT TESTED`** everywhere. Do NOT create a bug report or mark it `PASS`.
+
+---
+
+### 4. `Q-18` — Ruby Preview Bug Fix (Original `u-5`, With STOP Gate B)
+- Inspect existing `<ruby>` parsing/rendering in `misora.py::_render_dialogue_preview_frame()` and NGUI preview helpers.
+- If a bounded bug prevents existing `<ruby>` tags from displaying properly in `Dialogue Preview`, fix it without breaking `54d × 3` calibration, pink nameplate, gold border, or pink `▼`.
+- If proper `<ruby>` display requires a new custom Canvas text-layout engine, trigger **STOP Gate B** per Part 0 Rule 4 and defer `Q-18` cleanly to its own bounded session.
+
+---
+
+### 5. `Q-23` — Remove Red Overflow Highlight Blocks in Dialogue Preview (`misora.py`)
+- Remove `self._apply_overflow_highlights(txt_w)` from `misora.py::_render_dialogue_preview_frame()` (around line ~7595).
+- **Defensive Helper Guard:** Add an explicit guard inside `_apply_overflow_highlights()` itself (e.g., rejecting `widget is getattr(self, "txt_dialogue_preview", None)`) so `txt_dialogue_preview` can **NEVER** receive `line_overflow` / red overflow background blocks from any indirect or future code path.
+- **Strictly Preserve:**
+  - `txt_dialogue_preview` retains `wrap="none"` (native game-style text bleed past the gold capsule), `54d × 3` calibration, pink Actor nameplate with WCAG white contrast, continuous gold borders, crisp unclipped pink `▼`, and read-only/non-save contract.
+  - **Dialogue Editor (`Preview OFF`)** MUST continue receiving red overflow highlight markers (`line_overflow` / `gutter_overflow`) unchanged.
+- **Required Existing Test Migrations:**
+  - `tests/test_v15_s03_all_script_preview_paste.py`: migrate existing assertion expecting `>= 2` `line_overflow` ranges on `txt_dialogue_preview` to assert `len(tag_ranges("line_overflow")) == 0` on `txt_dialogue_preview`, while asserting Dialogue Editor (`Preview OFF`) still receives red overflow ranges.
+  - `tests/test_p3_s18_game_preview.py`: assert `0` red highlight block tags on `txt_dialogue_preview` while keeping `54d × 3`, `wrap="none"` bleed, pink nameplate, gold border, and pink `▼` intact.
+
+==================================================
+PART 3 — FAILING-FIRST TDD VERIFICATION (`tests/test_v15_s11b_scanner_save_preview.py`)
+==================================================
+Use strict test isolation (`misora.CONFIG_PATH` & `app.backup_folder` in `TemporaryDirectory`, `MisoraApp(restore_session=False, show_splash=False)`, mocked `messagebox`, `app.destroy()` in `finally:`).
+**Honest Defect-Probe Rule:** Every failing-first probe MUST test a confirmed, reproducible defect or contract change — NEVER manufacture a failing test for an unconfirmed `Q-04` item or a STOP-gated `Q-18`.
+
+### Confirmed Failing-First Probes (MUST FAIL pre-patch, PASS post-patch):
+1. `test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics`:
+   - Tests ALL 5 valid root entry points (including `<GameRoot>\src\BepInEx\Translation\en\Text` AND `<GameRoot>\BepInEx\Translation\en\Text`, `BepInEx`, `Translation`, `Translation\en`, `Translation\en\Text`) + valid direct `.txt` inside `Translation\en\Text`.
+   - Negative tests proving ALL 5 forbidden targets are rejected/unscanned: `Translation\ja\Text`, arbitrary unrelated `Text\`, standalone `.txt` outside `Translation\en\Text`, `Translation\en\Other`, `Translation\en\RedirectedResources`.
+   - Verifies ALL 5 new official XUAT exclusions (`*.font.txt`, `*.resizer.txt`, `*Postprocessors.txt`, `*Preprocessors.txt`, `*Substitutions.txt`) AND preservation of legacy exclusions (`.missing.txt`, `.report.txt`, `_summary.txt`, `_warnings.txt`, `.bak_`).
+   - Verifies root/file deduplication and exact metric math backed by `_norm_stripped_map` (`files_scanned`, `entries_read`, `unique_keys`, `duplicate_keys`, `duplicate_entries`, `entries_read == unique_keys + duplicate_entries`) including single, 2x, 3x duplicates and empty/invalid normalized keys, plus exact-tier & value-lookup parity.
+2. `test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut`:
+   - Verifies `Ctrl+S` routes to Save Project (`.misora`) and does NOT invoke bundle patching.
+   - Verifies Save & Patch Bundle has its own verified non-conflicting shortcut (e.g., `Ctrl+Shift+S`), menu labels/accelerators match, and `README.md` no longer misdescribes `Ctrl+S` as bundle patch.
+   - If a bounded `Q-02` save-hang defect was reproduced inside S11b scope, asserts the fix/regression guard as well.
+3. `test_probe_3_dialogue_preview_has_zero_red_blocks_while_editor_keeps_markers`:
+   - Loads >54d and >3-line dialogue into `Dialogue Preview`: asserts `txt_dialogue_preview.tag_ranges("line_overflow") == ()` AND calling `_apply_overflow_highlights(app.txt_dialogue_preview)` directly still produces `()` (defensive guard).
+   - Asserts `wrap="none"`, pink nameplate, gold border, pink `▼`, and `54d × 3` remain intact.
+   - Switches to `Dialogue Editor` (`Preview OFF`): asserts red overflow highlight markers ARE still applied.
+4. *(Conditional — ONLY if reproduced/in-scope during `/plan`)*:
+   - `test_probe_4_confirmed_q04_12_repro` (ONLY if `Q-04.1.2` defect is actually reproduced),
+   - `test_probe_5_ruby_preview_rendering` (ONLY if `Q-18` does NOT trigger STOP Gate B).
+
+### Regression Guards (MUST PASS both pre-patch and post-patch):
+1. `test_guard_1_core_xuat_index_free_of_tkinter_and_misora_imports`
+2. `test_guard_2_dialogue_preview_readonly_non_save_and_box0_exemption_intact`
+
+==================================================
+PART 4 — VERIFICATION COMMANDS & DEFINITION OF DONE
+==================================================
+Run and report exact real observed output in the Walkthrough artifact:
+1. Pre-patch probe run: `py -3.12 -m unittest tests.test_v15_s11b_scanner_save_preview -v` (confirm confirmed probes FAIL as assertion errors and both guards PASS).
+2. Post-patch compile check: `py -3.12 -m compileall -q __init__.py misora.py core assets tests`
+3. Post-patch targeted suites:
+   `py -3.12 -m unittest tests.test_v15_s11b_scanner_save_preview tests.test_v15_s03_all_script_preview_paste tests.test_p3_s18_game_preview tests.test_v15_s11_xuat_archiving_progress tests.test_v15_s07_xuat_cleanup_archive tests.test_p3_s22_import_xuat -v`
+4. Full discovery run: `py -3.12 -m unittest discover -s tests -v` (report exact discovered/executed/passed/skipped/failed/errored counts; confirm 0 new regressions).
+5. Baseline-relative `git status --short` confirming only S11b Allowed Files were modified and `misora_config.json`/`backups/` untouched.
+6. Update `CHANGELOG.md` (`### S11b (v1.4.11)`), `PROJECT_STATE.md` (with profiling numbers, `Q-04` findings keeping `1.3 = NOT TESTED`, STOP gate outcome, and Manual Windows QA checklist).
