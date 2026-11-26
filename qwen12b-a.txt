@@ -1,0 +1,70 @@
+Empat keputusan saya siapkan. Saya memverifikasi klaim dokumen terhadap kode nyata (`assets/icon.py`, `core/xunity_sync.py`, `misora.py`, `test_p3_s16`) — bukan hanya menerima laporan.
+
+## Verifikasi kunci (terbukti dari source)
+
+- **`THEME` flat, tanpa kunci `"dark"`** ✅ — `assets/icon.py::THEME` berisi `bg_dark, bg_panel, bg_editor, border, fg_text, fg_muted, misora_pink*, accent_*, highlight_bg`. Maka `THEME["dark"]` memang `KeyError`. Klaim 1-baris itu **benar**.
+- **Mengapa tes tetap hijau:** `test_p3_s16::test_probe_3` **mem-mock** `ProjectDiffDialog` (`mock.patch.object(misora, "ProjectDiffDialog")`) → tidak pernah mengonstruksi dialog asli. Jadi bug crash lolos dari baseline. Fix ini **tidak punya coverage**.
+- **Root cause Save Hang** ✅ — `preview_matches()`/`find_and_update()` masing-masing `root.rglob("*.txt")` **per panggilan**, hanya mengecualikan 4 file legacy, **tanpa** batas `en\Text`/5 rule-file. Dipanggil per-box → O(B×F). Terbukti.
+- **Ruby inline** ✅ dan **target Q-23** (`_apply_overflow_highlights(txt_w)` di preview) ✅ masih ada di baseline.
+- **Aritmetika** ✅: 445=440+5, 402=397+5, 402+35+6+2=445; 210654+6819=217473; 217473×3=652419; 93.725/96.234≈97.4%.
+
+## Keputusan 1 — S11b closure: **CLEAR untuk commit lokal** + ProjectDiffDialog **ACCEPT (bersyarat)**
+
+Commit 9 berkas S11b; biarkan `BoxInsert.png`/`BoxReplace.png` uncommitted; **jangan push**. Satu syarat untuk 1-baris `misora.py:1284`:
+
+- Fix `getattr(parent, "theme", None) or THEME` **benar secara semantik** (`t` dipakai sebagai dict flat `t["bg_panel"]`; fallback `THEME` cocok).
+- **WAJIB tambah smoke test konstruksi nyata** (parent tanpa `.theme` → tanpa KeyError, `t == THEME`; parent ber-`.theme` → dipakai), karena satu-satunya tes mem-mock dialog. Atau minimal catatan repro manual PL.
+- **Disclose** di CHANGELOG/PROJECT_STATE sebagai hotfix unplanned.
+- **Tunjukkan diff S18** (plan bilang inspect-only, tapi `M tests/test_p3_s18...`). Jika itu penambahan assertion zero-red (sesuai m-5 saya), terima — tapi harus ditampilkan.
+
+## Keputusan 2 — S11b2 (`v1.4.12`): **APPROVE scope**, dengan syarat mengikat
+
+Sesi bounded sebelum S11c tepat — ini spin-off STOP Gate A yang sudah diantisipasi, dan root cause-nya di `xunity_sync` (bukan async bundle). Masukkan ke prompt S11b2:
+
+```text
+1. DATA-SAFETY BOUNDARY (critical): route ALL discovery AND writes through
+   xuat_index strict Translation\en\Text resolver + 5 rule-file + legacy exclusions.
+   NEVER scan/write Other/ or RedirectedResources/. (Current sync rglobs arbitrary
+   roots with only 4 legacy exclusions — verified.)
+2. MATCH-SEMANTICS PRESERVATION (critical): sync currently matches via norm_search().
+   XuatIndex uses normalize_xuat_key() — DIFFERENT normalization. Do NOT silently
+   switch the sync match key. Keep norm_search matching in the single-pass scan, OR
+   prove parity with explicit regression tests. Changing which entries get written
+   is a data-integrity regression.
+3. PRESERVE S10/S2: immutable JP keys, conflict preview/confirmation gate, single-line
+   escaping, BOM/CRLF/LF + key-whitespace, write_atomic_encoded, secondary-sync failure
+   tolerance (test_s2_dirty_contract::test_07).
+4. SINGLE-PASS O(F+B)/O(B): each affected .txt read+written AT MOST ONCE per save.
+   Synthetic benchmark (20 boxes × large tree, <=1 pass/file, before/after ms) PLUS
+   Project Lead real-tree measurement (report seconds).
+5. STOP GATE: if single-pass main-thread sync still too slow on real tree, STOP ->
+   separate Rule-15-safe async disk-I/O session (worker touches disk only, never
+   Tk/live docs). Do NOT force async into S11b2.
+6. TEST MIGRATION: if test_p3_s10 / test_s2::test_07 / test_p3_s09 assert the old
+   per-box pattern, declare equal-or-stronger migrations in /plan. No weakening.
+7. VERSION: 1.4.11->1.4.12; S11c=1.4.13, S11d=1.4.14, S11e=1.4.15, S12 1.4.15->1.5.0.
+```
+
+Syarat #2 adalah temuan baru saya: `norm_search` ≠ `normalize_xuat_key`. Jika S11b2 "leverage XuatIndex" tanpa menjaga semantik match, file/baris yang ditulis bisa berubah — regresi integritas data.
+
+## Keputusan 3 — S11d Q-09 label 652419: **APPROVE**
+
+`217473×3=652419` presisi; desain 3-pass diketahui. Klarifikasi `"Pass X/3: … / 217473"` kecil, area dialog sama dengan Q-09. Verifikasi sumber denominator di disk saat `/plan`. S11b/b2/c tetap tak tersentuh.
+
+## Keputusan 4 — Track B archival: **CONFIRM**
+
+`Project → Game Folder` + multi-framework/multi-language tetap pasca-`v1.5.0`; kontrak ketat `Translation\en\Text` Q-01 dipertahankan untuk v1.5.0. Sesuai keputusan PL.
+
+## Carry-forward (jangan sampai hilang)
+
+- **Q-18 resmi pasca-1.5.0** (Track B, prasyarat BIG-02) → S12 traceability mencatat `DEFERRED` (descope oleh PL), roadmap/kit diperbarui.
+- **Koreksi Kit v2 masih terbuka:** C-1 (`assets/splash.py`, bukan root `splash.py`), C-2 (`assets/icon.py` masuk Allowed S11e — terbukti logika resize LANCZOS ada di sana), C-3 (pin `Quick Edit`/`Raw Commands` `wrap="none"`). Terapkan saat finalisasi prompt S11e/S12 + penomoran versi baru.
+- Prompt **S11b2 wajib melalui review saya sebelum `/plan`**; `Proceed` PL tetap gerbang.
+
+## Langkah berikutnya
+
+1. Antigravity tambah smoke test ProjectDiffDialog + disclose + tunjukkan diff S18 → **commit lokal 9 berkas S11b** (tanpa push).
+2. Gemini menyusun **prompt S11b2** membawa 7 syarat di atas → saya review → `/plan` → `Proceed`.
+3. **`v1.5.0` tetap ON HOLD.**
+
+Putusan independen saya: **S11b layak commit (dengan smoke test), S11b2 disetujui bersyarat, label Q-09 disetujui, Track B dikonfirmasi.** Silakan cocokkan dengan putusan Qwen sebelum commit.

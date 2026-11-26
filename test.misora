@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "rel_path": "",
+      "abs_path": "C:\\[Gacha]\\PriconneRe-TL\\src\\BepInEx\\Translation\\en\\RedirectedResources\\storydata_1001008.unity3d",
+      "locked_keys": []
+    },
+    {
+      "rel_path": "",
+      "abs_path": "C:\\[Gacha]\\PriconneRe-TL\\src\\BepInEx\\Translation\\en\\RedirectedResources\\storydata_1009004.unity3d",
+      "locked_keys": []
+    },
+    {
+      "rel_path": "",
+      "abs_path": "C:\\[Gacha]\\PriconneRe-TL\\src\\BepInEx\\Translation\\en\\RedirectedResources\\storydata_1007003.unity3d",
+      "locked_keys": []
+    },
+    {
+      "rel_path": "..\\..\\priconne-asset-extractor-main\\input\\1001012.unity3d",
+      "abs_path": "D:\\priconne-asset-extractor-main\\input\\1001012.unity3d",
+      "locked_keys": []
+    }
+  ],
+  "active_file": "C:\\[Gacha]\\PriconneRe-TL\\src\\BepInEx\\Translation\\en\\RedirectedResources\\storydata_1007003.unity3d",
+  "active_box_idx": 0,
+  "is_box0_active": false,
+  "view_mode": "dialogue",
+  "search_scope": "project"
+}

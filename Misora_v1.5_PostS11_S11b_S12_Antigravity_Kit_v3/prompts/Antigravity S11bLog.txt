@@ -1,0 +1,69 @@
+Edited test_v15_s11b_scanner_save_preview.py
+Edited CHANGELOG.md
+Edited CHANGELOG.md
+Edited PROJECT_STATE.md
+Ran run S11b tests, git diff, and git status
+
+Running `tests.test_v15_s11b_scanner_save_preview -v`, `git diff tests/test_p3_s18_game_preview.py`, and `git status --short` (`task-359`); waiting for completion.
+
+Analyzed icon.py:L1-60
+Ran check git status and S18 diff
+Analyzed __init__.py:L1-2
+Analyzed test_p3_s18_game_preview.py:L120-140
+Ran check recent git commits
+Ran check latest commit and git status
+
+Applied the requested updates to [tests/test_v15_s11b_scanner_save_preview.py](file:///d:/Misora-Editor/tests/test_v15_s11b_scanner_save_preview.py), [CHANGELOG.md](file:///d:/Misora-Editor/CHANGELOG.md), and [PROJECT_STATE.md](file:///d:/Misora-Editor/PROJECT_STATE.md) (with zero edits to `misora.py`, `core/*.py`, or Forbidden/pre-existing files; `v1.5.0` remains **ON HOLD**).
+
+### Real Defect Exposed by `test_guard_3` (`STOP` — `misora.py` Forbidden in This Turn)
+`test_guard_3_project_diff_dialog_theme_fallback_no_keyerror` errored on case `(a)` (`bare_parent` lacking `.theme`) with `KeyError: 'bg_main'` at `misora.py:1288`:
+- `assets/icon.py::THEME` defines `"bg_dark"`, `"bg_panel"`, `"bg_editor"`, etc., and does **not** define `"bg_main"` (only `MisoraApp.theme` from `THEME_PRESETS` defines `"bg_main"`).
+- `ProjectDiffDialog.__init__` accesses `t["bg_main"]` at `misora.py:1288`, `1312`, and `1341`.
+- Per the strict boundary (`zero edits to misora.py` and no test weakening), I did **not** patch `misora.py` or weaken `test_guard_3` — awaiting Project Lead authorization if you want `misora.py:1288, 1312, 1341` updated to `t.get("bg_main", t["bg_dark"])`.
+
+---
+
+### Verbatim Command Outputs
+
+1. **`py -3.12 -m unittest tests.test_v15_s11b_scanner_save_preview -v`:**
+```text
+test_guard_1_core_xuat_index_free_of_tkinter_and_misora_imports (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_guard_1_core_xuat_index_free_of_tkinter_and_misora_imports)
+[Guard 1] core.xuat_index remains 100% free of tkinter and misora imports. ... ok
+test_guard_2_dialogue_preview_readonly_non_save_and_box0_exemption_intact (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_guard_2_dialogue_preview_readonly_non_save_and_box0_exemption_intact)
+[Guard 2] Dialogue Preview stays disabled/non-save and Box 0 stays exempt from overflow markers. ... ok
+test_guard_3_project_diff_dialog_theme_fallback_no_keyerror (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_guard_3_project_diff_dialog_theme_fallback_no_keyerror)
+[Guard 3] ProjectDiffDialog resolves flat assets.icon.THEME when parent lacks .theme and uses parent.theme when provided. ... ERROR
+test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics)
+[Probe 1 — Q-01] Strict Translation\en\Text resolver, 5 endswith rule exclusions, ... ok
+test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut)
+[Probe 2 — Q-02] Ctrl+S saves .misora project (single-fire 'break', preserves dirty), ... ok
+test_probe_3_dialogue_preview_has_zero_red_blocks_while_editor_keeps_markers (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_probe_3_dialogue_preview_has_zero_red_blocks_while_editor_keeps_markers)
+[Probe 3 — Q-23] Dialogue Preview has 0 line_overflow ranges (including defensive guard), ... ok
+
+======================================================================
+ERROR: test_guard_3_project_diff_dialog_theme_fallback_no_keyerror (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_guard_3_project_diff_dialog_theme_fallback_no_keyerror)
+[Guard 3] ProjectDiffDialog resolves flat assets.icon.THEME when parent lacks .theme and uses parent.theme when provided.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Misora-Editor\tests\test_v15_s11b_scanner_save_preview.py", line 587, in test_guard_3_project_diff_dialog_theme_fallback_no_keyerror
+    dlg_a = misora.ProjectDiffDialog(bare_parent, [], "fallback.misora")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Misora-Editor\misora.py", line 1288, in __init__
+    self.configure(bg=t["bg_main"])
+                      ~^^^^^^^^^^^
+KeyError: 'bg_main'
+
+----------------------------------------------------------------------
+Ran 6 tests in 25.417s
+
+FAILED (errors=1)
+```
+
+2. **`git diff tests/test_p3_s18_game_preview.py`:**
+*(Empty against current `HEAD` `66391718cfa55a45b108cb1235d3f53b73b75e9a`, which already committed the S11b changes at `04:46:27`.)*
+
+3. **`git status --short`:**
+```text
+ M assets/icons/BoxInsert.png
+?? assets/icons/BoxReplace.png
+```
