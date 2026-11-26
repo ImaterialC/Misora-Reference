@@ -1,0 +1,128 @@
+/plan Implement S11e (v1.4.14): UI Polish, Branding & Usability — Per-Widget Word-Wrap Contract (`Q-03`), Full Non-Blocking Splash Startup Lifecycle (`Q-05`), PriconneRe:TL & Cornelia Branding (`Q-13`), Support the Creator EN + ~600px GIF (`Q-14`), Verified Box/Translate Icon Overhaul (`Q-15`), Main Menu Inventory & NGUI Glossary Dedup (`Q-16`), and Complete 3-Layer Tooltips (`Q-17`) in Misora: Story Editor.
+
+CONTEXT POINTERS (READ DIRECTLY FROM DISK BEFORE PLANNING):
+@AGENTS.md @PROJECT_STATE.md @CHANGELOG.md @__init__.py @misora.py @assets/splash.py @assets/icon.py @assets/icons/ @assets/Service.gif @tests/
+
+==================================================
+PART 0 — EXECUTION MODE, PLANNING GATE & MANDATORY `/plan` SUB-GATES
+==================================================
+1. Planning-First Gate: Inspect live files on disk first (including EVERY `tk.Text` widget in `misora.py`, `assets/splash.py`, `assets/icon.py`, `assets/icons/*` exact filenames/extensions/dimensions/alpha channels, `assets/Service.gif`, every Main Menu entry & shortcut, and every interactive widget tooltip), capture pre-session `git rev-parse HEAD`, `git status --short`, and Python 3.12 version, then output a symbol-bound Implementation Plan artifact containing BOTH mandatory Sub-Gates below and **STOP to wait for explicit Project Lead `Proceed`** before editing ANY file.
+2. **MANDATORY `/plan` SUB-GATE 1 (`Q-16` Main Menu Inventory Approval):**
+   - You MUST inventory EVERY existing Main Menu command, its current menu, its proposed new menu, its shortcut/accelerator, and any affected tests/risks BEFORE restructuring the Main Menu.
+   - Do NOT silently force an unapproved menu layout — wait for Project Lead approval of the full command mapping inside `Proceed`.
+3. **MANDATORY `/plan` SUB-GATE 2 (`Q-17` 3-Layer Tooltip Definition Approval):**
+   - Preserve the Project Lead's original **"3-layer tooltip" (`tooltip tiga lapis`)** meaning — **NEVER reinterpret "3 layers" as "3 font sizes"!**
+   - Search the repository (`misora.py`, `PROJECT_STATE.md`, `CHANGELOG.md`, `tests/`) for any existing 3-layer tooltip implementation or spec. If no prior spec exists on disk, present a clear written **3-layer tooltip definition proposal** (e.g., Layer 1: concise title + shortcut; Layer 2: functional summary/behavior; Layer 3: extended usage hint / safety constraint — toggled via verbosity/layer setting or hover progression) in `/plan` and wait for Project Lead approval in `Proceed` before implementing.
+4. **Version Target:** Bump `__init__.__version__` sequentially from the actual post-S11d version (expected `"1.4.13"` -> `"1.4.14"`). Release `v1.5.0` remains ON HOLD.
+5. PERMANENT CARRY-FORWARD INVARIANTS (MUST NEVER REGRESS):
+- Binary/AST Lossless Integrity: Preserve `cmd_id` 35/32, adjacent narration separation (DEF-02 / QW-B01), `{playername}` <-> `{0}` parity, `box.voice_cue`, `extra_args`, and binary round-trip (`to_binary()` -> `from_binary()`).
+- Canonical `54d` Reference Contract (S09): ONE shared Nunito Bold 54-digit reference pixel width (`_get_54d_reference_safe_w()`) constant across `Global — Nunito Bold` and `Japanese` presets; actual dialogue text measured in active dialogue font; never use `tk.Text(width=54)` as pixel guarantee.
+- Box 0 Exemption (S09 `U-18`): Box 0 metadata is 100% immune to red overflow markers, red header warnings, `54d × 3` clipping, Auto Word Wrap, and Box Replace (`-1` rejected atomically).
+- Dialogue Preview Contract (S09/S09b): Read-only (`state="disabled"`), excluded from save paths (GEM-B03), pink Actor nameplate with WCAG white contrast, continuous gold borders, crisp unclipped lower-right pink `▼`, `wrap="none"` native bleed.
+- Pin ⊥ Translation Lock Orthogonality (S09b): Speaker Pin and Translation Lock are strictly independent; follow the live-verified 12-row Translation Lock Operation Matrix in `PROJECT_STATE.md` (Row 1 Manual Dialogue typing = `ALLOWED`).
+- Strict Tkinter Main-Thread Rule (`AGENTS.md` §15): Worker threads NEVER call Tkinter methods and NEVER mutate live `StoryDocument` objects; communicate exclusively via thread-safe queues/locks drained on the main thread.
+- S07/S11 XUAT Data Safety: SHA-256 stale-source guard, mandatory archive-first for destructive cleanup, per-file atomicity, original encoding/BOM/CRLF preservation, pre-pass Actor/Speaker exclusion, Document Identity Guard, and pure-core boundary (`core/*.py` zero `tkinter` and zero `misora` imports).
+- Workspace Safety: NEVER run destructive Git commands (`reset`, `clean`, `stash`, `checkout`, `restore`, `commit`, `push`), NEVER add third-party dependencies beyond Python 3.12 stdlib + Tkinter + UnityPy + Pillow, and NEVER read/overwrite/restore user's local `misora_config.json` or `backups/`.
+
+==================================================
+PART 1 — STRICT FILE OWNERSHIP BOUNDARIES (S11e)
+==================================================
+Allowed Files to Create/Modify (ONLY after `Proceed`; verify exact paths on disk during `/plan`):
+- `__init__.py` (bump version to `"1.4.14"` or next sequential patch)
+- `misora.py` (`Q-03`, `Q-05`, `Q-13`, `Q-14`, `Q-15`, `Q-16`, `Q-17`)
+- `assets/splash.py` (`Q-05` non-blocking progress & full-load close lifecycle, `Q-13` `PriconneRe:TL` bold/larger + `Cornelia` branding — canonical module path; NO root `splash.py` exists)
+- `assets/icon.py` (`Q-15` icon loader, Pillow LANCZOS DPI-aware load-time resizer, and icon cache — prefer load-time resizing here; do NOT overwrite source PNGs in `assets/icons/` without explicit Project Lead approval)
+- `CHANGELOG.md` (add `### S11e (v1.4.14)`)
+- `PROJECT_STATE.md` (record S11e results, approved Main Menu map, approved 3-layer tooltip contract, verification counts, and Manual Windows QA checklist)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py` (NEW — failing-first probes + guards, including artificially slowed startup splash test)
+- Existing UI/menu/support/splash test file(s) ONLY if directly asserting the old Support title, old menu structure, or old icon filename (MUST be declared explicitly in `/plan` for approval before editing — zero test weakening).
+
+Forbidden Files (DO NOT MODIFY in S11e):
+- `core/*.py`, source PNGs in `assets/icons/` (do NOT overwrite or delete original source PNGs without explicit Project Lead approval; perform load-time resizing in `assets/icon.py`), `requirements.txt`, `misora_config.json`, `backups/`.
+
+Out of Scope for S11e (DEFER):
+- `S12` Read-Only Final Audit & Release Gate (`v1.5.0`), Track B (`BIG-01`–`BIG-03`).
+
+==================================================
+PART 2 — EXACT TECHNICAL SPECIFICATIONS (S11e)
+==================================================
+
+### 1. `Q-03` (`u-4b`) — Per-Widget-Class Word-Wrap Audit & Contract (`misora.py`)
+Audit EVERY `tk.Text` widget in `misora.py` (do NOT blindly set `wrap="none"` or `wrap="word"` globally). Enforce and document this explicit per-class contract:
+- **`wrap="none"` (Fixed Horizontal Calibration):**
+  - `txt_dialogue` (Dialogue Editor, calibrated to `54d`),
+  - `txt_dialogue_preview` (Dialogue Preview, `54d × 3` native bleed),
+  - All Script Virtualized Card Pool `txt_body` (`54d × 3` read-only cards),
+  - `ImportFromXUATDialog` Title, Subtitle, Unique Actor (`1 line × 54d`), and Dialogue (`3 lines × 54d`) paired containers.
+- **`wrap="word"` (Prose / Long Readability):**
+  - Box 0 Synopsis editor & All Script Box 0 Synopsis block,
+  - `ImportFromXUATDialog` multi-line Synopsis (`Q-08`),
+  - MTL preview cards / output text,
+  - Logs, diagnostics, and About/Help text areas.
+- **Explicit Audit Verification in `/plan`:** Inspect `Quick Edit`, `Raw Commands`, Search/Replace inputs, and any other `tk.Text` found on disk, declare each widget's intentional `wrap` mode in `/plan`, and confirm no `54d` field silently wraps.
+
+### 2. `Q-05` (`u-1`) — Full Non-Blocking Splash Screen Lifecycle (`assets/splash.py`, `misora.py`)
+- **Full Startup Visibility Requirement:** The Splash Screen MUST stay visible until **ALL UI/UX construction AND full previous-session state restoration** (`_deferred_restore`, theme/font/config loading, UI component initialization, and previous document restore) have **completely finished** — NOT merely until the main window is instantiated.
+- **Honest Non-Blocking Progress:** Update splash status/progress honestly at each real startup stage (pumping safe UI ticks so Windows does not mark the process "Not Responding" and never reporting 100%/ready before restoration actually completes).
+- Keep headless/test isolation intact (`show_splash=False` must never pop up a splash during unit tests unless explicitly enabled for the splash test).
+
+### 3. `Q-13` (`u-11`) — `PriconneRe:TL` & `Cornelia` Branding (`assets/splash.py`, `misora.py`)
+- Display main project **`PriconneRe:TL`** (larger, **bold**) and creator **`Cornelia`** prominently and cleanly on BOTH the **Splash Screen** and the **About Dialog** (while retaining root `__init__.__version__` single-source parity).
+
+### 4. `Q-14` (`u-12`, `u-13`, `U-14`) — `Support the Creator` Dialog (`misora.py`)
+- Rename the Support dialog title, Help menu item, and header strictly to **`Support the Creator`** (replacing `"Support Misora"` / `"Support Me"`).
+- Translate **100%** of remaining Indonesian copy in the Support dialog into natural, clear, humble English referencing `PriconneRe:TL` and `Cornelia`.
+- Display **`assets/Service.gif`** enlarged cleanly to ~**600px target width** (preserving aspect ratio and clamped cleanly if monitor work area is smaller), keeping Pillow GIF animation (**NO FFmpeg/OpenCV/video dependencies**) and ensuring animation timers/frames are released cleanly on dialog close.
+
+### 5. `Q-15` (`u-2`, `u-17`, `u-18`) — Verified Icon Overhaul & Load-Time DPI Resize (`misora.py`, `assets/icon.py`)
+During `/plan`, inspect exact filenames, extensions, native pixel dimensions, and alpha transparency on disk under `assets/icons/`, then wire this exact Project-Lead-approved icon map using **load-time Pillow LANCZOS DPI-aware resizing in `assets/icon.py`** (do NOT overwrite source PNGs in `assets/icons/` without explicit Project Lead approval):
+- **Translate (`u-2`):** `assets/icons/language-translation-icon.png`
+- **All Script (`u-17`):** `assets/icons/BoxConversationList.png`
+- **New Box (`u-18`):** `assets/icons/BoxD.png` *(single speech bubble — NOT `BoxInsert.png`)*
+- **Copy Box (`u-18`):** `assets/icons/BoxCopy.png`
+- **Cut Box (`u-18`):** `assets/icons/BoxCut.png`
+- **Paste Box (`u-18`):** `assets/icons/BoxPaste.png`
+- **Replace Box (`u-18`):** `assets/icons/BoxInsert.png` *(speech bubble with circular swap arrows)*
+- **Select All Box (`Q-10` / `u-19`):** `assets/icons/BoxSelectAll.png` *(3 bubbles inside dashed blue marquee)*
+- **Parked (unused):** `assets/icons/BoxConversation.png`
+
+### 6. `Q-16` (`u-15`) — Main Menu Cleanup & NGUI Glossary Deduplication (`misora.py`)
+- Eliminate the 3× duplicate `NGUI Glossary` menu entries so `NGUI Glossary` appears **exactly once** in its canonical menu location.
+- Implement ONLY the Main Menu consolidation/renaming explicitly approved by the Project Lead in `/plan` Sub-Gate 1, preserving all shortcuts, dynamic enable/disable state syncs, and test compatibility.
+
+### 7. `Q-17` (`u-8`, `u-9`) — Complete Interactive Tooltips & Approved 3-Layer Tooltip System (`misora.py`)
+- Audit EVERY interactive button, toggle, checkbutton, and radiobutton in the main workspace and add clear tooltips wherever missing.
+- Implement the Project-Lead-approved **3-layer tooltip** behavior from `/plan` Sub-Gate 2 (NOT 3 font sizes), cleanly respecting Light/Dark themes, multi-monitor clamping, and timer cleanup on `destroy()`.
+
+==================================================
+PART 3 — FAILING-FIRST TDD VERIFICATION (`tests/test_v15_s11e_polish_splash_menu_tooltips.py`)
+==================================================
+Use strict test isolation (`TemporaryDirectory` config/backups, mocked `messagebox`, `app.destroy()` in `finally:`).
+
+### Failing-First Defect/Behavior Probes (MUST FAIL pre-patch, PASS post-patch):
+1. `test_probe_1_word_wrap_contract_across_all_widget_classes`:
+   - Inspects `txt_dialogue`, `txt_dialogue_preview`, All Script pooled `txt_body`, Import `54d` fields -> asserts `wrap == "none"`.
+   - Inspects Box 0 Synopsis, Import Synopsis, MTL output, and logs -> asserts `wrap == "word"`.
+2. `test_probe_2_splash_stays_visible_during_artificially_slowed_startup_and_restore`:
+   - Launches startup with `show_splash=True` and an **artificially slowed session-restore hook**.
+   - Asserts: (a) splash remains visible/alive while UI construction & slowed previous-session restore are still in progress, (b) progress indicator does NOT claim 100%/complete prematurely, and (c) splash closes cleanly once restoration finishes.
+3. `test_probe_3_branding_support_the_creator_en_and_600px_gif`:
+   - Asserts `PriconneRe:TL` (bold/larger) and `Cornelia` appear on BOTH Splash Screen and About dialog (preserving root `__version__` parity).
+   - Opens Support dialog -> asserts title/menu is `"Support the Creator"`, zero Indonesian strings remain, `Service.gif` renders via Pillow near ~600px target width preserving aspect ratio, and animation timers stop cleanly on close.
+4. `test_probe_4_corrected_icon_mapping_menu_dedup_and_3layer_tooltips`:
+   - Asserts exact approved icon mapping (`BoxD.png` for New Box, `BoxInsert.png` for Replace Box, `BoxSelectAll.png` for Select All Box, `BoxConversationList.png` for All Script, `language-translation-icon.png` for Translate, `BoxCopy`/`BoxCut`/`BoxPaste`).
+   - Walks the entire Main Menu tree -> asserts `NGUI Glossary` appears **EXACTLY ONCE** and all approved menu commands & shortcuts remain wired.
+   - Audits interactive toolbar/header buttons, toggles, and radiobuttons -> asserts 100% tooltip coverage and verifies the approved **3-layer tooltip** behavior (distinct layer content, NOT merely font-size scaling).
+
+### Regression Guards (MUST PASS both pre-patch and post-patch):
+1. `test_guard_1_zero_new_third_party_deps_and_ctypes_font_loader_intact`
+2. `test_guard_2_s09_to_s11d_core_invariants_preserved`
+
+==================================================
+PART 4 — VERIFICATION COMMANDS & DEFINITION OF DONE
+==================================================
+1. Pre-patch probes: `py -3.12 -m unittest tests.test_v15_s11e_polish_splash_menu_tooltips -v` (all 4 probes FAIL, guards PASS).
+2. Post-patch compile: `py -3.12 -m compileall -q __init__.py misora.py core assets tests`
+3. Targeted suites: `py -3.12 -m unittest tests.test_v15_s11e_polish_splash_menu_tooltips tests.test_v15_s05_speaker_console_about tests.test_v15_s01_stability_remediation -v` (plus any S11e-updated UI test suites).
+4. Full discovery: `py -3.12 -m unittest discover -s tests -v` (exact counts; 0 new regressions).
+5. Baseline-relative `git status --short`; update `CHANGELOG.md` and `PROJECT_STATE.md` with Manual Windows QA checklist.
