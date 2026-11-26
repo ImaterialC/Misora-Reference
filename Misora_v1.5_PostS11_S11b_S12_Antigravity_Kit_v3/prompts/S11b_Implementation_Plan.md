@@ -98,8 +98,8 @@
 
 Close ALL 3 current permissive bypasses (unvalidated direct `.txt`, cascading `p / "en" / "Text"` and `p / "Text"`, and bare `low_name == "text"` fallback):
 - **ONLY Permitted Dictionary Subtree:** Canonical `Translation\en\Text` (case-insensitive segment suffix on Windows).
-- **Supported User-Selected Entry Points (ALL 5):**
-  1. **Game Root:** `<GameRoot>\src\BepInEx\Translation\en\Text` (Project Lead's `PriconneRe-TL\src\BepInEx\...` hierarchy) **AND** `<GameRoot>\BepInEx\Translation\en\Text`.
+- **Supported User-Selected Entry Points (5 user entry-point categories, 6 concrete path forms):**
+  1. **Game Root (2 path forms):** `<GameRoot>\src\BepInEx\Translation\en\Text` (Project Lead's `PriconneRe-TL\src\BepInEx\...` hierarchy) **AND** `<GameRoot>\BepInEx\Translation\en\Text`.
   2. **`BepInEx` folder:** `<BepInEx>\Translation\en\Text`.
   3. **`Translation` folder:** `<Translation>\en\Text`.
   4. **`Translation\en` folder:** `<Translation\en>\Text`.
@@ -122,11 +122,11 @@ In `core/xuat_index.py::_is_excluded_xuat_file(path: Path)`:
 |---|---|---|---|---|
 | `core/xuat_index.py:228-236` | `XuatIndex.__init__` | `files_indexed`, `skipped_files`, `entry_count`, `entries`, `_norm_stripped_map` | Index storage | Add `self.files_scanned: int = 0` + `@property entries_read -> entry_count` |
 | `core/xuat_index.py:238-250` | `XuatIndex.add_entry` | `self.entries.append`, `_exact_map`, `_norm_stripped_map`, `_value_map`, `self.entry_count += 1` | Populate lookup tiers & counts | Guard `self.entry_count += 1` on `if k_norm_stripped:` ONLY; keep `entries`/`_exact_map`/`_value_map` unchanged (zero silent dropping) |
-| `core/xuat_index.py:314-315` | `XuatIndex.__bool__` | `return self.entry_count > 0` | Truthiness check | Safe: True whenever >=1 valid translation entry exists |
-| `core/xuat_index.py:317-318` | `XuatIndex.__len__` | `return self.entry_count` | Count of indexed valid entries | Reflects canonical `entry_count` (`entries_read`) cleanly |
+| `core/xuat_index.py:314-315` | `XuatIndex.__bool__` | `return bool(self.entries)` *(updated from `self.entry_count > 0`)* | Truthiness check | **Critical Fix:** Prevents `bool(idx)` from returning `False` when an index contains ONLY empty-normalized-key entries (`entries` / `_exact_map` / `_value_map` non-empty while `entry_count == 0`), so `MTLEngine.translate()` still reaches exact-tier lookup |
+| `core/xuat_index.py:317-318` | `XuatIndex.__len__` | `return self.entry_count` | Count of indexed valid entries | Reflects canonical `entry_count` (`entries_read`: valid entries with non-empty `normalize_xuat_key(..., strip_ngui=True)`) |
 | `core/xuat_index.py:320-333` | `__contains__`, `__getitem__`, `get` | Delegates to `lookup_translation()` | Dict-like MTL interface | Unaffected (lookup reads `_exact_map` / `_norm_exact_map` / `_norm_stripped_map`) |
-| `core/mtl_engine.py:153-163` | `MTLEngine.translate` (cache hit) | `if cfg.use_xuat_cache and xuat_cache:` (`__bool__`) -> `lookup_translation()` | Instant XUAT cache check | Safe: uses `__bool__`; non-empty valid indices remain truthy |
-| `core/mtl_engine.py:183-190` | `MTLEngine.translate` (`"XUAT Cache"` engine) | `if xuat_cache:` (`__bool__`) -> `lookup_translation()` | XUAT Cache MTL lookup | Safe: same as above |
+| `core/mtl_engine.py:153-163` | `MTLEngine.translate` (cache hit) | `if cfg.use_xuat_cache and xuat_cache:` (`__bool__`) -> `lookup_translation()` | Instant XUAT cache check | Safe with `XuatIndex.__bool__() -> bool(self.entries)` (exact-tier lookup still executes even when only empty-normalized-key entries exist; `core/mtl_engine.py` remains untouched) |
+| `core/mtl_engine.py:183-190` | `MTLEngine.translate` (`"XUAT Cache"` engine) | `if xuat_cache:` (`__bool__`) -> `lookup_translation()` | XUAT Cache MTL lookup | Safe with `XuatIndex.__bool__() -> bool(self.entries)` (`core/mtl_engine.py` remains untouched) |
 | `core/xuat_cleanup.py:510-511` | `classify_cleanup_candidates` | `entries = getattr(xuat_index, "entries", ())`; `len(entries)` | Iterate all parsed entries across Pass 1/2/3 | Unaffected: `XuatIndex.entries` is preserved untouched |
 | `core/xuat_cleanup.py:689-691` | `classify_cleanup_candidates` | `file_fingerprints`, `files_indexed` | Source SHA-256 fingerprint capture | Unaffected |
 | `misora.py:2094-2095` | `MisoraApp.__init__` | `self.xuat_index = None`, `self.xuat_entries = None` | Cache + alias for MTL | Alias stays synchronized on every rebuild |
@@ -144,6 +144,7 @@ In `core/xuat_index.py::_is_excluded_xuat_file(path: Path)`:
 - **Properties & Attributes on `XuatIndex`:**
   - `files_scanned: int`: unique, eligible, non-excluded `.txt` files actually attempted after deduplication. In `build_xuat_index()`, increment `idx.files_scanned += 1` immediately upon attempting each deduplicated non-excluded file (ensuring completed-scan identity `idx.files_scanned == len(idx.files_indexed) + len(idx.skipped_files)`).
   - `entry_count: int` and synchronized `@property def entries_read(self) -> int: return self.entry_count` — incremented in `add_entry()` **ONLY** when `k_norm_stripped != ""` (empty normalized keys NEVER enter `_norm_stripped_map` and NEVER increment `entry_count`/`entries_read`, while still entering `entries`, `_exact_map`, `_value_map`).
+  - `__bool__(self) -> bool: return bool(self.entries)` (so an index holding only empty-normalized-key entries stays truthy for `MTLEngine.translate()` exact lookup without modifying forbidden `core/mtl_engine.py`), while `__len__(self) -> int: return self.entry_count`.
   - `@property def unique_keys(self) -> int: return len(self._norm_stripped_map)`
   - `@property def duplicate_keys(self) -> int: return sum(1 for v in self._norm_stripped_map.values() if len(v) > 1)`
   - `@property def duplicate_entries(self) -> int: return self.entries_read - self.unique_keys`
@@ -158,18 +159,22 @@ In `core/xuat_index.py::_is_excluded_xuat_file(path: Path)`:
 ### 4A. Shortcut & UI Surface Migration (`misora.py`, `README.md`)
 
 - **Conflict Check Confirmed:** `Ctrl+Shift+S` is currently unbound in `_on_misora_shortcut()` (lines `9015–9033`), `_bind_shortcuts()` (lines `9196–9253`), and menus (`4530–4860`). No `"Save As"` command exists in the app.
+- **Shortcuts Help & Existing Tests Audit:**
+  - Inspected `misora.py` (`help_menu` lines `4955–4960` and `on_about()` lines `18973–19060`): there is NO separate Shortcuts Help dialog or in-app shortcut reference text mentioning `Ctrl+S`. All in-app `Ctrl+S` references are in `file_menu`, `btn_save`, `_show_file_context_menu`, `_on_misora_shortcut`, and `_bind_shortcuts` (covered below).
+  - Inspected `tests/test_p3_s13_ribbon_shortcuts.py`: it does **NOT** lock `Ctrl+S -> on_save()` and **MUST remain untouched** in S11b.
+- **Single-Fire `"break"` Requirement:** `_on_misora_shortcut()` MUST return `"break"` for both `Ctrl+S` (`on_save_project()`) and `Ctrl+Shift+S` (`on_save()`) so focused editor widgets with the `MisoraShortcuts` bindtag never fall through to root `<Control-s>` / `<Control-Shift-S>` bindings and never double-fire either save handler.
 - **Exact Surface Updates:**
 
 | Surface (`file:line`) | Current | New |
 |---|---|---|
-| `misora.py:8976-8978` (`_on_misora_shortcut`) | `Ctrl+S` -> `self.on_save()` | `Ctrl+S` -> `self.on_save_project()` |
-| `misora.py:9015-9034` (`_on_misora_shortcut` shift) | *(no `s`)* | `Ctrl+Shift+S` -> `self.on_save()` |
+| `misora.py:8976-8978` (`_on_misora_shortcut`) | `Ctrl+S` -> `self.on_save()` (`return "break"`) | `Ctrl+S` -> `self.on_save_project()` + `return "break"` |
+| `misora.py:9015-9034` (`_on_misora_shortcut` shift) | *(no `s`)* | `Ctrl+Shift+S` -> `self.on_save()` + `return "break"` |
 | `misora.py:9211` (`_bind_shortcuts` root bind) | `self.bind("<Control-s>", lambda e: self.on_save())` | `self.bind("<Control-s>", lambda e: self.on_save_project())` + `<Control-Shift-S>` / `<Control-Shift-s>` -> `self.on_save()` |
 | `misora.py:4541` (`file_menu`) | `"Save Project (.misora)..."` (no accelerator) | `"Save Project (.misora)"`, `command=self.on_save_project`, `accelerator="Ctrl+S"` + new `"Save Project As (.misora)..."`, `command=lambda: self.on_save_project(save_as=True)` |
-| `misora.py:4543` (`file_menu`) | `"Save & Patch Bundle"`, `accelerator="Ctrl+S"` | `"Save & Patch Bundle"`, `command=self.on_save`, `accelerator="Ctrl+Shift+S"` |
-| `misora.py:8864` (`btn_save` toolbar) | `text=" Save & Patch Bundle (Ctrl+S)"` | `text=" Save & Patch Bundle (Ctrl+Shift+S)"` + explicit tooltip distinguishing Save Project (`Ctrl+S`) vs Save & Patch File (`Ctrl+Shift+S`) |
-| `misora.py:16106` (tab context menu) | `label="Save File (Ctrl+S)"` | Type-aware dynamic label: `"Save & Patch Bundle (Ctrl+Shift+S)"` if `self.is_bundle_file` else `"Save File (Ctrl+Shift+S)"` |
-| `README.md:30, 37, 72–73` | `Ctrl+S` = Save & Patch; `Ctrl+Shift+S` = Save As (stale) | `Ctrl+S` = **Save Project (`.misora`)** (saves workspace session refs/state/locks ONLY); `Ctrl+Shift+S` = **Save & Patch** (saves/patches active `.unity3d`/`.v2.txt`/`.txt` + optional XUAT sync); remove stale `"Save As"` |
+| `misora.py:4543` (`file_menu`) | `"Save & Patch Bundle"`, `accelerator="Ctrl+S"` | `"Save File / Patch Bundle"`, `command=self.on_save`, `accelerator="Ctrl+Shift+S"` |
+| `misora.py:8864` (`btn_save` toolbar) | `text=" Save & Patch Bundle (Ctrl+S)"` | `text=" Save File / Patch Bundle (Ctrl+Shift+S)"` + explicit tooltip distinguishing `Ctrl+Shift+S` (Save File / Patch Bundle + XUAT sync) from `Ctrl+S` (Save Project `.misora`) |
+| `misora.py:16106` (tab context menu) | `label="Save File (Ctrl+S)"` | Type-aware dynamic label inspecting the **right-clicked tab's file type** (`doc_info = self.open_documents.get(target_path, {})`; `is_bundle_target = bool(doc_info.get("is_bundle", False)) or target_path.suffix.lower() == ".unity3d"` — NOT active tab's `self.is_bundle_file`): `"Save & Patch Bundle (Ctrl+Shift+S)"` if `is_bundle_target` else `"Save File (Ctrl+Shift+S)"` |
+| `README.md:30, 37, 72–73` | `Ctrl+S` = Save & Patch; `Ctrl+Shift+S` = Save As (stale) | `Ctrl+S` = **Save Project (`.misora`)** (saves workspace session refs/state/locks ONLY); `Ctrl+Shift+S` = **Save File / Patch Bundle** (saves/patches active `.unity3d`/`.v2.txt`/`.txt` + optional XUAT sync); remove stale `"Save As"` |
 
 ### 4B. Data-Safety Safeguards & Full `_current_project_path` Lifecycle (`misora.py`)
 
@@ -231,14 +236,15 @@ In `core/xuat_index.py::_is_excluded_xuat_file(path: Path)`:
 
 ### Confirmed Failing-First Probes (3 — MUST FAIL pre-patch, PASS post-patch):
 1. `test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics`:
-   - Tests all 5 valid entry points (`<GameRoot>\src\BepInEx\Translation\en\Text`, `<GameRoot>\BepInEx\Translation\en\Text`, `BepInEx`, `Translation`, `Translation\en`, `Translation\en\Text`) + valid direct `.txt` inside `Translation\en\Text`.
+   - Tests all 5 user entry-point categories (6 concrete path forms: `<GameRoot>\src\BepInEx\Translation\en\Text`, `<GameRoot>\BepInEx\Translation\en\Text`, `<BepInEx>\Translation\en\Text`, `<Translation>\en\Text`, `<Translation\en>\Text`, `<Translation\en\Text>`) + valid direct `.txt` inside `Translation\en\Text`.
    - Rejects all 5 forbidden locations (`Translation\ja\Text`, arbitrary `Text/`, standalone `.txt` outside, `Translation\en\Other`, `Translation\en\RedirectedResources`).
    - Verifies all 5 new rule exclusions via `endswith` (`*.font.txt`, `*.resizer.txt`, `*Postprocessors.txt`, `*Preprocessors.txt`, `*Substitutions.txt`) + legacy exclusions, AND verifies a valid file containing e.g. `substitutions` mid-stem (if not ending in `substitutions.txt`) or verifying strict tail match.
    - Verifies root/file deduplication + **`m-2`** simulated read/decode failure (invalid bytes / `OSError`) confirming `files_scanned == len(files_indexed) + len(skipped_files)` (failed file counted in `files_scanned` & `skipped_files`, excluded/duplicate NOT counted) and visually distinguished in status & `ImportFromXUATDialog` summary labels.
    - Verifies metric math backed by `_norm_stripped_map` (`entries_read == entry_count == unique_keys + duplicate_entries`, `unique_keys == len(_norm_stripped_map)`, `duplicate_keys`) across single, 2x, 3x duplicates and empty/invalid normalized keys.
-   - Verifies `_exact_map` & `_value_map` lookup parity including empty-normalized-key edge case (present in `entries`/`_exact_map`/`_value_map`, absent from `_norm_stripped_map`, not counted in `entry_count`/`entries_read`).
+   - Verifies `_exact_map` & `_value_map` lookup parity including an explicit regression test constructing a `XuatIndex` containing **ONLY** an empty-normalized-key entry (e.g., `"[FF0000][-]=TagOnlyVal"`): asserts `bool(idx) is True`, `len(idx) == 0`, `idx.entry_count == 0`, `idx.entries_read == 0`, `len(idx._norm_stripped_map) == 0`, AND `MTLEngine(MTLConfig(active_engine="XUAT Cache", use_xuat_cache=True)).translate("[FF0000][-]", xuat_cache=idx) == "TagOnlyVal"`.
 2. `test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut`:
-   - Tests `Ctrl+S` -> `on_save_project()` (not `on_save()`) and `Ctrl+Shift+S` -> `on_save()` across `_on_misora_shortcut` & root binds; verifies File menu (`Save Project (.misora)` `Ctrl+S`, `Save Project As (.misora)...`, `Save & Patch Bundle` `Ctrl+Shift+S`), `btn_save`, type-aware tab context menu across **bundle**, **`.v2.txt`**, and **plain `.txt`**, and `README.md` (no stale `"Save As"` for `Ctrl+Shift+S`).
+   - Tests `Ctrl+S` -> `on_save_project()` (not `on_save()`) and `Ctrl+Shift+S` -> `on_save()` across `_on_misora_shortcut` & root binds; verifies `_on_misora_shortcut()` returns `"break"` for both `Ctrl+S` and `Ctrl+Shift+S` AND real keypress dispatch on a `MisoraShortcuts`-bound editor widget fires `on_save_project` / `on_save` **exactly once** (zero double-fire).
+   - Verifies File menu (`Save Project (.misora)` `Ctrl+S`, `Save Project As (.misora)...`, `Save File / Patch Bundle` `Ctrl+Shift+S`), `btn_save` (`Save File / Patch Bundle (Ctrl+Shift+S)` + tooltip), type-aware tab context menu inspecting the **right-clicked tab's file type** across **bundle** (`Save & Patch Bundle (Ctrl+Shift+S)`), **`.v2.txt`** (`Save File (Ctrl+Shift+S)`), and **plain `.txt`** (`Save File (Ctrl+Shift+S)`), and `README.md` (no stale `"Save As"` for `Ctrl+Shift+S`). (Confirms `tests/test_p3_s13_ribbon_shortcuts.py` remains untouched.)
    - Tests all 7 `_current_project_path` lifecycle & data-safety cases `(a)`–`(g)`:
      - `(a)` first `Ctrl+S` prompts `asksaveasfilename()`,
      - `(b)` subsequent `Ctrl+S` saves directly without prompt,
@@ -261,13 +267,14 @@ In `core/xuat_index.py::_is_excluded_xuat_file(path: Path)`:
 | File | Action | Exact Changes |
 |---|---|---|
 | `__init__.py` | Modify | Bump `"1.4.10"` -> `"1.4.11"` |
-| `core/xuat_index.py` | Modify | Strict `resolve_xuat_text_roots()`, `m-1` `endswith` exclusions, `files_scanned` + `entries_read`/`unique_keys`/`duplicate_keys`/`duplicate_entries`, `entry_count` valid-key guard |
-| `misora.py` | Modify | `_resolve_xuat_text_root` `src/BepInEx`, `m-2` status/Import labels, `Ctrl+S` -> `on_save_project()`, `Ctrl+Shift+S` -> `on_save()`, `_current_project_path` lifecycle (a–g) + honest toast, File menu / `btn_save` / type-aware tab context menu, `Q-23` preview highlight removal + defensive guard |
-| `README.md` | Modify | Update `Ctrl+S` -> Save Project (`.misora`), replace stale `Ctrl+Shift+S = Save As` with `Save & Patch` |
+| `core/xuat_index.py` | Modify | Strict `resolve_xuat_text_roots()`, `m-1` `endswith` exclusions, `files_scanned` + `entries_read`/`unique_keys`/`duplicate_keys`/`duplicate_entries`, `entry_count` valid-key guard, `__bool__() -> bool(self.entries)` |
+| `misora.py` | Modify | `_resolve_xuat_text_root` `src/BepInEx`, `m-2` status/Import labels, `Ctrl+S` -> `on_save_project()` (`"break"`), `Ctrl+Shift+S` -> `on_save()` (`"break"`), `_current_project_path` lifecycle (a–g) + honest toast, File menu (`"Save File / Patch Bundle"`) / `btn_save` (`"Save File / Patch Bundle (Ctrl+Shift+S)"`) / right-clicked-tab-aware context menu, `Q-23` preview highlight removal + defensive guard |
+| `README.md` | Modify | Update `Ctrl+S` -> Save Project (`.misora`), replace stale `Ctrl+Shift+S = Save As` with `Save File / Patch Bundle` |
 | `CHANGELOG.md` | Modify | Add `### S11b (v1.4.11)` |
 | `PROJECT_STATE.md` | Modify | Record 5-stage profiling, `Q-04` (`1.1` intended, `1.2` `NOT REPRODUCED — NEEDS USER REPRODUCTION DETAILS`, `1.3` `NOT TESTED`), `Q-18` `DEFERRED`, test baseline, Manual Windows QA checklist (incl. real `.unity3d` save timing) |
 | `tests/test_v15_s11b_scanner_save_preview.py` | Create | 3 failing-first probes + 2 regression guards |
 | `tests/test_v15_s03_all_script_preview_paste.py` | Modify | Migrate `txt_dialogue_preview` `line_overflow` assertion (`>= 2` -> `()`) + assert Editor retains markers |
 | `tests/test_p3_s18_game_preview.py` | Modify | Add `m-5` `self.assertEqual(self.app.txt_dialogue_preview.tag_ranges("line_overflow"), ())` inside `test_01` |
 
+**Untouched Existing Shortcut Suite:** `tests/test_p3_s13_ribbon_shortcuts.py` (does NOT lock `Ctrl+S -> on_save()`).
 **Forbidden Files (Strictly Untouched):** `core/story_ast.py`, `core/bundle_io.py`, `core/script_codec.py`, `core/xuat_cleanup.py`, `core/xunity_sync.py`, `core/word_wrap.py`, `core/mtl_engine.py`, `core/undo_journal.py`, `assets/*`, `requirements.txt`, `misora_config.json`, `backups/`.
