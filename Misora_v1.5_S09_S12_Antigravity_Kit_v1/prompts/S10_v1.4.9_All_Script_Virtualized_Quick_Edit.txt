@@ -1,0 +1,156 @@
+/plan Implement S10 (v1.4.9): Virtualized Read-Only All Script Card Pool (Expectasi2.png Pixel-Exact 54d x 3), Raw-Breaks-Safe Segment-Aware Quick Edit Tab, View-Aware Live Sync, Active Box Highlight, Box 0 Metadata Block, and All Script Preview Removal in Misora: Story Editor.
+
+CONTEXT POINTERS (READ DIRECTLY FROM DISK BEFORE PLANNING):
+@AGENTS.md @PROJECT_STATE.md @CHANGELOG.md @__init__.py @misora.py @core/story_ast.py @tests/test_v15_s08_release_gate_stress.py @tests/
+
+==================================================
+PART 0 — EXECUTION MODE, PLANNING GATE & NON-NEGOTIABLE GUARDRAILS
+==================================================
+1. Planning-First Gate: Inspect live files on disk first (including exact `core/story_ast.py` `BoxSnapshot.from_box()`, `StoryDocument._records_from_snapshot()`, `StoryDocument.replace_box()`, `StoryDocument.inject_box()`, and exact S03 All Script test filenames in `tests/`), capture `git rev-parse HEAD`, `git status --short`, and Python 3.12 version, then produce a symbol-bound Implementation Plan artifact and STOP to wait for explicit Project Lead `Proceed` before editing ANY file.
+2. **Forbidden-Core STOP Rule:** `core/story_ast.py` is FORBIDDEN in S10. You MUST use existing AST APIs to construct `raw_breaks`-consistent segment snapshots. If during `/plan` you discover that existing `core/story_ast.py` APIs cannot satisfy the `raw_breaks`-safe Quick Edit contract without core changes, STOP immediately and report the exact required core dependency — NEVER edit forbidden files.
+3. No Destructive Git Commands: NEVER run `git reset`, `git clean`, `git stash`, `git checkout`, `git restore`, `git commit`, or `git push`. Preserve user `misora_config.json`, `backups/`, and untracked files.
+4. No New Third-Party Dependencies: Python 3.12 stdlib, Tkinter, UnityPy, Pillow only.
+5. Architecture Migration Honesty: Replacing Technique A's `1 mapped tk.Text` assertion in `test_v15_s08_release_gate_stress.py` MUST introduce equal-or-stronger Virtualized Card Pool acceptance guards (never merely deleting assertions).
+6. Honest Benchmarking: Record actual wall-clock timings on the same Windows/Python 3.12/Tk 8.6 host for comparison against the S08 `1436.37 ms` baseline, without fabricating performance claims.
+
+==================================================
+PART 1 — STRICT FILE OWNERSHIP BOUNDARIES
+==================================================
+Allowed Files to Create/Modify (ONLY after `Proceed`; verify exact test paths on disk during `/plan`):
+- `__init__.py` (bump `__version__` from `"1.4.8"` to `"1.4.9"`)
+- `misora.py`
+- `CHANGELOG.md`
+- `PROJECT_STATE.md`
+- `tests/test_v15_s10_all_script_quick_edit.py` (NEW)
+- `tests/test_v15_s08_release_gate_stress.py` (migrate `test_stress_4` Technique A assertions -> Virtualized Card Pool acceptance invariants)
+- Pre-existing S03 All Script test file(s) strictly limited to updating retired All Script Preview / Technique A assertions (exact filenames MUST be verified on disk and declared in the `/plan` Implementation Plan for approval before editing).
+
+Forbidden Files (DO NOT MODIFY in S10):
+- `core/*.py`, `assets/*`, `requirements.txt`, `misora_config.json`, `backups/`.
+
+Out of Scope for S10 (DEFER to S11/S12):
+- Import from XUAT redesign, async XUAT Archiving, and unified progress bar (`S11`).
+- Dead-code sweep of retired Pillow helpers in `assets/preview_frames.py`, non-fixture test hygiene, and `v1.5.0` promotion (`S12`).
+
+==================================================
+PART 2 — EXACT TECHNICAL SPECIFICATIONS (S10)
+==================================================
+
+### 1. `U-05` — Remove All Script Preview Mode Only (`misora.py`)
+- Remove the separate **All Script Preview** rendering mode.
+- When entering `All Script` mode, disable/uncheck the `Preview` toggle (or remove its All Script preview branch) so All Script presents ONE clean, authoritative view.
+- **Strictly Preserve Dialogue Preview:** In `Dialogue` mode, the clean-room `Dialogue Preview` gold capsule and its S09 pink `▼` (`U-19`) MUST remain 100% functional and unchanged.
+
+### 2. `U-15`, `U-17`, `U-20`, `U-04` — Virtualized Read-Only Card Pool (`misora.py`)
+Replace S03 Technique A single-`tk.Text` rendering with a **Virtualized Read-Only Card Pool**:
+
+- **Dynamic Viewport Pool Sizing:**
+  - Calculate pool capacity dynamically from `ceil(viewport_height / card_slot_height) + overscan` (recomputed on viewport resize; NEVER hardcode a fixed pool of 12–15 cards).
+  - Virtual scroll canvas/scrollbar maps total logical document height (`Box 0 block + N dialogue card slots`). Scrolling rebinds existing pool card widgets to newly visible indices — zero per-box widget creation/destruction during scroll, and zero per-box Pillow image generation (`get_all_script_card_*`, `get_all_script_dotted_rule_image`, `get_voice_badge_image` removed from All Script render path).
+- **Widget Recycling & Identity Safety:**
+  - Each pooled card stores `card.bound_box_idx` and `card.bound_box_uid` updated atomically on rebind.
+  - All click/checkbox/lock/scroll bindings resolve dynamically through `card.bound_box_idx` / `card.bound_box_uid` so recycled cards NEVER display stale text or mutate the wrong box.
+  - Select Box and Translation Lock visual indicators read/write authoritative document sets so states survive recycling cleanly.
+  - On recycle to a different box, reset the card's internal scroll view (`yview_moveto(0.0)`, `xview_moveto(0.0)`) so no previous box's internal scroll offset bleeds onto another box.
+- **Box 0 Metadata Block (`U-17`, `U-18`):**
+  - Render Box 0 at the top as a separate full-width, auto-wrapped metadata/synopsis block (`Title`, `Subtitle`, full `Synopsis`).
+  - NEVER force Box 0 into the `54d × 3` dialogue card clipping geometry and NEVER apply red overflow markers to Box 0.
+- **Ordinary Dialogue Card Layout & Pixel-Exact `54d` Reference Geometry (`U-20`):**
+  - **Header (authoritative per `Expectasi2.png` + Voice Cue clarification):**
+    `[ ]  🔓  ◆  [BOX #NNN]  Speaker  ♪ vo_adv_...  [N segs]`
+    * **KEEP** inline `♪` symbol and voice cue identifier text (`vo_adv_...`) whenever `box.voice_cue` is present; NEVER delete or alter `box.voice_cue` in `StoryDocument` AST.
+    * **REMOVE** the round blue speaker badge image (`get_voice_badge_image`) completely from All Script headers.
+    * **NO dashed `----------` separator lines** anywhere in the card.
+    * Reserve a fixed-width Select Box slot so toggling Select Box never shifts the Lock icon or header horizontally.
+  - **Body (Pixel-Exact `54d × 3` Read-Only Box):**
+    * **NEVER rely on `tk.Text(width=54)`** for horizontal calibration. Compute exact container/body pixel width from the canonical S09 `54d` reference pixel helper (Nunito Bold 54-digit reference width, accounting explicitly for border width and internal padding) and enforce it via pixel container sizing (`pack_propagate(False)` / `grid_propagate(False)` or Canvas window width) so container width stays identical across `Global — Nunito Bold` and `Japanese` presets.
+    * Fixed visual height of **3 lines** (`height=3`, `wrap="none"`), strictly read-only.
+    * **ZERO red overflow markers** in All Script (red markers exist in Dialogue Editor only).
+    * Lines 4+ stay clipped inside the fixed 3-line height (no visible scrollbar; full text always preserved in AST); horizontal text >54d clips cleanly inside the constant box width.
+- **Non-Conflicting Internal Card Scrolling Contract (Required Gesture Separation):**
+  - **Outer All Script list scrolling:** Plain `<MouseWheel>` anywhere inside the All Script viewport (including when cursor is over a card body) ALWAYS scrolls the **outer All Script list** smoothly.
+  - **Active/Hovered card internal scrolling (4+ line cards, no visible scrollbar):**
+    * `Shift+<MouseWheel>` over a card body scrolls that card's internal text vertically (`yview_scroll`) and returns `"break"` so the outer list does NOT move.
+    * When a read-only card body is focused/selected, `<Up>`, `<Down>`, `<Prior>` (`PageUp`), and `<Next>` (`PageDown`) scroll its internal lines when content exceeds 3 lines (returning `"break"`), without scrolling the outer list.
+- **Active Box Highlight (`U-04`):**
+  - Clicking/selecting a box applies a high-contrast active card background tint, distinct accent border, and header marker (`▶ [BOX #NNN]`) updated in-place on the old and new visible cards ONLY (visually distinct from both the Select Box checkbox state and Translation Lock state).
+
+### 3. `U-03` — `raw_breaks`-Safe Segment-Aware `Quick Edit` Tab & View-Aware Live Sync (`misora.py`)
+- Add a **`Quick Edit`** tab directly beside **`Raw Commands`** in the bottom pane (preserve the exact locked `"Raw Commands"` tab label).
+- **Plain Surface:** No ruler, no character counter, no red overflow markers, no NGUI rich-text preview effects inside `Quick Edit`.
+- **View-Aware Visibility & Surface Update Contract:**
+  - **All Script mode:** Auto-select `Quick Edit` when entering All Script. Typing in `Quick Edit` patches **ONLY** the active visible Virtualized Card in-place (NEVER calling `_render_continuous_view()` or rebuilding the All Script pool per keystroke).
+  - **Dialogue mode, Preview OFF:** Keep `Quick Edit` available; typing refreshes the visible Dialogue Editor state as required without rebuilding All Script.
+  - **Dialogue mode, Preview ON:** Typing in `Quick Edit` updates the read-only `Dialogue Preview` capsule live (keeping `txt_dialogue_preview` strictly read-only and excluded from save paths).
+  - **Raw Commands active:** Avoid unnecessary `Quick Edit` widget updates while the `Raw Commands` tab is active, unless flushing a required pending edit on tab switch.
+- **CRITICAL — `raw_breaks`-Safe Multi-Segment Snapshot Construction (Data Integrity Guard):**
+  Because `BoxSnapshot.from_box()` stores each segment's `Seg.raw` into `raw_breaks` and `StoryDocument._records_from_snapshot()` uses `raw_breaks[k]` as the record text for non-linebreak values, mutating `seg_texts` while retaining stale `raw_breaks` WOULD silently write old segment text back into `StoryDocument.records`!
+  You MUST implement the following exact segment-edit lifecycle using existing `core/story_ast.py` APIs:
+  1. **Session Start:** When a Box editing session begins in `Quick Edit`, capture ONE complete original `BoxSnapshot.from_box(box)` (`old_snapshot`) bound to stable **`box.uid`**.
+  2. **Separate Segment Buffers:**
+     - Single-segment Box (`len(box.segs) <= 1`): expose ONE plain `tk.Text` editor.
+     - Multi-segment Box (`len(box.segs) > 1`): expose EACH segment (`Seg 1`, `Seg 2`, ..., `Seg K`) as its own compact plain editable `tk.Text` row inside the scrollable `Quick Edit` tab — NEVER flatten multi-segment boxes into one string.
+  3. **Live Model & View Update:** Collect edited text separately for each segment and update the live `StoryDocument` via existing lossless AST APIs (`inject_box` / updated `raw_breaks` matching edited segment text and document break conventions) so `StoryDocument.records` ALWAYS contain the actual edited segment text, while preserving exact segment count/ordering, `speaker`, `voice_cue`, `kind`, and all `extra_args`. Update ONLY the active visible surface per the View-Aware contract above.
+  4. **One Logical Undo Transaction (NO Per-Keypress Undo Spam):** Do NOT create a separate Undo transaction on every keypress or in every segment editor. Record **ONE complete old/new `BoxSnapshot` delta** (`old_snapshot` captured at session start -> fresh `new_snapshot = BoxSnapshot.from_box(updated_box)` containing updated `seg_texts` AND updated `raw_breaks`) when the edit session commits or is flushed.
+  5. **Mandatory Flush Points:** Flush any pending `Quick Edit` session BEFORE Box navigation, view/mode switch, bottom-tab switch, document switch, document close, and save.
+  6. **Lock & Immutability:** Enforce **Translation Lock** at the model/application mutation layer (disable/read-only `Quick Edit` widgets and block mutation when active box is locked). Never mutate immutable JP source keys (`_original_jp_by_uid`, `sync_manager.jp_source_cache`) or write drafts into `.misora`.
+
+### 4. S08 Stress Test Migration (`tests/test_v15_s08_release_gate_stress.py`)
+- Update `test_stress_4` from Technique A (`1 mapped tk.Text`) to **Virtualized Card Pool acceptance guards**:
+  - Bounded active card widget count scaling with viewport height (NOT document length) across **150**, **300**, and **1000** boxes.
+  - Zero per-box permanent widget explosion and zero Pillow per-box header image creation.
+  - Scroll-to-end and scroll-back never rebuilds every card and never shows stale box text.
+  - Selection and Translation Lock states survive widget recycling.
+  - Log real timings (informational, same Windows/Python 3.12/Tk 8.6 environment) for: initial render (150 boxes), scroll cycle, Quick Edit single-card update, and 142+ box Paste Box.
+
+==================================================
+PART 3 — FAILING-FIRST TDD VERIFICATION (`tests/test_v15_s10_all_script_quick_edit.py`)
+==================================================
+Use strict test isolation (`misora.CONFIG_PATH` & `app.backup_folder` in `TemporaryDirectory`, `MisoraApp(restore_session=False, show_splash=False)`, mocked `messagebox`, `app.destroy()` in `finally:`).
+
+### Failing-First Defect/Behavior Probes (MUST FAIL pre-patch, PASS post-patch):
+1. `test_probe_1_virtualized_pool_bounded_across_150_300_1000_boxes_and_recycling_safety`:
+   - Verifies pool size scales dynamically with viewport height (not box count) across 150, 300, and 1000 boxes.
+   - Scrolls to end and back; asserts zero stale box content, zero stale click callbacks, and preserved Select Box + Translation Lock state after recycling.
+2. `test_probe_2_pixel_exact_54d_card_geometry_header_voice_cue_and_no_red_markers`:
+   - Verifies card body container pixel width matches canonical Nunito Bold `54d` reference pixel helper (+ border/padding) and stays consistent across BOTH `Global — Nunito Bold` and `Japanese` presets.
+   - Verifies fixed 3-line card height (`height=3`, `wrap="none"`), zero red overflow tags, zero dashed separators, zero round blue speaker badge image, and preserved inline `♪ vo_adv_...` text + intact `box.voice_cue` in AST.
+   - Verifies Box 0 renders as separate full-width unclipped metadata block at top.
+3. `test_probe_3_internal_card_scroll_does_not_conflict_with_outer_list_scroll`:
+   - Tests a 6-line dialogue card inside a multi-box document:
+     * Plain `<MouseWheel>` scrolls outer list only (card internal `yview` unchanged).
+     * `Shift+<MouseWheel>` and focused card `<Down>`/`<Up>` scroll internal card lines only (outer list `yview` unchanged).
+     * Recycling that card widget to another box resets internal scroll to `0.0`.
+4. `test_probe_4_active_box_highlight_and_all_script_preview_removal`:
+   - Verifies clicking/selecting a box applies distinct active highlight & `▶` marker to that card only and clears previous card in-place.
+   - Verifies All Script Preview mode is removed/disabled in All Script while Dialogue Preview remains fully functional in Dialogue mode.
+5. `test_probe_5_quick_edit_raw_breaks_multisegment_binary_roundtrip_and_view_aware_sync`:
+   - Verifies `Quick Edit` tab sits beside `"Raw Commands"`, auto-selects in All Script, and has no ruler/red markers.
+   - **View-Aware Sync Verification:**
+     * All Script mode: spy asserts full pool rebuild / `_render_continuous_view` call count == `0` while typing, while bound visible card updates in-place.
+     * Dialogue Preview OFF: typing refreshes Dialogue Editor without rebuilding All Script.
+     * Dialogue Preview ON: typing updates read-only `Dialogue Preview` capsule live while `txt_dialogue_preview` stays read-only.
+     * Raw Commands active: idle navigation does not perform redundant Quick Edit updates.
+   - **Critical `raw_breaks` + Multi-Segment Binary Round-Trip (4-segment box):**
+     * Asserts 4 separate plain segment editors appear.
+     * Edit multiple segments across multiple keystrokes -> flush/commit -> assert **EXACTLY ONE** logical Undo transaction was recorded.
+     * Inspect underlying **`StoryDocument.records`** directly (NOT just snapshot fields!) to prove every edited segment text is actually present in `doc.records` and `raw_breaks` is NOT stale.
+     * Serialize to binary (`doc.to_binary()`), reload (`StoryDocument.from_binary()`), and assert all 4 edited segments, `speaker`, `voice_cue`, `kind`, `extra_args`, and command structure match verbatim.
+     * Perform Undo -> verify `doc.records` and binary round-trip match complete original state; perform Redo -> verify `doc.records` and binary round-trip match complete edited state.
+   - Verifies pending-edit flush on nav/mode/tab/doc-switch/close/save, Translation Lock enforcement, and immutable JP keys untouched.
+
+### Regression Guards (MUST PASS both pre-patch and post-patch):
+1. `test_guard_1_raw_commands_tab_name_and_binary_roundtrip_preserved`
+2. `test_guard_2_multisegment_box_snapshot_immutable_jp_keys_preserved`
+
+==================================================
+PART 4 — VERIFICATION COMMANDS & DEFINITION OF DONE
+==================================================
+Run and report exact real output in the Walkthrough artifact:
+1. Pre-patch probe verification: `py -3.12 -m unittest tests.test_v15_s10_all_script_quick_edit -v` (confirm all 5 probes FAIL and both guards PASS).
+2. Post-patch compile check: `py -3.12 -m compileall -q __init__.py misora.py core assets tests`
+3. Post-patch S10 + migrated S08 suites:
+   `py -3.12 -m unittest tests.test_v15_s10_all_script_quick_edit tests.test_v15_s08_release_gate_stress -v`
+4. Full discovery run: `py -3.12 -m unittest discover -s tests -v` (exact pass/skip/fail/error counts; confirm zero new regressions).
+5. `git status --short` compared against pre-session snapshot.
+6. Update `CHANGELOG.md` (`### S10 (v1.4.9)`), `PROJECT_STATE.md` (including real timing benchmarks vs S08 `1436.37 ms`), and list Manual Windows QA items.

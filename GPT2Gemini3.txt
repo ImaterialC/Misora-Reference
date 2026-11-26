@@ -1,0 +1,245 @@
+# GPT Final Prompt Review — S09–S12 Execution Specifications
+## Targeted Corrections Required Before Antigravity Execution
+
+I have reviewed all four bounded prompts:
+
+- S09 Core Bug Fixes
+- S10 Virtualized Read-Only All Script Card Pool
+- S11 Asynchronous XUAT Translation Archiving
+- S12 Final Pre-v1.5.0 Audit & Honest Release Gate
+
+The overall design is accepted. The session boundaries, planning-first gates, strict file ownership, TDD requirements, and release hold policy are good.
+
+**Please do not redesign the entire plan. Apply only the corrections below and return the revised four prompts. No source code implementation is authorized by this review.**
+
+---
+
+## 1. S09 — Correct the Existing Test File Paths
+
+The current S09 prompt references two incorrect test filenames.
+
+Replace:
+
+- `tests/test_p3_s17_rulers_overflow.py`
+- `tests/test_v15_s02_fonts_ruler_chars.py`
+
+With the actual repository paths:
+
+- `tests/test_p3_s17_pixel_rulers.py`
+- `tests/test_v15_s02_fonts_ruler_metrics.py`
+
+Update both:
+1. The S09 Allowed Files list.
+2. The S09 affected-suite unittest command.
+
+The exact existing paths were verified against the current `ImaterialC/Misora-Editor/main` Git tree.
+
+Other test paths must also be verified before they are placed in a strict Allowed Files list.
+
+### 54d measurement clarification
+
+The project previously established Nunito Bold as the constant horizontal ruler reference font.
+
+Make the new 54d contract explicit:
+
+- One canonical reference pixel width must be derived from 54 digit-widths using the designated ruler reference font.
+- Actual dialogue text overflow measurement must use the currently active dialogue font.
+- The container width must remain consistent when switching between Global — Nunito Bold and Japanese presets.
+- Never use `tk.Text(width=54)` as the pixel-width guarantee.
+- Ruler, card geometry, Preview, header indicator, and Auto Word Wrap must share the same reference pixel boundary.
+
+Do not let font switching create inconsistent container widths or ruler positions.
+
+---
+
+## 2. S10 — Critical `BoxSnapshot.raw_breaks` Editing Safety
+
+I inspected the current AST implementation.
+
+Relevant source:
+- `core/story_ast.py::BoxSnapshot.from_box()`
+- `StoryDocument._records_from_snapshot()`
+- `StoryDocument.replace_box()`
+
+`BoxSnapshot.from_box()` stores each segment's current `Seg.raw` into `raw_breaks`.
+
+`_records_from_snapshot()` uses `raw_breaks[k]` as the record text for non-linebreak values, rather than necessarily using the updated `seg_texts[k]`.
+
+Therefore, changing `seg_texts` while retaining stale `raw_breaks` can cause Quick Edit to write old segment text back into the document.
+
+This is a critical data-integrity concern.
+
+Please explicitly define how S10 constructs the post-edit snapshot:
+
+1. Capture the complete original `BoxSnapshot`.
+2. Collect edited text separately for each segment.
+3. Update the new snapshot's raw representation consistently with the edited segment text and document break conventions.
+4. Preserve the exact number and ordering of segments.
+5. Preserve `speaker`, `voice_cue`, `kind`, and all `extra_args`.
+6. Record complete old/new snapshots for one logical Undo operation.
+7. Verify that the resulting `StoryDocument.records` actually contain the edited text.
+
+The test MUST go beyond comparing snapshots:
+
+- Verify the edited segment content in underlying AST records.
+- Undo and Redo.
+- Serialize to binary.
+- Load the binary back.
+- Compare all segment contents and metadata.
+- Confirm voice cue and command structure remain intact.
+
+Because `core/story_ast.py` is forbidden in S10, use the existing AST APIs. If the current API cannot satisfy the new Quick Edit contract without core changes, STOP and report the required core dependency. Do not modify forbidden files.
+
+---
+
+## 3. S10 — Define Quick Edit Sync Per Active View
+
+The current prompt makes Quick Edit available in both All Script and Dialogue modes, including Dialogue Preview.
+
+However, the instruction to patch the visible All Script card does not apply when the user is in Dialogue mode and the All Script pool is not displayed.
+
+Clarify the visible-surface update contract:
+
+- **All Script mode:** patch only the active visible Virtualized Card in place.
+- **Dialogue mode, Preview OFF:** refresh the visible Dialogue Editor state as required.
+- **Dialogue mode, Preview ON:** update the read-only Dialogue Preview capsule.
+- **Raw Commands active:** avoid unnecessary Quick Edit widget updates while the Quick Edit tab is not active, unless a required pending edit is being committed.
+
+Never rebuild the full All Script pool for every Quick Edit keystroke.
+
+### One logical segment-edit transaction
+
+Define exactly when the segment-aware edit transaction is committed:
+
+- Capture one complete original snapshot when a Box editing session begins.
+- Keep individual segment buffers separate.
+- Preserve live model/UI synchronization according to the active-view contract.
+- Record one complete old/new snapshot delta when the edit session commits or is flushed.
+- Flush before Box navigation, mode/tab switch, document switch, document close, and save.
+- Ensure Undo returns the complete original state and Redo returns the complete edited state.
+
+Do not allow every keypress in every segment editor to create a separate Undo transaction.
+
+---
+
+## 4. S11 — Actor/Speaker Classification Must Be Protected Before Every Pass
+
+The existing `core/xuat_cleanup.py::classify_cleanup_candidates()` uses several classification passes:
+
+1. Applied entries.
+2. Duplicate entries.
+3. Dialogue right-side value matching.
+4. Shared speaker matching.
+
+The current `XuatEntry` model does not expose an explicit Actor/Dialogue category field.
+
+Therefore, simply changing the final shared-speaker branch to exclude rows is insufficient.
+
+Please define and implement a deterministic Actor/Speaker exclusion strategy that executes BEFORE any entry can be inserted into `analysis.candidates`.
+
+Requirements:
+
+- Protect known Actor/Speaker source-key and translation identities.
+- Apply the protection before the Applied, Duplicate, and right-side matching passes.
+- Actor entries must never appear as cleanup candidates, even unchecked.
+- Entries ambiguous between a dialogue match and a speaker/actor match must be excluded from destructive cleanup.
+- Duplicate Actor/Speaker entries must remain protected.
+- Actor/Speaker XUAT entries must remain available to the Import matching functionality.
+- Do not classify arbitrary dialogue entries as Actors based only on a filename assumption without verifying the repository's actual XUAT structure.
+
+If the current XUAT data model cannot reliably distinguish a global Actor dictionary from ordinary dialogue entries, explicitly document the reliable identification source and conservative fallback. Do not silently claim that all global Actor entries are protected without a testable classification rule.
+
+Add tests for:
+- Normal Actor source/value match.
+- Same Actor source key duplicated across multiple files.
+- Same translation value used as both Actor name and dialogue.
+- Actor entry appearing in an Applied or Duplicate pass.
+- Regular dialogue still eligible for archiving.
+- Actor import matching still functional.
+
+---
+
+## 5. S11 — Protect Document Identity During Import
+
+The current `ImportFromXUATDialog._on_apply_import()` reads `self.app.current_doc` at Apply time.
+
+The import dialog must not apply a selection prepared for one document to a different document after the user switches tabs or opens another story.
+
+At dialog construction, capture:
+- Stable document identity or document generation token.
+- Document path.
+- Relevant Box UIDs and original JP keys.
+- Metadata identity/source information.
+
+Before Apply:
+- Verify the same document is still active.
+- Verify each target Box UID still resolves to the intended Box.
+- Verify the source document has not been structurally replaced.
+- Abort safely and ask the user to reopen Import if identity validation fails.
+
+Do not trust positional indices alone.
+
+### Metadata Undo
+
+Title and Subtitle import should use the existing metadata model API and an appropriate `MetadataDelta`.
+
+Preserve the synopsis/summary unless separately and explicitly selected for import.
+
+Ensure a failed import transaction cannot leave metadata applied while dialogue or actor changes are only partially applied.
+
+One Undo batch must also have transaction-level rollback if a mutation fails mid-operation.
+
+---
+
+## 6. S11 — Cancellation and Terminal Queue Events
+
+The existing `core/xuat_index.py::build_xuat_index()` materializes and sorts recursive file enumeration before processing the files.
+
+A cancellation event may therefore be delayed during large recursive directory enumeration.
+
+Please make cancellation checks effective during file discovery as well as file parsing. Avoid materializing an unnecessarily large complete file list before cancellation can be observed.
+
+For the task/progress queue:
+
+- Progress events may be coalesced or replaced by newer progress.
+- Start/complete/fail/cancel terminal events MUST NOT be silently dropped.
+- Reserve capacity, separate terminal signaling, or use another reliable task-completion mechanism.
+- A completed task must always be removed from the active-task registry.
+- Queue saturation must never leave the unified progress bar permanently active.
+
+Retain the rule that workers never call Tkinter methods.
+
+---
+
+## 7. S12 — Compare Git Status Against the Initial Snapshot
+
+The current S12 requirement that `git status --short` strictly matches Allowed Files must be made baseline-relative.
+
+Before work:
+- Record branch, HEAD, and full `git status --short`.
+- Identify pre-existing modified files and untracked files.
+
+At the end:
+- Ensure every pre-existing modification/untracked file remains untouched.
+- Compare the final status against the initial snapshot.
+- Permit only newly introduced modifications within S12 Allowed Files.
+- Do not interpret pre-existing local changes as S12 violations.
+- Never delete or overwrite pre-existing user work to achieve a clean status.
+
+Preserve the existing strict prohibition on destructive Git commands.
+
+---
+
+## 8. Required Output
+
+Please return:
+
+1. Revised S09 prompt with corrected test paths.
+2. Revised S10 prompt with raw_breaks-safe segment editing and view-aware Quick Edit synchronization.
+3. Revised S11 prompt with pre-pass Actor protection, document identity guards, reliable completion events, and cancellable file discovery.
+4. Revised S12 prompt with baseline-relative Git status verification.
+5. A concise change summary and updated SHA-256 manifest if these prompt files are distributed through a package.
+
+Do not modify Misora-Editor source code.
+
+**Execution boundary:** These corrections authorize only prompt revision. Antigravity must still perform `/plan`, show its symbol-bound Allowed Files plan, and wait for explicit Project Lead `Proceed` before each session's first source edit.

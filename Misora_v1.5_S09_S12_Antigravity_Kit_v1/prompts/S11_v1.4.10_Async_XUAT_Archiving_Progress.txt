@@ -1,0 +1,163 @@
+/plan Implement S11 (v1.4.10): Asynchronous XUAT Translation Archiving with Batched Treeview, Pre-Pass Actor/Speaker Exclusion, Pre-Import Archive Checkbox, Document-Identity-Guarded Atomic Metadata/Actor Import (Uniform Pixel-Exact 54d, No Box 0 Row), Cancellable XUAT Discovery, and Reliable Unified Status-Bar Progress Controller in Misora: Story Editor.
+
+CONTEXT POINTERS (READ DIRECTLY FROM DISK BEFORE PLANNING):
+@AGENTS.md @PROJECT_STATE.md @CHANGELOG.md @__init__.py @misora.py @core/xuat_cleanup.py @core/xuat_index.py @core/undo_journal.py @core/__init__.py @tests/test_v15_s07_xuat_cleanup_archive.py @tests/test_p3_s22_import_xuat.py
+
+==================================================
+PART 0 — EXECUTION MODE, PLANNING GATE & NON-NEGOTIABLE GUARDRAILS
+==================================================
+1. Planning-First Gate: Inspect live files on disk first (including `core/xuat_cleanup.py`, `core/xuat_index.py`, `core/undo_journal.py::MetadataDelta`, and actual XUAT data structures), capture `git rev-parse HEAD`, `git status --short`, and Python 3.12 version, then produce a symbol-bound Implementation Plan artifact and STOP to wait for explicit Project Lead `Proceed` before editing ANY file.
+2. Strict Main-Thread Tkinter Rule (`AGENTS.md` §15): Worker threads MUST NEVER call ANY Tkinter method (`after`, `config`, `insert`, `set`, etc.) and MUST NEVER mutate live `StoryDocument` objects. Communicate exclusively via thread-safe queues processed on the main thread.
+3. Preserve ALL S07 Transactional Data-Safety Contracts: SHA-256 stale-source guard before touching disk, mandatory archive-first for destructive cleanup, per-file atomicity, original encoding/BOM/CRLF preservation, exact cleanup/archive reports, and 2-step empty-file confirmation.
+4. No Destructive Git Commands & No New Third-Party Dependencies. Preserve user `misora_config.json`, `backups/`, and untracked files.
+5. Pure-Core Boundary: `core/xuat_cleanup.py` and `core/xuat_index.py` MUST retain zero `tkinter` and zero `misora` imports.
+
+==================================================
+PART 1 — STRICT FILE OWNERSHIP BOUNDARIES
+==================================================
+Allowed Files to Create/Modify (ONLY after `Proceed`; verify exact paths on disk during `/plan`):
+- `__init__.py` (bump `__version__` from `"1.4.9"` to `"1.4.10"`)
+- `misora.py`
+- `core/xuat_cleanup.py`
+- `core/xuat_index.py`
+- `core/__init__.py`
+- `CHANGELOG.md`
+- `PROJECT_STATE.md`
+- `tests/test_v15_s11_xuat_archiving_progress.py` (NEW)
+- `tests/test_v15_s07_xuat_cleanup_archive.py` (update U-11 pre-pass actor-exclusion & U-10 title expectations only without weakening transactional safety assertions)
+- `tests/test_p3_s22_import_xuat.py` (update only if U-14 `Include Actor` removal / U-09 pre-import checkbox affects existing S22 setup, preserving all import integrity checks)
+- `tests/test_v15_s06_tools_word_wrap.py` (update only if Import dialog setup changes affect S06 import wrap test)
+
+Forbidden Files (DO NOT MODIFY in S11):
+- `core/story_ast.py`, `core/bundle_io.py`, `core/script_codec.py`, `core/word_wrap.py`, `core/mtl_engine.py`, `core/xunity_sync.py`, `core/undo_journal.py`, `assets/*`, `requirements.txt`, `misora_config.json`, `backups/`.
+
+Out of Scope for S11 (DEFER to S12):
+- Deep dead-code/bloat/memory-leak audit, non-fixture hygiene fixes for S01/Phase3/S9c tests, and `v1.5.0` release gate promotion.
+
+==================================================
+PART 2 — EXACT TECHNICAL SPECIFICATIONS (S11)
+==================================================
+
+### 1. `U-11` — Deterministic Pre-Pass Actor/Speaker Protection (`core/xuat_cleanup.py`)
+Because `XuatEntry` does not expose an explicit Actor/Dialogue category field, simply changing the final shared-speaker branch in `classify_cleanup_candidates()` is INSUFFICIENT.
+Implement a **deterministic Actor/Speaker exclusion gate that runs BEFORE ANY entry can be inserted into `analysis.candidates`**:
+1. **Build Protected Actor Identity Sets Up Front:** Before running the Applied, Duplicate, and Right-Side Dialogue passes, build deterministic protected sets of:
+   - Known Actor/Speaker source normalized keys (from the document's speakers, original JP speaker keys, and any explicitly provided `protected_actor_keys` / `protected_actor_values` derived from the document/import speaker lookup), AND
+   - Known Actor/Speaker translation values (normalized/exact values of known actors in the document/import).
+   - Do NOT classify arbitrary dialogue entries as Actors based solely on an unverified filename assumption; explicitly verify and document the reliable identification source and conservative fallback in `/plan` and `PROJECT_STATE.md`.
+2. **Pre-Pass Enforcement Across ALL Passes:**
+   - Apply the protection filter BEFORE inserting any entry from the **Applied**, **Duplicate**, or **Right-Side Value Matching** passes.
+   - Actor/Speaker entries MUST NEVER appear in `analysis.candidates` (ZERO rows — NOT even unchecked `uncertain` rows).
+   - Duplicate Actor/Speaker entries sharing a protected source key across multiple XUAT files MUST remain completely protected.
+   - Any entry ambiguous between a dialogue translation and a known Actor/Speaker name/value MUST be excluded conservatively from destructive cleanup.
+3. **Preserve Import Availability:** Actor/Speaker entries MUST remain 100% intact and queryable in `XuatIndex` for `Import from XUAT` matching.
+
+### 2. `U-09` & `U-14` — Redesigned, Document-Identity-Guarded `Import from XUAT` Dialog (`misora.py::ImportFromXUATDialog`)
+- **Document Identity & Structural Integrity Guard (CRITICAL — Never Trust Positional Indices Alone):**
+  - At `ImportFromXUATDialog` construction, capture:
+    1. Stable document identity / generation token (`doc` object identity / doc revision token),
+    2. Document path (`file_path`),
+    3. Target Box UIDs and original JP keys for every planned dialogue/actor update,
+    4. Metadata identity/source information (original Box 0 Title, Subtitle, Synopsis).
+  - Before executing `_on_apply_import()`:
+    1. Verify the **exact same document** is still active (`self.app.current_doc` matches captured identity & path),
+    2. Verify every target **Box UID** still resolves to the intended Box in that document,
+    3. Verify the document has not been structurally replaced or reloaded.
+    4. If ANY identity check fails, abort safely before mutating anything and notify the user to reopen `Import from XUAT`.
+- **Remove `Include Actor` Checkbox & Exclude Box 0 Dialogue Row:**
+  - Remove the legacy `Include Actor` checkbox completely.
+  - Exclude `Box 0` from ordinary dialogue rows.
+- **Dedicated Metadata & Unique Actor Section (Top of Review List):**
+  - Display paired read-only rows for:
+    1. **Title** (`1` row -> updates Box 0 Title via existing metadata model API),
+    2. **Subtitle / Outline** (`1` row when present -> updates Box 0 Subtitle via existing metadata model API; **strictly preserve Synopsis/Summary** unless separately and explicitly selected for import),
+    3. **Unique Actors / Speakers** (`1` row per unique speaker name in the document, with `<` / `>` duplicate switcher and Skip checkbox -> applies to all unlocked dialogue boxes matching that speaker name; locked boxes are skipped and clearly reported).
+  - Ordinary Dialogue rows appear below with clear Locked / Skipped / Conflict / Missing indicators.
+- **Uniform Pixel-Exact `54d` Geometry:**
+  - Size ALL paired read-only text containers using the canonical S09 Nunito Bold `54d` reference pixel helper (+ explicit border/padding allowance; NEVER rely on `tk.Text(width=54)`):
+    * Title, Subtitle, and Unique Actor rows: fixed **`1 line × 54d` pixel width**.
+    * Ordinary Dialogue rows: fixed **`3 lines × 54d` pixel width**.
+  - Container pixel width MUST stay consistent when switching between `Global — Nunito Bold` and `Japanese` font presets.
+- **Atomic Single-Batch Undo & Mid-Operation Rollback:**
+  - Record Title/Subtitle updates using the existing metadata model API and `MetadataDelta` (from `core/undo_journal.py`).
+  - Commit metadata (Title/Subtitle), Unique Actor speaker renames (unlocked boxes only), and Dialogue text updates inside **ONE atomic Undo batch** with **transaction-level rollback** if any mutation fails mid-operation (a failed import MUST NEVER leave metadata applied while dialogue/actor updates are only partially applied).
+  - Preserve immutable JP source keys and enforce Translation Locks.
+- **`U-09` Pre-Import Archive Checkbox:**
+  - Add checkbox **`Archive the XUAT translation`** inside `ImportFromXUATDialog`, **checked (`True`) by default**.
+  - When unchecked, display a clear inline warning explaining the risk of skipping XUAT archiving.
+  - **Unchecked Behavior (STRICT):** Import ONLY — leave EVERY XUAT source file on disk 100% untouched; do NOT open `XUAT Translation Archiving`; do NOT archive, delete, or rewrite any source entry. (Never allow this checkbox to bypass mandatory archive-first when destructive cleanup IS executed.)
+  - **Checked Behavior:** After a successful import (`applied_count > 0`), close `ImportFromXUATDialog` and launch the asynchronous **`XUAT Translation Archiving`** flow passing ONLY non-speaker applied records (dialogue + title + subtitle) plus protected actor identities.
+
+### 3. `U-08` & `U-10` — Asynchronous `XUAT Translation Archiving` with Batched `ttk.Treeview` (`misora.py`, `core/xuat_cleanup.py`)
+- **Rename (`U-10`):** Use **`XUAT Translation Archiving`** consistently for the window title, `Tools -> XUAT Translation Archiving...` menu item, and status notifications (replacing `"Import Complete - Clean up / Archive"`).
+- **Asynchronous Non-Blocking Classification Workflow (`U-08`):**
+  1. Main thread captures an **immutable snapshot** of document dialogue/metadata data + applied records + protected actor identities + XUAT roots/fingerprints (plus a monotonic task generation token).
+  2. Background worker builds/refreshes index (if needed) and runs `classify_cleanup_candidates()` strictly off the main thread with **cooperative cancellation** (`cancel_event`) and **zero Tkinter / live-doc access**.
+  3. Main thread polls the queue, rejects stale generation tokens (after document switch, dialog close, or newer scan), and cleanly tears down worker/candidate state on close/cancel/switch.
+- **Lightweight Batched `ttk.Treeview` Candidate UI (Anti-Freeze):**
+  - Replace the per-candidate `tk.Frame` + `tk.Checkbutton` + multi-`tk.Label` explosion with a single lightweight **`ttk.Treeview`** (interactive check-toggle column `[✓]` / `[ ]`, Tier badge, File:Line, Key/Value preview).
+  - **Bounded Main-Thread Batch Population:** Insert Treeview rows in bounded batches (e.g., `50–100` rows per `after()` tick) so even thousands of candidate rows NEVER freeze the UI; abort remaining insertion ticks immediately if dialog closes or generation token changes.
+  - Preserve conditional Duplicate Scope radio (hidden when 0 duplicates), Linebreak policy, Archive strategy/dir/ext validation + `.txt`/`Text/` warning, `Debug > Safety` banner, and 2-step empty-file deletion confirmation.
+
+### 4. `U-12` & `U-13` — Cancellable XUAT Discovery & Reliable Unified Progress Controller (`misora.py`, `core/xuat_index.py`)
+- **Cancellable File Discovery (`core/xuat_index.py::build_xuat_index`):**
+  - Accept optional `cancel_event` and `progress_cb` parameters in `build_xuat_index()`.
+  - Check `cancel_event.is_set()` **during recursive directory/file discovery as well as during file parsing** — avoid materializing an unnecessarily large complete file list before cancellation can be observed.
+- **Unified Status-Bar Progress Controller (`misora.py`):**
+  - Share ONE status-bar progress controller across:
+    1. **Project Search** (`on_start_search` / `_run_background_search`),
+    2. **Reload XUAT Translations** (move index rebuild off main thread into cancellable background worker),
+    3. **XUAT Translation Archiving Scan**.
+  - **Reliable Event Delivery Contract (CRITICAL):**
+    * Each operation registers a unique `task_id` / generation token with explicit `start`, `progress`, `complete`, `fail`, and `cancel` lifecycle events.
+    * **Coalesced Progress, Never Dropped Terminals:** Progress updates MAY be coalesced/replaced per `task_id` to prevent unbounded queue growth, **BUT `start`, `complete`, `fail`, and `cancel` terminal events MUST NEVER be silently dropped** (use separate terminal signaling, reserved terminal slots, or a lock-protected latest-progress map + dedicated terminal event queue).
+    * Queue saturation MUST NEVER leave the unified progress bar permanently active; a completed/failed/cancelled task MUST ALWAYS be removed from the active-task registry.
+    * **Concurrent Task Isolation:** Finishing or cancelling Task A MUST NOT hide or overwrite Task B while Task B is still active; hide the progress bar only when zero active tasks remain.
+    * Ignore stale generation tokens; clean up all task state on `app.destroy()`.
+    * Workers NEVER call any Tkinter method.
+
+==================================================
+PART 3 — FAILING-FIRST TDD VERIFICATION (`tests/test_v15_s11_xuat_archiving_progress.py`)
+==================================================
+Use strict test isolation (`misora.CONFIG_PATH` & `app.backup_folder` in `TemporaryDirectory`, `MisoraApp(restore_session=False, show_splash=False)`, mocked `messagebox`, `app.destroy()` in `finally:`).
+
+### Failing-First Defect/Behavior Probes (MUST FAIL pre-patch, PASS post-patch):
+1. `test_probe_1_async_archiving_worker_batched_treeview_and_stale_rejection`:
+   - Runs archiving scan on 500+ synthetic XUAT entries: verifies off-main-thread classification, bounded-batch `ttk.Treeview` population (zero per-candidate `tk.Checkbutton` explosion), `"XUAT Translation Archiving"` window title, cooperative cancel, and stale-token discard after dialog close/doc switch.
+2. `test_probe_2_pre_import_archive_checkbox_default_on_and_unchecked_import_only`:
+   - Asserts `Archive the XUAT translation` defaults `True` in `ImportFromXUATDialog`.
+   - Unchecking displays inline warning and applies Import ONLY: zero cleanup dialog opened, zero XUAT disk writes.
+   - Checking applies Import and launches `XUAT Translation Archiving` non-blockingly.
+3. `test_probe_3_prepass_actor_exclusion_across_all_passes_and_import_preserved`:
+   - Tests ALL 6 required cases:
+     1. Normal Actor source/value match excluded (0 rows in `analysis.candidates`),
+     2. Same Actor source key duplicated across multiple XUAT files stays protected,
+     3. Same translation value used as BOTH Actor name and dialogue excluded conservatively,
+     4. Actor entry appearing in an Applied or Duplicate pass still excluded pre-pass,
+     5. Regular dialogue (and Title/Subtitle) remains eligible for archiving,
+     6. Actor import matching in `XuatIndex` / `ImportFromXUATDialog` stays 100% functional.
+4. `test_probe_4_import_doc_identity_guard_atomic_metadata_undo_and_pixel_54d`:
+   - Asserts `Include Actor` checkbox is absent and Box 0 is absent from ordinary dialogue rows.
+   - Verifies dedicated 1-line rows for Title, Subtitle (preserving Synopsis untouched), and Unique Actors (with duplicate switcher & Skip), uniform pixel-exact `54d` container widths under both font presets.
+   - Verifies **Document Identity Guard:** switching active document or structurally replacing target doc while `ImportFromXUATDialog` is open causes `_on_apply_import()` to abort cleanly with zero mutation to either document.
+   - Verifies **Atomic Metadata + Actor + Dialogue Undo + Rollback:** Title/Subtitle use `MetadataDelta`, single-batch Undo/Redo restores everything cleanly, and simulating a mid-operation failure rolls back metadata + dialogue atomically (zero partial apply).
+5. `test_probe_5_cancellable_xuat_discovery_and_reliable_unified_progress_queue`:
+   - Verifies `build_xuat_index(cancel_event=...)` aborts promptly during recursive file discovery without processing remaining directories/files.
+   - Verifies Project Search, Reload XUAT, and XUAT Archiving share ONE status-bar progress controller with concurrent task-ID isolation.
+   - Floods progress updates to test queue saturation -> asserts progress updates coalesce cleanly while `complete` / `fail` / `cancel` terminal events are NEVER dropped, active-task registry drains to `0`, progress bar hides cleanly, and zero worker Tk calls occur.
+
+### Regression Guards (MUST PASS both pre-patch and post-patch):
+1. `test_guard_1_s07_sha256_stale_guard_and_mandatory_archive_first_intact`
+2. `test_guard_2_core_xuat_modules_remain_free_of_tkinter_and_misora_imports`
+
+==================================================
+PART 4 — VERIFICATION COMMANDS & DEFINITION OF DONE
+==================================================
+Run and report exact real output in the Walkthrough artifact:
+1. Pre-patch probe verification: `py -3.12 -m unittest tests.test_v15_s11_xuat_archiving_progress -v` (confirm all 5 probes FAIL and both guards PASS).
+2. Post-patch compile check: `py -3.12 -m compileall -q __init__.py misora.py core assets tests`
+3. Post-patch S11 + XUAT suites:
+   `py -3.12 -m unittest tests.test_v15_s11_xuat_archiving_progress tests.test_v15_s07_xuat_cleanup_archive tests.test_p3_s22_import_xuat tests.test_v15_s06_tools_word_wrap -v`
+4. Full discovery run: `py -3.12 -m unittest discover -s tests -v` (exact pass/skip/fail/error counts; confirm zero new regressions).
+5. `git status --short` compared against pre-session snapshot.
+6. Update `CHANGELOG.md` (`### S11 (v1.4.10)`), `PROJECT_STATE.md`, and list Manual Windows QA items.
