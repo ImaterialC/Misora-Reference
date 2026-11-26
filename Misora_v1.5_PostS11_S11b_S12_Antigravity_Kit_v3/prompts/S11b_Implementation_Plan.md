@@ -1,317 +1,273 @@
-# S11b (v1.4.11) — Implementation Plan
+# S11b (v1.4.11) — Implementation Plan (Revised)
 
-> **Status:** 🛑 **AWAITING PROJECT LEAD `Proceed`** — no files will be modified until explicit approval.
+> **Status:** 🛑 **AWAITING INDEPENDENT REVIEW & PROJECT LEAD `Proceed`** — ZERO repository source, test, or pre-existing working-tree files have been modified.
 
 ---
 
-## 0. Pre-Session Environment Snapshot
+## 0. Pre-Session Environment Snapshot & Baseline Provenance
 
 | Item | Value |
 |---|---|
 | **Branch** | `main` |
 | **HEAD** | `c1ec40c96c18ae6e4df61d1db77ebf999114be3d` |
-| **Working Tree** | `M assets/icons/BoxInsert.png`, `?? assets/icons/BoxReplace.png` (pre-existing, NOT S11b) |
-| **Python** | 3.12.10 |
-| **`__version__`** | `"1.4.10"` |
-| **Test Baseline** | 440 discovered · 397 pass · 35 fixture-skipped · 6+2 pre-existing · 0 regressions |
+| **Pre-Existing Working Tree** | `M assets/icons/BoxInsert.png`, `?? assets/icons/BoxReplace.png` (user local work — MUST be preserved untouched) |
+| **Python / Tk / OS** | `Python 3.12.10` · `Tk 8.6` · `Windows-11-10.0.26100-SP0` |
+| **`__version__`** | `"1.4.10"` (target `"1.4.11"` after `Proceed`; `v1.5.0` remains **ON HOLD**) |
+| **Production Bundle Fixture** | `storydata_1001005.unity3d` is **NOT** present on disk in repo root (`BLOCKED` per `AGENTS.md` §2) |
+| **Historical S11 Baseline** | *Previously reported by Project Lead in `PROJECT_STATE.md` (not re-run in this `/plan` turn):* `440` discovered · `397` pass · `35` fixture-skipped · `6` failed (`3` fixture-blocked + `3` pre-existing hygiene) · `2` error (fixture-blocked) |
 
 ---
 
-## 1. STOP Gate Decisions
+## 1. Project Lead Locked Rulings
 
-### STOP Gate A (`Q-02` Save Hang Architecture) — ✅ CLEAR
-
-**5-Stage Save Profiling** (symbol-bound audit of `misora.py::on_save()` lines 13419–13570):
-
-| Stage | Lines | Description | Blocking? |
-|---|---|---|---|
-| **1. Widget Flush** | 13429, 13459–13491 | `_flush_quick_edit_session()` + `_on_box0_metadata_edited()` + `inject_box()` on current box | ❌ In-memory only, nanoseconds |
-| **2. Project `.misora`** | N/A | **Not called by `on_save()`** — `save_project()` is a separate method on line 15862, invoked via `on_save_project()` (line 15847). `Ctrl+S` → `on_save()` does NOT call `save_project()`. | N/A |
-| **3. XUAT Sync** | 13530–13557 | `_sync_modified_boxes_to_xuat()` — synchronous file I/O for each modified box, reads XUAT files, finds lines, rewrites atomically. Only runs when `var_sync_xuat` is True AND XUAT roots are set AND boxes were modified. | ⚠️ Proportional to file count/size, but bounded |
-| **4. Bundle Serialization** | 13492–13510 | `save_bundle_story()` — imports from `core/bundle_io.py`, serializes UnityPy env, writes `.tmp`, verifies, `os.replace()`. Single synchronous call. | ⚠️ **Main bottleneck** — UnityPy repack + LZ4 compress + disk I/O. Typically 50–300ms for small bundles, can grow for large ones. |
-| **5. Post-Save UI** | 13503–13510 | `lbl_status.config()`, `_dirty_state_changed()`, `undo_journal.mark_saved()` | ❌ Trivial |
-
-**Analysis:** The save hang (if present) is dominated by Stage 4 (`save_bundle_story` in `core/bundle_io.py`) which is a **forbidden file**. Making this async would require:
-1. Moving `save_bundle_story()` to a worker thread
-2. Blocking concurrent document mutations during save
-3. Tk-safe completion callback
-
-However, the `Q-02` request is specifically about `Ctrl+S` **shortcut remapping**, not about eliminating the bundle save time. The bounded fix within S11b scope is:
-- **Remap `Ctrl+S` → `save_project()` (lightweight `.misora` write)**
-- **Give bundle save its own shortcut (`Ctrl+Shift+S`)**
-- Stage 3 (XUAT sync) only runs for bundle saves, not project saves
-
-This remap is **fully within S11b Allowed Files** (`misora.py` shortcut router + menu + `README.md`). **No forbidden core file changes required.**
-
-> [!IMPORTANT]
-> If the user reports a *measurable* save hang even after the remap (i.e., `save_bundle_story` itself takes seconds), that remediation is deferred to its own async-save session per STOP Gate A rules. S11b only remaps the shortcut and documents the profiling.
-
-### STOP Gate B (`Q-18` Ruby Preview) — 🛑 TRIGGERED → `Q-18` DEFERRED
-
-**Inspection of `_insert_compiled_ngui_text()` (lines 7708–7810):**
-
-The ruby rendering at lines 7770–7775 handles `[rub:ruby]base[/rub]` by:
-1. Emitting `base_txt` via `emit_styled_run()` (inherits current style)
-2. Appending `ruby_txt` inline with the `compiled_ruby` tag (small bold font, +5px vertical `offset`)
-
-The `compiled_ruby` tag (line 3538–3543) configures:
-```python
-widget.tag_configure("compiled_ruby",
-    foreground=hl_fg, background=t["highlight_bg"],
-    font=(d_fam, max(7, d_sz - 3), "bold"), offset=5)
-```
-
-**Problem:** `tk.Text` has no native ability to render text *above* other text. The `offset=5` raises the ruby text vertically within the same line, but it still occupies horizontal space inline *after* the base text. This means `[rub:めいれい]願い[/rub]` renders as `願いめいれい` (base then ruby inline), not as:
-```
-めいれい
- 願い
-```
-
-**Verdict:** Proper above-text ruby display requires a **custom Canvas-based text layout engine** (computing per-character positions, rendering base text on one line and ruby annotations above each base character/group). This is a significant renderer rewrite, not a bounded bug fix.
-
-> [!CAUTION]
-> **`Q-18` is DEFERRED** to its own bounded session per STOP Gate B. No implementation-specific failing-first test will be created for the deferred renderer work. Auto-Furigana (MeCab) remains out of scope (`BIG-02`).
+1. **Ruling 1 (`Ctrl+S` Data Safety — CONFIRMED):**
+   - `Ctrl+S` MUST save **ONLY** the `.misora` workspace (`on_save_project()`), never patching `.unity3d` on muscle memory (protecting original JP text/cues/waits from accidental overwrite).
+   - `on_save_project()` / `save_project()` MUST **NEVER** clear dirty flags (`is_dirty`, `open_documents[p]["dirty"]`) or call `undo_journal.mark_saved()` on dirty story documents.
+   - Emit explicit honest post-`Ctrl+S` toast: `"Project (.misora) saved — story edits are not yet written to bundle/XUAT (use Ctrl+Shift+S to save file)."`
+   - Keep dirty-close Save/Discard/Cancel prompt (`AGENTS.md` §16) intact, and clearly distinguish both save commands in `README.md` (removing stale `"Ctrl+Shift+S | Save As"`), File menu items, toolbar button/tooltip, and tab context menu.
+2. **Ruling 2 (`Q-18` Ruby Preview — STOP Gate B):**
+   - Formally **`DEFERRED`** to post-`v1.5.0` (Track B, prerequisite to `BIG-02` MeCab).
+   - Will be recorded explicitly as **`DEFERRED`** in `PROJECT_STATE.md` and `S12` traceability (never silently dropped). Auto-Furigana (MeCab) remains out of scope (`BIG-02`).
+3. **Ruling 3 (`Q-04.1.2` & Box 0):**
+   - Box 0 stays excluded from ordinary dialogue rows in Import; multi-line Synopsis import is scheduled in `S11d` (`Q-08`).
+   - Record `Q-04.1.2` honestly as **`NOT REPRODUCED — NEEDS USER REPRODUCTION DETAILS`** (do NOT manufacture a failing-first test).
 
 ---
 
-## 2. `Q-01` — Strict XUAT English Text Scanner & Canonical Metrics
+## 2. STOP Gate Decisions & Measured Profiling Evidence
 
-### 2A. `resolve_xuat_text_roots()` Tightening (`core/xuat_index.py` lines 134–181)
+### STOP Gate A (`Q-02` Save Hang Profiling — `PENDING` -> Measured -> Bounded Remap Approved)
 
-**Current Permissive Bypasses Found:**
+> [!NOTE]
+> Initial plan status was `PENDING — measured profiling evidence required`. Real `time.perf_counter()` measurements were executed on temporary test copies (`Windows-11-10.0.26100-SP0`, `Python 3.12.10`, `Tk 8.6`, 5 repeated runs per path; zero user game files, `misora_config.json`, or `backups/` touched).
 
-1. **Line 156–158:** Direct `.txt` files accepted without checking parent is under `Translation\en\Text`
-2. **Lines 161–172:** Cascading candidates `p / "BepInEx" / "Translation" / "en" / "Text"`, `p / "Translation" / "en" / "Text"`, `p / "en" / "Text"`, `p / "Text"` — the last two (`en/Text` and bare `Text`) accept non-canonical directories like `ja/Text` or arbitrary `Text/`
-3. **Lines 177–179:** Bare `text` directory name accepted as fallback without validating parent chain
+#### Measured Profiling Results (`5` repeated iterations per path)
 
-**Planned Fix:**
+**Path A — `Ctrl+S` (`save_project` `.misora`, 3 open `.v2.txt` docs × 50 boxes, 2 stable locks/doc, `.misora` output = `1,558` bytes):**
 
-```
-Supported Entry Points (ALL 5):
-1. <GameRoot>  → <GameRoot>/src/BepInEx/Translation/en/Text  OR  <GameRoot>/BepInEx/Translation/en/Text
-2. <BepInEx>   → <BepInEx>/Translation/en/Text
-3. <Translation> → <Translation>/en/Text
-4. <Translation\en> → <Translation\en>/Text
-5. <Translation\en\Text> → accepted directly ONLY when trailing segments match Translation/en/Text (case-insensitive)
+| Stage | Code Site (`misora.py`) | Median (ms) | Min–Max Range (ms) | 5 Runs (ms) |
+|---|---|---|---|---|
+| **1. Widget Flush** | `_flush_active_widget()` (incl. `_flush_quick_edit_session()`) | `8.223` | `7.371 – 10.220` | `[8.223, 10.220, 7.371, 8.158, 8.839]` |
+| **2. Workspace Collect** | `_save_active_document_state()`, `_exit_raw_edit_mode()`, `_cancel_mtl_all_batch()`, `get_document_stable_locks()`, `WorkspaceSession` | `1.371` | `1.175 – 1.879` | `[1.879, 1.507, 1.175, 1.371, 1.200]` |
+| **3. `.misora` Write** | `save_workspace()` (`core/workspace.py` JSON + `write_atomic_encoded`) | `0.797` | `0.673 – 9.894` | `[9.894, 0.826, 0.674, 0.797, 0.673]` |
+| **4. Status & Toast** | `lbl_status.config()` + `show_toast()` | `0.087` | `0.079 – 0.523` | `[0.103, 0.523, 0.079, 0.087, 0.084]` |
+| **Total Path A** | End-to-end `save_project()` | **`10.797`** | `9.299 – 20.100` | `[20.100, 13.076, 9.299, 10.414, 10.797]` |
 
-Direct .txt  → accepted ONLY when resolved parent is strictly inside a canonical Translation/en/Text subtree
+**Path B — `Ctrl+Shift+S` (`on_save()` Active File / Patch Bundle):**
 
-Rejected: ja/Text, arbitrary Text/, standalone .txt outside, en/Other, en/RedirectedResources
-```
+- **Path B1 (`.v2.txt`, 50 boxes = `3,021` bytes, `var_sync_xuat=True` on 10-file / `1,000`-entry synthetic `Translation\en\Text` tree, 6 modified boxes):**
 
-Replace the cascade list with explicit segment matching:
-- Check `p / "src" / "BepInEx" / "Translation" / "en" / "Text"` (Priconne-TL layout)
-- Check `p / "BepInEx" / "Translation" / "en" / "Text"`
-- Check `p / "Translation" / "en" / "Text"`
-- Check `p / "en" / "Text"` ONLY when `p.name.lower() == "translation"`
-- Check `p / "Text"` ONLY when parent chain ends `Translation/en` (case-insensitive)
-- Accept `p` directly ONLY when its trailing 3 path segments match `translation/en/text` (case-insensitive)
-- For `.txt` files: validate `_is_inside_canonical_en_text(p.parent)` before accepting
+| Stage | Code Site (`misora.py`) | Median (ms) | Min–Max Range (ms) | 5 Runs (ms) |
+|---|---|---|---|---|
+| **1. Widget Flush & AST Sync** | `_flush_quick_edit_session()` + `inject_box()` | `0.128` | `0.117 – 0.167` | `[0.165, 0.123, 0.128, 0.167, 0.117]` |
+| **2 & 4. Backup + `.v2.txt` Write** | `shutil.copy2()` backup + `to_v2_text()` + `write_atomic_utf8()` | `1.677` | `1.610 – 4.058` | `[4.058, 1.993, 1.677, 1.610, 1.674]` |
+| **3. XUAT Sync (DOMINANT)** | `_sync_modified_boxes_to_xuat()` (`preview_matches` + `find_and_update` per box) | **`93.725`** | `85.615 – 186.703` | `[186.703, 85.615, 93.725, 86.293, 101.292]` |
+| **5. Post-Save UI Refresh** | `_record_saved_checkpoint()`, `mark_saved()`, `_dirty_state_changed()`, `lbl_status.config()` | `0.684` | `0.653 – 1.084` | `[0.684, 0.653, 0.704, 0.676, 1.084]` |
+| **Total Path B1** | End-to-end `on_save()` with XUAT sync | **`96.234`** | `88.384 – 191.610` | `[191.610, 88.384, 96.234, 88.746, 104.166]` |
 
-### 2B. Additive File Exclusions
+- **Path B1-No-XUAT (`.v2.txt`, 50 boxes = `3,021` bytes, `var_sync_xuat=False`):**
+  - Total: median **`2.553 ms`**, range `[2.399, 2.826] ms` (`[2.826, 2.553, 2.650, 2.399, 2.467]`).
+- **Path B2 (Plain `.txt`, `350` bytes):**
+  - Total: median **`1.421 ms`**, range `[1.295, 1.600] ms` (`[1.600, 1.510, 1.421, 1.295, 1.328]`).
+- **Path B3 (Real `.unity3d` Bundle Serialization — `save_bundle_story()`):**
+  - **`UNMEASURED / BLOCKED (missing production fixture)`**: `storydata_1001005.unity3d` is not present in the repository root, and `backups/` is off-limits. Real-bundle save timing is added to the **Manual Windows QA Checklist** in `PROJECT_STATE.md`.
 
-Add to `_is_excluded_xuat_file()`:
-```python
-_EXCLUDED_RULE_TAILS = (".font.txt", ".resizer.txt")
-_EXCLUDED_RULE_CONTAINS = ("postprocessors.txt", "preprocessors.txt", "substitutions.txt")
-```
-Preserving all legacy exclusions (`.missing.txt`, `.report.txt`, `_summary.txt`, `_warnings.txt`, `.bak_`).
-
-### 2C. Canonical Metrics on `XuatIndex`
-
-**Caller Audit of `len(idx)` / `bool(idx)`:**
-
-| Caller | File | Usage | Impact of `entry_count` change |
-|---|---|---|---|
-| `__bool__` | `xuat_index.py:314` | `entry_count > 0` | ✅ Empty-normalized-key entries still increment `entry_count` currently |
-| `__len__` | `xuat_index.py:317` | returns `entry_count` | ⚠️ See below |
-| `__contains__` | `xuat_index.py:320` | delegates to `lookup_translation` | ✅ Unaffected |
-| MTLEngine cache | `misora.py` (various) | `bool(idx)` / `len(idx)` for cache validity | ✅ Truthiness preserved since non-empty indices still have `entry_count > 0` |
-
-**Current `add_entry()` behavior (line 238–250):** Increments `entry_count` unconditionally for every call. Empty normalized keys are excluded from `_norm_stripped_map` but still count in `entry_count` and appear in `entries`/`_exact_map`/`_value_map`.
-
-**Planned Change:**
-- `entry_count` will ONLY increment when `normalize_xuat_key(raw_key, strip_ngui=True) != ""` — this is `entries_read` semantics
-- Expose `entries_read` as a property aliased to `entry_count`
-- Add `files_scanned` as a persistent attribute: `files_scanned = len(files_indexed) + len(skipped_files)`, maintained by `build_xuat_index()` after scan completion
-- **Empty-normalized-key entries still enter `entries`, `_exact_map`, `_value_map`** — only `entry_count` increment is guarded
-- Exposed metrics: `files_scanned`, `entries_read` (= `entry_count`), `unique_keys = len(_norm_stripped_map)`, `duplicate_keys`, `duplicate_entries = entries_read - unique_keys`
-
-**Risk Assessment:** The only place `len(idx)` is used for a numeric count is `__len__`. Since empty-normalized-key entries are extremely rare (whitespace-only or NGUI-tag-only keys with no base text), the practical impact is near-zero. The semantic change is correct: `entry_count` should reflect valid translation entries, not parse artifacts.
-
-### 2D. Existing Test Pre-Check
-
-All existing XUAT tests create `Translation/en/Text` directories properly:
-- `test_p3_s22_import_xuat.py` line 83: `proj_dir / "BepInEx" / "Translation" / "en" / "Text"` ✅
-- `test_v15_s07_xuat_cleanup_archive.py` lines 102–105: same pattern ✅
-- `test_v15_s11_xuat_archiving_progress.py` lines 103–105: same pattern ✅
-
-**No existing test creates a bare `Text/` directory that would break under the strict resolver.** No test updates needed for existing XUAT tests beyond S11b's new test file.
+#### STOP Gate A Decision
+- **Measured Bottleneck Identified:**
+  1. In Path B1, Stage 3 (`_sync_modified_boxes_to_xuat()` calling `core/xunity_sync.py::preview_matches()` and `find_and_update()` per modified box, each performing full `rglob("*.txt")` + disk decode) accounts for **`97.4%` (`93.725 ms / 96.234 ms`)** of save time even on just 6 boxes / 10 files (`1,000` entries), scaling $O(\text{modified\_boxes} \times \text{xuat\_files})$.
+  2. In Path B3, `save_bundle_story()` (`core/bundle_io.py`) performs synchronous UnityPy save + tmp reopen verification.
+- **Forbidden Core Boundary:** Both `core/xunity_sync.py` and `core/bundle_io.py` are **Forbidden Files** in S11b.
+- **Gate A Outcome:**
+  - **CLEAR for bounded `Ctrl+S` -> Save Project (`.misora`) shortcut remap** inside S11b Allowed Files (`10.797 ms` median, never touches `core/bundle_io.py` or `core/xunity_sync.py`, eliminates accidental/slow bundle+XUAT saves on `Ctrl+S`).
+  - **Real-bundle hang timing (`UNMEASURED`) & multi-box XUAT sync / async bundle-save overhaul remain DEFERRED** to their own separately approved session if the Project Lead observes `Ctrl+Shift+S` hangs on real bundles/large XUAT trees during Manual Windows QA.
 
 ---
 
-## 3. `Q-02` — Save Shortcut Remap & Bounded Save-Hang Fix
+### STOP Gate B (`Q-18` Ruby Preview — 🛑 TRIGGERED & FORMALLY `DEFERRED`)
 
-### 3A. `Ctrl+S` → Save Project; `Ctrl+Shift+S` → Save & Patch Bundle
+- **Code Inspection (`misora.py::_insert_compiled_ngui_text`, lines `7708–7775`, and `compiled_ruby` tag, lines `3538–3543`):**
+  - `[rub:ruby]base[/rub]` emits `base_txt` via `emit_styled_run(base_txt)` and then appends `ruby_txt` inline after it with `compiled_ruby` (`offset=5`, smaller bold font).
+  - `tk.Text` lacks native above-base ruby positioning; `offset=5` shifts baseline vertically on the same horizontal run (`願いめいれい`), not centered above `願い`.
+- **Gate B Outcome:** Proper ruby display requires building a new custom Canvas text-layout engine. Per STOP Gate B & **Ruling 2**, `Q-18` is **STOPPED & FORMALLY `DEFERRED`** to post-`v1.5.0` (Track B, prerequisite to `BIG-02` MeCab), recorded in `PROJECT_STATE.md` and `S12` traceability, with no implementation-specific failing-first test manufactured in S11b.
 
-**Conflict Check:** `Ctrl+Shift+S` is currently **not bound** in `_on_misora_shortcut()`. The `is_shift` branch (lines 9015–9033) handles `z`, `c`, `v`, `t`, `i`, `e` — no `s`. The menu at line 4543 shows `"Save & Patch Bundle"` with accelerator `"Ctrl+S"` — no `"Save As"` or `"Ctrl+Shift+S"` exists anywhere in the codebase. ✅ **No conflict.**
+---
 
-**Changes Required:**
+## 3. `Q-01` — Strict XUAT English Text Scanner, Additive Rule Exclusions & Canonical Metrics
 
-| Surface | Current | New |
+### 3A. Strict Canonical Root Boundary (`core/xuat_index.py::resolve_xuat_text_roots()`, lines `134–181`)
+
+Close ALL 3 current permissive bypasses (unvalidated direct `.txt`, cascading `p / "en" / "Text"` and `p / "Text"`, and bare `low_name == "text"` fallback):
+- **ONLY Permitted Dictionary Subtree:** Canonical `Translation\en\Text` (case-insensitive segment suffix on Windows).
+- **Supported User-Selected Entry Points (ALL 5):**
+  1. **Game Root:** `<GameRoot>\src\BepInEx\Translation\en\Text` (Project Lead's `PriconneRe-TL\src\BepInEx\...` hierarchy) **AND** `<GameRoot>\BepInEx\Translation\en\Text`.
+  2. **`BepInEx` folder:** `<BepInEx>\Translation\en\Text`.
+  3. **`Translation` folder:** `<Translation>\en\Text`.
+  4. **`Translation\en` folder:** `<Translation\en>\Text`.
+  5. **`Translation\en\Text` folder:** accepted directly ONLY when trailing 3 path parts equal `("translation", "en", "text")` (case-insensitive).
+- **Direct `.txt` Selection:** Accepted ONLY when resolved parent lies strictly inside a canonical `Translation\en\Text` subtree (`_is_inside_canonical_en_text(p.parent)`) AND `not _is_excluded_xuat_file(p)`.
+- **Explicitly Rejected Locations:** `Translation\ja\Text` (and any non-`en` language), arbitrary `Text/` outside `Translation\en\Text`, standalone `.txt` outside `Translation\en\Text`, `Translation\en\Other`, `Translation\en\RedirectedResources`.
+- **MisoraApp Root Alignment (`misora.py:4057` `_resolve_xuat_text_root`):** Add `proj_dir / "src" / "BepInEx" / "Translation" / "en" / "Text"` as first candidate in `_resolve_xuat_text_root()` so `_set_project_folder(<GameRoot>)` directly discovers `src\BepInEx\...` without breaking `_resolve_project_search_roots()` (`test_p3_s08`).
+- **Pre-Check on Existing Tests:** Inspected `test_p3_s22_import_xuat.py`, `test_v15_s07_xuat_cleanup_archive.py`, and `test_v15_s11_xuat_archiving_progress.py` — all already construct `BepInEx/Translation/en/Text`. Zero existing XUAT test fixtures need path edits.
+
+### 3B. Additive File Exclusions (`m-1` — Case-Insensitive `endswith` Only)
+
+In `core/xuat_index.py::_is_excluded_xuat_file(path: Path)`:
+- Preserve all legacy exclusions via `endswith` (`".missing.txt"`, `".report.txt"`, `"_summary.txt"`, `"_warnings.txt"`) and `".bak_" in low`.
+- Add ALL 5 XUnity AutoTranslator non-dictionary rule patterns using **case-insensitive `endswith` ONLY** (NOT `contains`):
+  - `".font.txt"`, `".resizer.txt"`, `"postprocessors.txt"`, `"preprocessors.txt"`, `"substitutions.txt"`.
+
+### 3C. Complete Repository-Wide Caller Inventory (`len`, `bool`, `.entry_count`, `.entries`, `files_indexed`, `skipped_files`)
+
+| File : Line | Symbol / Context | Call Form | Purpose | Impact of Valid-Entry-Only `entry_count` |
+|---|---|---|---|---|
+| `core/xuat_index.py:228-236` | `XuatIndex.__init__` | `files_indexed`, `skipped_files`, `entry_count`, `entries`, `_norm_stripped_map` | Index storage | Add `self.files_scanned: int = 0` + `@property entries_read -> entry_count` |
+| `core/xuat_index.py:238-250` | `XuatIndex.add_entry` | `self.entries.append`, `_exact_map`, `_norm_stripped_map`, `_value_map`, `self.entry_count += 1` | Populate lookup tiers & counts | Guard `self.entry_count += 1` on `if k_norm_stripped:` ONLY; keep `entries`/`_exact_map`/`_value_map` unchanged (zero silent dropping) |
+| `core/xuat_index.py:314-315` | `XuatIndex.__bool__` | `return self.entry_count > 0` | Truthiness check | Safe: True whenever >=1 valid translation entry exists |
+| `core/xuat_index.py:317-318` | `XuatIndex.__len__` | `return self.entry_count` | Count of indexed valid entries | Reflects canonical `entry_count` (`entries_read`) cleanly |
+| `core/xuat_index.py:320-333` | `__contains__`, `__getitem__`, `get` | Delegates to `lookup_translation()` | Dict-like MTL interface | Unaffected (lookup reads `_exact_map` / `_norm_exact_map` / `_norm_stripped_map`) |
+| `core/mtl_engine.py:153-163` | `MTLEngine.translate` (cache hit) | `if cfg.use_xuat_cache and xuat_cache:` (`__bool__`) -> `lookup_translation()` | Instant XUAT cache check | Safe: uses `__bool__`; non-empty valid indices remain truthy |
+| `core/mtl_engine.py:183-190` | `MTLEngine.translate` (`"XUAT Cache"` engine) | `if xuat_cache:` (`__bool__`) -> `lookup_translation()` | XUAT Cache MTL lookup | Safe: same as above |
+| `core/xuat_cleanup.py:510-511` | `classify_cleanup_candidates` | `entries = getattr(xuat_index, "entries", ())`; `len(entries)` | Iterate all parsed entries across Pass 1/2/3 | Unaffected: `XuatIndex.entries` is preserved untouched |
+| `core/xuat_cleanup.py:689-691` | `classify_cleanup_candidates` | `file_fingerprints`, `files_indexed` | Source SHA-256 fingerprint capture | Unaffected |
+| `misora.py:2094-2095` | `MisoraApp.__init__` | `self.xuat_index = None`, `self.xuat_entries = None` | Cache + alias for MTL | Alias stays synchronized on every rebuild |
+| `misora.py:2329, 4054, 18444-18543, 18555, 19786, 19994, 21080, 21431, 21546-21549, 22164` | `MisoraApp`, `ImportFromXUATDialog`, `XuatCleanupDialog`, `MTLSettingsDialog` | `is None`, `isinstance(..., XuatIndex)`, `.roots == strict_roots` | Lifecycle & lazy/async build | Unaffected (none call `len`/`bool` on index) |
+| `misora.py:17244, 17659, 17765, 17818, 17825, 17988, 22625, 22683, 22915, 22937` | MTL Drawer, `Translate All`, `on_translate_current_box`, `TranslatorAssistantDialog`, `BatchTranslateDialog` | `xuat_cache=getattr(..., "xuat_entries", None)` passed to `MTLEngine` | Pass index into `MTLEngine.translate()` | Safe: `MTLEngine` checks `bool(xuat_cache)` + `lookup_translation()` |
+| `misora.py:18511-18512` | `_poll_xuat_index_queue` | `n_files = len(getattr(payload, "files_indexed", ()))` | Status bar progress completion message | **Update (`m-2`):** surface `Scanned X | Indexed Y | Skipped Z` + `Entries / Unique / Duplicates` clearly |
+| `misora.py:20325` | `ImportFromXUATDialog._populate_rows` | `f"Files indexed: {len(self.xuat_index.files_indexed)}"` | Summary label in Import dialog | **Update (`m-2`):** distinguish `Scanned: X | Indexed: Y` (+ `Skipped: Z` if >0) and canonical entry/unique/duplicate metrics |
+| `tests/test_p3_s22_import_xuat.py:137-173` | `test_probe_1_xuat_index...` | `build_xuat_index([proj_dir])`, `MTLEngine.translate(..., xuat_cache=idx)` | Core index + MTL tests | Unaffected |
+| `tests/test_v15_s07_xuat_cleanup_archive.py:740-742` | `test_guard_2...` | `len(idx.skipped_files) == 1` | Corrupted file skipping check | Unaffected |
+| `tests/test_v15_s11_xuat_archiving_progress.py:595-597` | `test_probe_5...` | `len(partial_idx.files_indexed) < 15` | Cancellable `os.walk` check | Unaffected |
+
+### 3D. Canonical Metric Contract & `m-2` UI Distinction (`core/xuat_index.py`, `misora.py`)
+
+- **No New Parallel Maps:** Use existing `XuatIndex._norm_stripped_map`, `_norm_exact_map`, `_exact_map`, `_value_map`, `entries`, `files_indexed`, `skipped_files`.
+- **Properties & Attributes on `XuatIndex`:**
+  - `files_scanned: int`: unique, eligible, non-excluded `.txt` files actually attempted after deduplication. In `build_xuat_index()`, increment `idx.files_scanned += 1` immediately upon attempting each deduplicated non-excluded file (ensuring completed-scan identity `idx.files_scanned == len(idx.files_indexed) + len(idx.skipped_files)`).
+  - `entry_count: int` and synchronized `@property def entries_read(self) -> int: return self.entry_count` — incremented in `add_entry()` **ONLY** when `k_norm_stripped != ""` (empty normalized keys NEVER enter `_norm_stripped_map` and NEVER increment `entry_count`/`entries_read`, while still entering `entries`, `_exact_map`, `_value_map`).
+  - `@property def unique_keys(self) -> int: return len(self._norm_stripped_map)`
+  - `@property def duplicate_keys(self) -> int: return sum(1 for v in self._norm_stripped_map.values() if len(v) > 1)`
+  - `@property def duplicate_entries(self) -> int: return self.entries_read - self.unique_keys`
+- **`m-2` UI / Status Display (`misora.py:18511-18512` & `20325`):**
+  - `_poll_xuat_index_queue()` completion message: `f"XUAT index reloaded (Scanned: {n_scanned}, Indexed: {n_indexed}" + (f", Skipped: {n_skipped}" if n_skipped else "") + f" | Entries: {n_entries}, Unique: {n_unique}, Dup: {n_dup})."`
+  - `ImportFromXUATDialog._populate_rows()` summary label: includes `Files scanned: {idx.files_scanned} | Files indexed: {len(idx.files_indexed)}` (+ `Skipped: {len(idx.skipped_files)}` if non-zero) and `Entries: {idx.entries_read} (Unique: {idx.unique_keys}, Dup: {idx.duplicate_entries})`.
+
+---
+
+## 4. `Q-02` — `Ctrl+S` Save Project Remap, Data-Safety Safeguards & `_current_project_path` Lifecycle
+
+### 4A. Shortcut & UI Surface Migration (`misora.py`, `README.md`)
+
+- **Conflict Check Confirmed:** `Ctrl+Shift+S` is currently unbound in `_on_misora_shortcut()` (lines `9015–9033`), `_bind_shortcuts()` (lines `9196–9253`), and menus (`4530–4860`). No `"Save As"` command exists in the app.
+- **Exact Surface Updates:**
+
+| Surface (`file:line`) | Current | New |
 |---|---|---|
-| **Shortcut Router** (`_on_misora_shortcut`, line 8976–8978) | `Ctrl+S` → `on_save()` | `Ctrl+S` → `on_save_project()` |
-| **Shortcut Router** (new, `is_shift` block) | — | `Ctrl+Shift+S` → `on_save()` |
-| **File Menu** (line 4541) | `"Save Project (.misora)..."` (no accelerator) | `"Save Project (.misora)..."`, accelerator=`"Ctrl+S"` |
-| **File Menu** (line 4543) | `"Save & Patch Bundle"`, accelerator=`"Ctrl+S"` | `"Save & Patch Bundle"`, accelerator=`"Ctrl+Shift+S"` |
-| **Tab Context Menu** (line 16106) | `"Save File (Ctrl+S)"` | `"Save & Patch Bundle (Ctrl+Shift+S)"` |
-| **README.md** (line 72) | `Ctrl+S` → Save & Patch | `Ctrl+S` → Save Project; new row `Ctrl+Shift+S` → Save & Patch Bundle |
+| `misora.py:8976-8978` (`_on_misora_shortcut`) | `Ctrl+S` -> `self.on_save()` | `Ctrl+S` -> `self.on_save_project()` |
+| `misora.py:9015-9034` (`_on_misora_shortcut` shift) | *(no `s`)* | `Ctrl+Shift+S` -> `self.on_save()` |
+| `misora.py:9211` (`_bind_shortcuts` root bind) | `self.bind("<Control-s>", lambda e: self.on_save())` | `self.bind("<Control-s>", lambda e: self.on_save_project())` + `<Control-Shift-S>` / `<Control-Shift-s>` -> `self.on_save()` |
+| `misora.py:4541` (`file_menu`) | `"Save Project (.misora)..."` (no accelerator) | `"Save Project (.misora)"`, `command=self.on_save_project`, `accelerator="Ctrl+S"` + new `"Save Project As (.misora)..."`, `command=lambda: self.on_save_project(save_as=True)` |
+| `misora.py:4543` (`file_menu`) | `"Save & Patch Bundle"`, `accelerator="Ctrl+S"` | `"Save & Patch Bundle"`, `command=self.on_save`, `accelerator="Ctrl+Shift+S"` |
+| `misora.py:8864` (`btn_save` toolbar) | `text=" Save & Patch Bundle (Ctrl+S)"` | `text=" Save & Patch Bundle (Ctrl+Shift+S)"` + explicit tooltip distinguishing Save Project (`Ctrl+S`) vs Save & Patch File (`Ctrl+Shift+S`) |
+| `misora.py:16106` (tab context menu) | `label="Save File (Ctrl+S)"` | Type-aware dynamic label: `"Save & Patch Bundle (Ctrl+Shift+S)"` if `self.is_bundle_file` else `"Save File (Ctrl+Shift+S)"` |
+| `README.md:30, 37, 72–73` | `Ctrl+S` = Save & Patch; `Ctrl+Shift+S` = Save As (stale) | `Ctrl+S` = **Save Project (`.misora`)** (saves workspace session refs/state/locks ONLY); `Ctrl+Shift+S` = **Save & Patch** (saves/patches active `.unity3d`/`.v2.txt`/`.txt` + optional XUAT sync); remove stale `"Save As"` |
 
-### 3B. `on_save_project()` Quick-Save Behavior
+### 4B. Data-Safety Safeguards & Full `_current_project_path` Lifecycle (`misora.py`)
 
-Currently `on_save_project()` (line 15847) opens a **file dialog** every time. For `Ctrl+S` to feel instant, we need a quick-save path:
+- **Data-Safety Invariants (`Ruling 1`):**
+  1. `save_project()` / `on_save_project()` **NEVER** clears `self.is_dirty`, `open_documents[p]["dirty"]`, or calls `self.undo_journal.mark_saved(...)`.
+  2. `save_project()` emits honest post-save status & toast:
+     - Status: `f"Saved project '{ws_path.name}' ({len(file_entries)} file(s)) — story edits not yet written to bundle/XUAT (Ctrl+Shift+S to save file)."`
+     - Toast: `"Project (.misora) saved — story edits are not yet written to bundle/XUAT (use Ctrl+Shift+S to save file)."`
+  3. Dirty-close (`close_file`, `_on_app_exit`) continues prompting Save/Discard/Cancel (`AGENTS.md` §16) even immediately after `Ctrl+S`.
+  4. `save_project()` preserves and runs `self._flush_active_widget()` (which calls `self._flush_quick_edit_session()`) cleanly without clearing dirty flags.
 
-- If a `.misora` project is already open/loaded → save to the same path without dialog
-- If no project is loaded → prompt with file dialog (current behavior)
-- Add `self._current_project_path: Optional[Path]` tracked on `open_project()` and `save_project()`
-
----
-
-## 4. `Q-04` — Manual Investigation Findings
-
-### 4.1 `▶` Icon Above >54-char Textboxes
-
-**Finding:** The `▶` symbol is the **Active Box header indicator** in All Script mode: `"▶ [BOX #NNN]"` (line 9143 area, `_AllScriptPoolCard` active highlight). It appears in the card header when a box is the currently selected/active box in All Script view. It is NOT a separate clickable control — it is part of the header label text that changes from `"[BOX #NNN]"` to `"▶ [BOX #NNN]"`.
-
-**Verdict:** This is the **intended Active Box marker**, not a broken control. **No fix needed, no failing test manufactured.** Document in `PROJECT_STATE.md`.
-
-### 4.2 Multi-match Text Selection, Drag, Scrolling
-
-**Finding:** `ImportFromXUATDialog` uses paired read-only `tk.Text` widgets with `state="disabled"`. Text selection, drag, and scrolling are natively disabled on `state="disabled"` Text widgets. The main view dialogue `txt_dialogue` has `state="normal"` and supports native selection/drag.
-
-**Verdict:** Need to verify if the user's report refers to the 1-line metadata rows or the 3-line dialogue rows. Without a concrete reproduction, **document as CONDITIONAL (requires user reproduction steps).** No failing-first test manufactured.
-
-### 4.3 (`1.3`) — `NOT TESTED`
-
-Strictly labeled **`NOT TESTED`** everywhere. No bug report, no test.
+- **Explicit `_current_project_path: Optional[Path]` Lifecycle (Cases `a`–`g`):**
+  - Initialize `self._current_project_path: Optional[Path] = None` in `MisoraApp.__init__`.
+  - **(a) First `Ctrl+S` (`_current_project_path is None`):** `on_save_project(save_as=False)` prompts `filedialog.asksaveasfilename(...)`; if user selects `target`, calls `save_project(Path(target))`.
+  - **(b) Subsequent `Ctrl+S` (`_current_project_path is not None`):** `on_save_project(save_as=False)` calls `save_project(self._current_project_path)` directly without reopening `asksaveasfilename()`.
+  - **(c) After `open_project(ws_path)` (with >=1 resolved file):** sets `self._current_project_path = ws_path.resolve()` so subsequent `Ctrl+S` updates that loaded `.misora` path.
+  - **(d) Cancelled or Failed Saves:** If `asksaveasfilename()` returns empty (`""`/`None`) OR `save_project()` returns `False`, `_current_project_path` is **NEVER** set or overwritten (retains its prior value). Only on `save_project()` returning `True` is `self._current_project_path = ws_path.resolve()` assigned.
+  - **(e) Close-All / Last-File-Close / All-Missing Workspace:**
+    - When `close_file()` closes the last document (`not self.open_documents`), or `_close_all_documents_without_prompt()` runs, reset `self._current_project_path = None`.
+    - When `open_project(ws_path)` loads a workspace whose referenced files are **ALL missing** (`not opened_entries`), keep `self._current_project_path = None` so subsequent edits on unrelated newly opened files never silently overwrite the broken `.misora` without prompting.
+  - **(f) Separate `"Save Project As (.misora)..."`:** Menu command calls `on_save_project(save_as=True)` which ALWAYS prompts `asksaveasfilename()`, updating `_current_project_path` only if `save_project()` succeeds.
+  - **(g) Active Widget & Quick Edit Flush on `Ctrl+S`:** `save_project()` continues calling `self._flush_active_widget()` (which calls `self._flush_quick_edit_session()`), tested explicitly with dirty state preserved afterward.
 
 ---
 
-## 5. `Q-23` — Remove Red Overflow Highlights in Dialogue Preview
+## 5. `Q-04` — Manual S10/S11 Investigation Items (`1.1`, `1.2`, `1.3`)
 
-### Changes in `misora.py`:
-
-**A. Remove call at line 7594–7595:**
-```python
-# BEFORE:
-if not getattr(self, "is_box0_active", False):
-    self._apply_overflow_highlights(txt_w)
-
-# AFTER:
-# Q-23: Dialogue Preview never receives overflow highlights (wrap="none" native bleed only)
-```
-
-**B. Add defensive guard inside `_apply_overflow_highlights()` (line 13206):**
-```python
-def _apply_overflow_highlights(self, widget: Optional[tk.Text]) -> None:
-    if not widget or not widget.winfo_exists():
-        return
-    # Q-23 Defensive: Dialogue Preview NEVER receives overflow highlights
-    if widget is getattr(self, "txt_dialogue_preview", None):
-        try:
-            widget.tag_remove("line_overflow", "1.0", tk.END)
-        except Exception:
-            pass
-        return
-    # ... rest of existing logic unchanged ...
-```
-
-**C. Test Migrations:**
-
-- `test_v15_s03_all_script_preview_paste.py::test_probe_3` line 202:
-  - Change: `self.assertTrue(len(self.app.txt_dialogue_preview.tag_ranges("line_overflow")) >= 2)` → `self.assertEqual(self.app.txt_dialogue_preview.tag_ranges("line_overflow"), ())`
-  - Add assertion: Editor (`Preview OFF`) still receives red overflow ranges
-
-- `test_p3_s18_game_preview.py::test_01` — no assertion on `line_overflow` in current code (confirmed by reading lines 88–152). No migration needed.
+- **`1.1` (`▶` icon above >54-char textboxes):** Confirmed in `misora.py` (`_AllScriptPoolCard` active highlight: `▶ [BOX #NNN]` vs `◆ [BOX #NNN]`). It is the intended Active Box header indicator, not a separate broken control. Document in `PROJECT_STATE.md`; **no code change, no manufactured test**.
+- **`1.2` (Multi-match Name / Title / Subtitle boxes with >3 linebreaks — text selection, drag, and scrolling):**
+  - *Correction applied:* `state="disabled"` on `tk.Text` prevents editing **only** — it does **not** disable selection, copy, drag, or scrolling.
+  - *Empirical check run during `/plan` (`ImportFromXUATDialog` & Main View):*
+    - **Text selection (`tag_add("sel", ...)` & `<ButtonPress-1>` + `<B1-Motion>` drag):** Works in both `ImportFromXUATDialog` (`txt_right` on `meta`, `actor`, `dialogue`) and Main View (`txt_dialogue`, `txt_box0_summary`).
+    - **Scrolling:** `<MouseWheel>` scrolls 3-line `dialogue` rows when `has_line_overflow=True`, while 1-line `meta`/`actor` rows (`lines=1`) gate `has_v` via `lines >= 3` (`misora.py:20274-20275`) and delegate wheel events to the outer canvas; in Main View, `entry_speaker` and `entry_box0_title`/`subtitle` are single-line `tk.Entry` widgets (cannot hold `>3` linebreaks).
+  - **Status (`Ruling 3`):** Recorded honestly as **`NOT REPRODUCED — NEEDS USER REPRODUCTION DETAILS`** in `PROJECT_STATE.md`. Box 0 stays excluded from ordinary dialogue rows (`S11d` `Q-08` handles multi-line Synopsis import). Zero manufactured failing tests.
+- **`1.3`:** Strictly labeled **`NOT TESTED`** everywhere.
 
 ---
 
-## 6. Test Plan — `tests/test_v15_s11b_scanner_save_preview.py`
+## 6. `Q-23` — Remove Red Overflow Highlight Blocks in Dialogue Preview (`misora.py`, Tests)
 
-### Confirmed Failing-First Probes (3):
+- Remove `if not getattr(self, "is_box0_active", False): self._apply_overflow_highlights(txt_w)` from `misora.py::_render_dialogue_preview_frame()` (lines `7594–7595`).
+- Add defensive guard at top of `misora.py::_apply_overflow_highlights()` (line `13206`):
+  ```python
+  if widget is getattr(self, "txt_dialogue_preview", None):
+      try:
+          widget.tag_remove("line_overflow", "1.0", tk.END)
+      except Exception:
+          pass
+      return
+  ```
+- Preserve `wrap="none"` native bleed, `54d × 3` calibration, pink `#C24270` nameplate with WCAG contrast, gold border, unclipped pink `▼`, and read-only non-save behavior; Dialogue Editor (`Preview OFF`) retains red overflow markers unchanged.
+- **Test Migrations (`m-5`):**
+  - `tests/test_v15_s03_all_script_preview_paste.py::test_probe_3`: change `>= 2` `line_overflow` ranges on `txt_dialogue_preview` -> `== ()`, and assert Dialogue Editor (`Preview OFF`) retains red `line_overflow` markers.
+  - `tests/test_p3_s18_game_preview.py::test_01`: add `self.assertEqual(self.app.txt_dialogue_preview.tag_ranges("line_overflow"), ())` (`m-5`).
 
-| # | Name | Tests |
+---
+
+## 7. Test Plan (`tests/test_v15_s11b_scanner_save_preview.py`)
+
+### Confirmed Failing-First Probes (3 — MUST FAIL pre-patch, PASS post-patch):
+1. `test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics`:
+   - Tests all 5 valid entry points (`<GameRoot>\src\BepInEx\Translation\en\Text`, `<GameRoot>\BepInEx\Translation\en\Text`, `BepInEx`, `Translation`, `Translation\en`, `Translation\en\Text`) + valid direct `.txt` inside `Translation\en\Text`.
+   - Rejects all 5 forbidden locations (`Translation\ja\Text`, arbitrary `Text/`, standalone `.txt` outside, `Translation\en\Other`, `Translation\en\RedirectedResources`).
+   - Verifies all 5 new rule exclusions via `endswith` (`*.font.txt`, `*.resizer.txt`, `*Postprocessors.txt`, `*Preprocessors.txt`, `*Substitutions.txt`) + legacy exclusions, AND verifies a valid file containing e.g. `substitutions` mid-stem (if not ending in `substitutions.txt`) or verifying strict tail match.
+   - Verifies root/file deduplication + **`m-2`** simulated read/decode failure (invalid bytes / `OSError`) confirming `files_scanned == len(files_indexed) + len(skipped_files)` (failed file counted in `files_scanned` & `skipped_files`, excluded/duplicate NOT counted) and visually distinguished in status & `ImportFromXUATDialog` summary labels.
+   - Verifies metric math backed by `_norm_stripped_map` (`entries_read == entry_count == unique_keys + duplicate_entries`, `unique_keys == len(_norm_stripped_map)`, `duplicate_keys`) across single, 2x, 3x duplicates and empty/invalid normalized keys.
+   - Verifies `_exact_map` & `_value_map` lookup parity including empty-normalized-key edge case (present in `entries`/`_exact_map`/`_value_map`, absent from `_norm_stripped_map`, not counted in `entry_count`/`entries_read`).
+2. `test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut`:
+   - Tests `Ctrl+S` -> `on_save_project()` (not `on_save()`) and `Ctrl+Shift+S` -> `on_save()` across `_on_misora_shortcut` & root binds; verifies File menu (`Save Project (.misora)` `Ctrl+S`, `Save Project As (.misora)...`, `Save & Patch Bundle` `Ctrl+Shift+S`), `btn_save`, type-aware tab context menu across **bundle**, **`.v2.txt`**, and **plain `.txt`**, and `README.md` (no stale `"Save As"` for `Ctrl+Shift+S`).
+   - Tests all 7 `_current_project_path` lifecycle & data-safety cases `(a)`–`(g)`:
+     - `(a)` first `Ctrl+S` prompts `asksaveasfilename()`,
+     - `(b)` subsequent `Ctrl+S` saves directly without prompt,
+     - `(c)` `open_project()` binds `_current_project_path` so `Ctrl+S` updates it,
+     - `(d)` cancelled or failed save never sets/overwrites `_current_project_path`,
+     - `(e)` closing last/all docs OR `open_project()` with all files missing resets `_current_project_path` to `None`,
+     - `(f)` `"Save Project As (.misora)..."` (`save_as=True`) always prompts,
+     - `(g)` `Ctrl+S` runs `_flush_active_widget()` (and `_flush_quick_edit_session()`), keeps `is_dirty=True` and `undo_journal` unsaved, emits honest post-`Ctrl+S` toast, and dirty-close still prompts Save/Discard/Cancel.
+3. `test_probe_3_dialogue_preview_has_zero_red_blocks_while_editor_keeps_markers`:
+   - `txt_dialogue_preview.tag_ranges("line_overflow") == ()` on >54d / 4-line text; direct `_apply_overflow_highlights(app.txt_dialogue_preview)` still returns `()`; `wrap="none"`, pink nameplate, gold border, pink `▼`, `54d × 3` intact; Dialogue Editor (`Preview OFF`) keeps red markers.
+
+### Regression Guards (2 — MUST PASS pre-patch and post-patch):
+1. `test_guard_1_core_xuat_index_free_of_tkinter_and_misora_imports`
+2. `test_guard_2_dialogue_preview_readonly_non_save_and_box0_exemption_intact`
+
+---
+
+## 8. File Change Matrix (Authorized Only After `Proceed`)
+
+| File | Action | Exact Changes |
 |---|---|---|
-| 1 | `test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics` | 5 valid entry points + direct `.txt` inside canonical tree; 5 forbidden targets rejected; 5 new XUAT exclusions + legacy preservation; root/file dedup with `files_scanned` identity; exact metric math (`entries_read == entry_count == unique_keys + duplicate_entries`); exact/value lookup parity including empty-normalized-key edge case |
-| 2 | `test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut` | `Ctrl+S` routes to Save Project (not `on_save`); `Ctrl+Shift+S` routes to `on_save()`; menu labels/accelerators match; tab context menu updated |
-| 3 | `test_probe_3_dialogue_preview_has_zero_red_blocks_while_editor_keeps_markers` | `txt_dialogue_preview.tag_ranges("line_overflow") == ()` with >54d text; defensive guard blocks direct call; `wrap="none"`, pink nameplate, gold border, pink `▼`, `54d × 3` intact; Dialogue Editor (`Preview OFF`) retains red markers |
+| `__init__.py` | Modify | Bump `"1.4.10"` -> `"1.4.11"` |
+| `core/xuat_index.py` | Modify | Strict `resolve_xuat_text_roots()`, `m-1` `endswith` exclusions, `files_scanned` + `entries_read`/`unique_keys`/`duplicate_keys`/`duplicate_entries`, `entry_count` valid-key guard |
+| `misora.py` | Modify | `_resolve_xuat_text_root` `src/BepInEx`, `m-2` status/Import labels, `Ctrl+S` -> `on_save_project()`, `Ctrl+Shift+S` -> `on_save()`, `_current_project_path` lifecycle (a–g) + honest toast, File menu / `btn_save` / type-aware tab context menu, `Q-23` preview highlight removal + defensive guard |
+| `README.md` | Modify | Update `Ctrl+S` -> Save Project (`.misora`), replace stale `Ctrl+Shift+S = Save As` with `Save & Patch` |
+| `CHANGELOG.md` | Modify | Add `### S11b (v1.4.11)` |
+| `PROJECT_STATE.md` | Modify | Record 5-stage profiling, `Q-04` (`1.1` intended, `1.2` `NOT REPRODUCED — NEEDS USER REPRODUCTION DETAILS`, `1.3` `NOT TESTED`), `Q-18` `DEFERRED`, test baseline, Manual Windows QA checklist (incl. real `.unity3d` save timing) |
+| `tests/test_v15_s11b_scanner_save_preview.py` | Create | 3 failing-first probes + 2 regression guards |
+| `tests/test_v15_s03_all_script_preview_paste.py` | Modify | Migrate `txt_dialogue_preview` `line_overflow` assertion (`>= 2` -> `()`) + assert Editor retains markers |
+| `tests/test_p3_s18_game_preview.py` | Modify | Add `m-5` `self.assertEqual(self.app.txt_dialogue_preview.tag_ranges("line_overflow"), ())` inside `test_01` |
 
-### Conditional Probes (ONLY if reproduced):
-| # | Name | Condition |
-|---|---|---|
-| 4 | `test_probe_4_confirmed_q04_12_repro` | ONLY if `Q-04.1.2` defect is actually reproduced — **SKIPPED (not reproduced)** |
-| 5 | `test_probe_5_ruby_preview_rendering` | ONLY if `Q-18` does NOT trigger STOP Gate B — **SKIPPED (STOP Gate B triggered)** |
-
-### Regression Guards (2):
-| # | Name |
-|---|---|
-| 1 | `test_guard_1_core_xuat_index_free_of_tkinter_and_misora_imports` |
-| 2 | `test_guard_2_dialogue_preview_readonly_non_save_and_box0_exemption_intact` |
-
----
-
-## 7. File Change Matrix
-
-| File | Action | Scope |
-|---|---|---|
-| `__init__.py` | Modify | Bump `"1.4.10"` → `"1.4.11"` |
-| `core/xuat_index.py` | Modify | Strict `resolve_xuat_text_roots()`, additive exclusions, `files_scanned`/`entries_read` metrics, `entry_count` guard |
-| `misora.py` | Modify | `Ctrl+S` → `on_save_project()` quick-save, `Ctrl+Shift+S` → `on_save()`, menu/accelerator/tooltip updates, Q-23 overflow removal + defensive guard, `_current_project_path` tracking |
-| `README.md` | Modify | Update shortcut table: `Ctrl+S` → Save Project, add `Ctrl+Shift+S` → Save & Patch Bundle |
-| `CHANGELOG.md` | Modify | Add `### S11b (v1.4.11)` section |
-| `PROJECT_STATE.md` | Modify | Record S11b profiling, Q-04 findings (`1.3 = NOT TESTED`), Q-18 STOP Gate B deferral, verification baseline, Manual QA checklist |
-| `tests/test_v15_s11b_scanner_save_preview.py` | **Create** | 3 failing-first probes + 2 regression guards |
-| `tests/test_v15_s03_all_script_preview_paste.py` | Modify | Migrate `line_overflow` assertion on `txt_dialogue_preview` from `>= 2` → `== 0` |
-| `tests/test_p3_s18_game_preview.py` | Inspect-only | No `line_overflow` assertion on `txt_dialogue_preview` exists; no change needed |
-
-**Forbidden Files — Confirmed Untouched:**
-`core/story_ast.py`, `core/bundle_io.py`, `core/script_codec.py`, `core/xuat_cleanup.py`, `core/xunity_sync.py`, `core/word_wrap.py`, `core/mtl_engine.py`, `core/undo_journal.py`, `assets/*`, `requirements.txt`, `misora_config.json`, `backups/`
-
----
-
-## 8. Verification Commands (Post-Patch)
-
-```bash
-# 1. Pre-patch probe run (confirmed probes FAIL, guards PASS)
-py -3.12 -m unittest tests.test_v15_s11b_scanner_save_preview -v
-
-# 2. Post-patch compile check
-py -3.12 -m compileall -q __init__.py misora.py core assets tests
-
-# 3. Post-patch targeted suites
-py -3.12 -m unittest tests.test_v15_s11b_scanner_save_preview tests.test_v15_s03_all_script_preview_paste tests.test_p3_s18_game_preview tests.test_v15_s11_xuat_archiving_progress tests.test_v15_s07_xuat_cleanup_archive tests.test_p3_s22_import_xuat -v
-
-# 4. Full discovery
-py -3.12 -m unittest discover -s tests -v
-
-# 5. Git status
-git status --short
-```
-
----
-
-## 9. STOP Gate Summary & Deferred Items
-
-| Gate | Decision | Reason |
-|---|---|---|
-| **A** (`Q-02` Save Hang) | ✅ **CLEAR** — bounded shortcut remap within S11b scope | Bundle save bottleneck is in `core/bundle_io.py` (forbidden). `Ctrl+S` remap to lightweight `.misora` save eliminates the common-case hang. |
-| **B** (`Q-18` Ruby Preview) | 🛑 **TRIGGERED** — `Q-18` deferred to own session | Proper above-text ruby display requires a custom Canvas text-layout engine; `tk.Text` has no native above-text rendering. Current inline `compiled_ruby` with `offset=5` is a design limitation, not a code bug. |
-
-| Deferred Item | Target Session |
-|---|---|
-| `Q-18` Ruby Preview proper renderer | Own bounded session (custom Canvas layout) |
-| `Q-22` Quick Edit single-box unification | S11c |
-| `Q-06`–`Q-12` Import UX & productivity | S11d |
-| `Q-03`, `Q-05`, `Q-13`–`Q-17` | S11e |
-| `BIG-01`–`BIG-03` | Track B post-v1.5.0 |
-| Async `save_bundle_story` | Own session (if save hang measured after remap) |
+**Forbidden Files (Strictly Untouched):** `core/story_ast.py`, `core/bundle_io.py`, `core/script_codec.py`, `core/xuat_cleanup.py`, `core/xunity_sync.py`, `core/word_wrap.py`, `core/mtl_engine.py`, `core/undo_journal.py`, `assets/*`, `requirements.txt`, `misora_config.json`, `backups/`.
