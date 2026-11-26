@@ -1,0 +1,100 @@
+/plan Implement S11c (v1.4.12): Unified Single-Box Quick Edit (`Q-22` ONLY) Matching Main Dialogue Editor Projection (`Box.clean_text`), Canonical `inject_box()` Mutation, Manual-vs-Quick-Edit AST & Binary Parity Test, and Full S08/S10 Test Migration in Misora: Story Editor.
+
+CONTEXT POINTERS (READ DIRECTLY FROM DISK BEFORE PLANNING):
+@AGENTS.md @PROJECT_STATE.md @CHANGELOG.md @__init__.py @misora.py @core/story_ast.py @core/undo_journal.py @tests/test_v15_s10_all_script_quick_edit.py @tests/test_v15_s08_release_gate_stress.py
+
+==================================================
+PART 0 — EXECUTION MODE, PLANNING GATE & INVARIANTS
+==================================================
+1. Planning-First Gate: Inspect live files on disk first (verify `misora.py::_rebuild_quick_edit_widgets`, `_start_or_sync_qe_session`, `_on_quick_edit_changed`, `_flush_quick_edit_session`, `_apply_delta`, `core/story_ast.py::Box.text` / `Box.clean_text` / `BoxSnapshot.clean_text`, `tests/test_v15_s10_all_script_quick_edit.py`, and ALL Quick Edit references in `tests/test_v15_s08_release_gate_stress.py` including `_qe_seg_widgets[0]`), capture pre-session branch, `git rev-parse HEAD`, full `git status --short`, and Python 3.12 version, then output a symbol-bound Implementation Plan artifact and STOP to wait for explicit Project Lead `Proceed` before editing ANY file.
+2. **Strict Single-Focus Session:** S11c covers **`Q-22` ONLY**. Do NOT bundle `Q-06`–`Q-12` (Import UX) or any unrelated refactors into S11c.
+3. **Version Policy:** Bump `__init__.__version__` cleanly by +1 patch from the current installed pre-S11c version (target `"1.4.11"` -> `"1.4.12"`, or next sequential patch if an S11b STOP gate spun off an intermediate version).
+4. No Test Weakening & Honest Verification.
+
+CARRY-FORWARD PROJECT INVARIANTS (MUST NEVER REGRESS):
+- Binary & AST Safety: Preserve `cmd_id == 35` (narration) and `cmd_id == 32` (subtitle) unchanged; never merge adjacent narration boxes on speaker clear; preserve `{playername}` <-> `{0}` mapping and lossless `BoxSnapshot` fields (`speaker`, `voice_cue`, `kind`, `seg_texts`, `raw_breaks`, `extra_args`).
+- Shared Pixel-Exact 54d Contract: `DIALOGUE_MAX_DIGITS = 54`, `DIALOGUE_MAX_LINES = 3`; canonical reference pixel width (`safe_w`) derived from 54 digits in Nunito Bold (constant across `Global — Nunito Bold` and `Japanese` presets); active dialogue text measured in active dialogue font; never approximate via `tk.Text(width=54)`. Box 0 is 100% immune to red overflow markers, red header warnings, Auto Word Wrap, and `54d x 3` card clipping.
+- S09b Translation Lock Matrix & Pin Orthogonality: Manual Dialogue typing (`Row 1`) is ALLOWED on locked boxes; Speaker rename commit, Paste Replace, Cut Box, MTL Apply, Auto Word Wrap, Clear Skeleton, and XUAT Import preserve their specific lock guards; Speaker Pin (`📌`) is strictly orthogonal to Translation Lock (`🔒`), unpins on actor change, and `▼` Jump menu is navigation-only.
+- Main-Thread Tkinter Rule (`AGENTS.md` §15): Worker threads MUST NEVER call ANY Tkinter method or mutate live `StoryDocument` objects; communicate strictly via thread-safe queues/locks drained on the main thread.
+- S07/S11 XUAT Data Safety: Preserve SHA-256 stale-source guard, mandatory archive-first for destructive cleanup, per-file atomicity, BOM/CRLF preservation, and pre-pass global Actor/Speaker exclusion from `XUAT Translation Archiving`.
+- Clean-Room Dialogue Preview & Virtualized All Script: Preserve Dialogue Preview pink Actor nameplate (WCAG white text), continuous gold border, unclipped pink `▼`, `wrap="none"` native bleed, read-only/non-save contract (`txt_dialogue_preview` never saved); preserve Virtualized All Script Card Pool (inline `♪ vo_adv_...` kept, round blue speaker badge absent, zero red overflow markers in All Script, bottom tab `"Raw Commands"` preserved).
+- Workspace, Git & Dependency Hygiene: Python 3.12 stdlib, Tkinter, UnityPy, Pillow ONLY (zero new third-party dependencies). NEVER run destructive Git commands (`reset`, `clean`, `stash`, `checkout`, `restore`, `commit`, `push`). NEVER read, overwrite, restore, or modify user-local `misora_config.json`, `backups/`, or pre-existing untracked files.
+
+==================================================
+PART 1 — STRICT FILE OWNERSHIP BOUNDARIES (S11c)
+==================================================
+Allowed Files to Create/Modify (ONLY after `Proceed`; verify exact paths on disk during `/plan`):
+- `__init__.py` (bump patch version -> target `"1.4.12"`)
+- `misora.py` (`Q-22` unified single-box Quick Edit + view-aware live sync + pre-mutation snapshot lifecycle)
+- `CHANGELOG.md` (add `### S11c (v1.4.12)` section)
+- `PROJECT_STATE.md` (update S11c summary, test counts, and Manual Windows QA items)
+- `tests/test_v15_s11c_quick_edit_unified.py` (NEW — failing-first probes including Manual Dialogue vs Quick Edit AST & binary parity test + regression guards)
+- `tests/test_v15_s10_all_script_quick_edit.py` (migrate `test_probe_5` from asserting 4 split segment widgets to asserting 1 unified Quick Edit box with full `StoryDocument.records`, binary round-trip, original 4-segment Undo/Redo, and S09b Lock Parity)
+- `tests/test_v15_s08_release_gate_stress.py` (audit and migrate `_qe_seg_widgets[0]` and any other Quick Edit stress/benchmark reference cleanly so S08 stress tests stay green without weakening)
+
+Forbidden Files (DO NOT MODIFY in S11c):
+- `core/*.py` (zero model architecture changes), `assets/*`, `requirements.txt`, `misora_config.json`, `backups/`.
+
+==================================================
+PART 2 — EXACT TECHNICAL SPECIFICATIONS (`Q-22`)
+==================================================
+
+### 1. Unified Single-Box Quick Edit UX (`misora.py`)
+- Replace multi-textbox segment splitting in `_rebuild_quick_edit_widgets()` with **ONE single unified plain `tk.Text` editor** for every dialogue box (both single-segment and multi-segment boxes), mirroring the main Dialogue Editor's single-box editing model:
+  * **Plain Surface:** Zero ruler, zero character counter, zero red overflow markers, zero NGUI rich-text preview decorations, unaffected by Preview mode.
+  * Optional non-blocking `[N segs]` info badge may be displayed above/beside the box when `len(box.segs) > 1`.
+  * Keep `"Quick Edit"` directly beside the locked `"Raw Commands"` bottom tab; auto-select `"Quick Edit"` when entering All Script; keep lazy-available in Dialogue mode (Preview OFF & Preview ON).
+  * Box 0 active (`is_box0_active`) or plain `.txt` (`current_doc is None`): show read-only info label (never call `inject_box` on Box 0).
+  * Keep a clean compatibility reference (or migrate S08 directly) so `_qe_seg_widgets` references in S08 stress tests are explicitly accounted for and never break silently.
+
+### 2. Exact Canonical Text Projection & 8 Mandatory Data-Safety Invariants
+- **Exact Projection Reference (`core/story_ast.py` — READ-ONLY):**
+  * `Box.text` joins existing `Seg.text` values (`parts = [s.text for s in self.segs if s.text]; return "".join(parts)`).
+  * `Box.clean_text` returns `game_to_xuat(self.text)`.
+  * Quick Edit initial display MUST populate from **`box.clean_text`** — the exact same projection used by the main Dialogue Editor (`txt_dialogue`). NEVER write an independent segment-joining algorithm.
+- **All 8 Mandatory Safety Invariants:**
+  1. **Pre-First-Mutation Snapshot:** Capture complete `old_snapshot = BoxSnapshot.from_box(box)` (`seg_texts`, `raw_breaks`, `extra_args`, `speaker`, `voice_cue`, `kind`) bound to stable `box.uid` **strictly BEFORE the first live mutation** when a Quick Edit session begins (NEVER after edits begin or at session end).
+  2. **Canonical Mutation Without `seg_texts`:** While editing, update live AST via `self.current_doc.inject_box(idx, None, new_tx)` WITHOUT passing `seg_texts` (exact same canonical text-distribution path as main Dialogue Editor).
+  3. **Fresh Post-Edit Snapshot & Single Logical Undo:** On commit/flush, capture fresh `new_snapshot = BoxSnapshot.from_box(updated_box)` from the actually updated AST (ensuring updated `seg_texts` AND updated `raw_breaks` in `StoryDocument.records`) and record **EXACTLY ONE** `BoxSnapshotReplaceDelta` Undo transaction per edit session (never per keystroke).
+  4. **Lossless Original-Segment Undo:** Undo (`StoryDocument.replace_box()`) MUST restore the EXACT original multi-segment split (`seg_texts`, `raw_breaks`, `extra_args`, `speaker`, `voice_cue`, `kind`) and underlying `StoryDocument.records`.
+  5. **Exact Redo:** Redo MUST restore the exact edited state before Undo.
+  6. **Binary Round-Trip Integrity:** `doc.to_binary()` -> `StoryDocument.from_binary()` MUST pass verbatim on edited, undone, and redone states, preserving `voice_cue`, `speaker`, `kind`, and command structure.
+  7. **Immutable Keys & Lock UID Survival:** `_original_jp_by_uid`, `sync_manager.jp_source_cache`, `_modified_box_uids`, and `_locked_box_uids` MUST survive Edit, Undo, and Redo cleanly.
+  8. **S09b Translation Lock Parity (Row 1) & Pin Independence:** Quick Edit MUST permit dialogue text typing on locked boxes identically to Manual Dialogue typing (no blanket disabled/read-only state), while leaving all operation-specific lock guards and Speaker Pin strictly orthogonal.
+- **View-Aware Live Sync & Mandatory Flush Points (Preserved from S10):**
+  * All Script mode: patch ONLY the active visible Virtualized Card in-place (`0` calls to `_render_continuous_view()` per keystroke).
+  * Dialogue mode (Preview OFF): refresh `txt_dialogue` without feedback loop (`edit_modified(False)`).
+  * Dialogue mode (Preview ON): refresh read-only `Dialogue Preview` capsule (no red overflow blocks per `Q-23`, `txt_dialogue_preview` stays `disabled`).
+  * Raw Commands active: skip redundant Quick Edit updates except mandatory pending-edit flush on tab switch.
+  * Mandatory flush before box navigation, view/mode switch, bottom-tab switch, raw-edit entry, doc switch, doc close, revert, save, Undo/Redo, and structural mutations.
+
+==================================================
+PART 3 — FAILING-FIRST TDD VERIFICATION (`tests/test_v15_s11c_quick_edit_unified.py`)
+==================================================
+Use strict test isolation (`misora.CONFIG_PATH` & `app.backup_folder` in `TemporaryDirectory`, `MisoraApp(restore_session=False, show_splash=False)`, mocked `messagebox`, `app.destroy()` in `finally:`).
+
+### Failing-First Defect/Behavior Probes (MUST FAIL pre-patch, PASS post-patch):
+1. `test_probe_1_quick_edit_renders_single_unified_box_using_box_clean_text`:
+   - Loads a 4-segment dialogue box; asserts Quick Edit renders **EXACTLY ONE** editable `tk.Text` widget populated verbatim with `box.clean_text` (no multi-box segment split, no ruler, no red overflow tags).
+2. `test_probe_2_manual_dialogue_vs_quick_edit_ast_and_binary_parity`:
+   - Creates two byte-identical multi-segment `StoryDocument` instances (including `{playername}`, linebreaks, `voice_cue`, `extra_args`).
+   - Applies the exact same edit to Document A via Manual Dialogue Editor and to Document B via Quick Edit, then flushes both.
+   - Asserts **identical** resulting AST (`records`, `boxes`, `seg_texts`, `raw_breaks`) AND **byte-identical** `to_binary()` output.
+3. `test_probe_3_pre_mutation_snapshot_undo_redo_binary_roundtrip_and_lock_parity`:
+   - Edits a locked 4-segment box via Quick Edit across multiple keystrokes -> asserts single logical `BoxSnapshotReplaceDelta`, updated `StoryDocument.records`, binary round-trip match, Undo restores all 4 original segments + `raw_breaks` + `to_binary()` match, Redo restores edited state + `to_binary()` match, immutable JP keys & `_locked_box_uids` survive Undo/Redo, Speaker Pin remains independent, and `0` `_render_continuous_view()` calls during typing in All Script.
+
+### Regression Guards (MUST PASS both pre-patch and post-patch):
+1. `test_guard_1_virtualized_all_script_card_pool_and_raw_commands_tab_intact`
+2. `test_guard_2_dialogue_preview_readonly_and_zero_red_blocks_intact`
+
+==================================================
+PART 4 — VERIFICATION COMMANDS & DEFINITION OF DONE
+==================================================
+Run and report exact real observed output in the Walkthrough artifact:
+1. Pre-patch probe verification: `py -3.12 -m unittest tests.test_v15_s11c_quick_edit_unified -v` (all 3 probes FAIL cleanly; both guards PASS).
+2. Post-patch compile check: `py -3.12 -m compileall -q __init__.py misora.py core assets tests`
+3. Post-patch targeted suites:
+   `py -3.12 -m unittest tests.test_v15_s11c_quick_edit_unified tests.test_v15_s10_all_script_quick_edit tests.test_v15_s08_release_gate_stress -v`
+4. Full discovery run: `py -3.12 -m unittest discover -s tests -v` (exact counts; 0 new regressions).
+5. Baseline-relative `git status --short` comparison.
+6. Update `CHANGELOG.md` (`### S11c (v1.4.12)`), `PROJECT_STATE.md`, and list Manual Windows QA items.
