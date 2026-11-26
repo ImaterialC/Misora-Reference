@@ -1,0 +1,262 @@
+Saya sudah membaca seluruh [Gemini2GPT1.md](https://github.com/ImaterialC/Misora-Reference/blob/main/Gemini2GPT1.md?utm_source=chatgpt.com).
+
+**Klarifikasi ikon Anda sudah diterapkan dengan benar oleh Gemini.** Saya setuju dengan keputusan di bagian 3 dan 5:
+
+**Tetap dipertahankan**
+
+# **♪**
+
+**Voice cue indicator**
+
+`♪ vo_adv_...` di header All Script.
+
+**Dihilangkan**
+
+**Round blue speaker badge**
+
+Gambar tombol speaker bulat yang ditiru dari tampilan game.
+
+Remove
+
+Voice cue yang tersimpan dalam `StoryDocument` AST tidak boleh dihapus atau diubah. Dengan demikian, tidak ada lagi konflik antara `Expectasi2.png` dan U-20.
+
+## **1. Hasil review balasan Gemini**
+
+Major revisions accepted
+
+Secara keseluruhan, Gemini sudah menanggapi review sebelumnya dengan sangat baik. Beberapa keputusan yang saya anggap benar:
+
+- U-01 sekarang memakai `_selected_boxes`, dengan jumlah target dan clipboard harus sama persis.
+- U-02 sudah menentukan navigasi Pin Speaker tanpa wrap-around.
+- U-06 sudah menentukan lifecycle popup autocomplete agar tidak muncul di `(0,0)`.
+- U-07 mengubah batas menjadi 54d melalui satu sumber pengukuran.
+- U-18 mengecualikan Box 0 dari overflow marker.
+- RM-01 menghapus keseluruhan fitur console toggle, bukan sekadar tombolnya.
+- S10 memilih Virtualized Card Pool dan mengganti asumsi tes S08.
+- S11 mengecualikan kamus Actor/Speaker dari kandidat penghapusan XUAT.
+- S12 mempertahankan release hold sampai kriteria rilis terpenuhi.
+
+Pemetaan masalah dan tesnya juga sudah jauh lebih terstruktur.
+
+Namun, masih ada beberapa detail implementasi yang sebaiknya dikunci sebelum prompt S09–S12 dibuat.
+
+## **2. Catatan teknis terakhir**
+
+**A. Quick Edit dan multi-segment — penting**
+
+Saya menemukan satu masalah konseptual yang belum sepenuhnya dijawab.
+
+Pada `core/story_ast.py`, `Box.clean_text` dibentuk dengan menggabungkan `seg_texts` tanpa pemisah:
+
+```
+parts = [s for s in self.seg_texts if s]return game_to_xuat("".join(parts))
+```
+
+Akibatnya, bila satu Box mempunyai empat segmen, Quick Edit yang hanya menampilkan satu string gabungan tidak memiliki informasi yang cukup untuk menentukan pembagian segmen baru setelah pengguna mengedit teks secara bebas.
+
+Snapshot-based Undo saja tidak menyelesaikan masalah ini.
+
+Saran saya: Quick Edit tetap sederhana secara visual, tetapi Box multi-segment harus menyediakan area edit per segmen. Semua segmen diedit sebagai satu transaksi dan tetap mempertahankan `voice_cue`, `kind`, `raw_breaks`, `extra_args`, serta struktur aslinya.
+
+Referensi: [core/story_ast.py](https://github.com/ImaterialC/Misora-Editor/blob/main/core/story_ast.py?utm_source=chatgpt.com#L254-L315)
+
+**B. Virtualized Card Pool — mekanisme scroll**
+
+Gemini sudah memilih arsitektur yang benar. Tetapi ada satu hal yang harus ditentukan: bagaimana pengguna melakukan scroll isi kartu yang mempunyai empat baris atau lebih, sementara seluruh kartu hanya memiliki tinggi tiga baris?
+
+Scroll isi kartu tidak boleh bertabrakan dengan scroll daftar All Script.
+
+Tentukan pemisahan gesture yang jelas, misalnya wheel untuk daftar dan kombinasi keyboard/gesture khusus untuk scroll isi kartu aktif. Tidak perlu scrollbar terlihat.
+
+**C. Pengukuran 54d harus berbasis pixel**
+
+Jangan mengandalkan `tk.Text(width=54)` untuk menjamin lebar persis 54 digit-width.
+
+Nilai `width` pada Tkinter Text adalah ukuran karakter berdasarkan metrik font widget, bukan jaminan lebar pixel sebesar 54 digit dari ruler.
+
+Gunakan hasil pengukuran pixel dari helper 54d untuk menentukan lebar container kartu. Pertimbangkan border dan padding agar area teks benar-benar konsisten. Ini berlaku juga untuk Import from XUAT.
+
+**D. Pin Speaker — identitas dan batas navigasi**
+
+Gemini sudah menetapkan bahwa rename saat Pin aktif tidak mengubah speaker target. Pastikan implementasinya menggunakan variabel identitas tersendiri, misalnya `_pinned_speaker_name`, bukan mengambil ulang isi `speaker_var` setiap kali Next/Prev ditekan.
+
+Selain itu, istilah *chapter* harus didefinisikan. Apabila satu `StoryDocument` adalah unit navigasi, gunakan batas current document secara eksplisit agar tidak muncul asumsi pembatas bab yang tidak tersedia di AST.
+
+**E. Insert ketika Box 0 aktif**
+
+U-01 sudah benar menolak Box 0 sebagai target Replace. Namun, Insert ketika Box 0 sedang aktif juga harus ditentukan: rekomendasi saya, Box baru dimasukkan sebelum Box dialog pertama.
+
+**F. XUAT — Treeview tetap perlu pengisian bertahap**
+
+Memindahkan scan ke worker akan menyelesaikan pekerjaan berat klasifikasi, tetapi mengisi ribuan item Treeview dalam satu operasi main thread juga bisa membekukan UI.
+
+Isi daftar dalam beberapa batch kecil melalui main-thread queue processor. Progress queue sebaiknya terbatas atau menggabungkan update progress yang lama agar tidak menambah antrean tanpa batas.
+
+**G. S12 — jangan membaca konfigurasi mesin pengguna dalam tes**
+
+Ada dua tes yang perlu perhatian:
+
+- `test_phase3_performance_config::test_05` saat ini dapat fallback membaca `misora_config.json` lokal.
+- `test_s9c_workspace_safety::test_04` mengharapkan `misora_config.default.json` tersedia.
+
+Perbaikan tes harus menggunakan template bersih atau fixture sementara milik tes. Jangan membaca konfigurasi pengguna sebagai fallback dan jangan memulihkan atau menimpa file lokal untuk memaksa tes lulus.
+
+## **3. Pesan terakhir untuk Gemini**
+
+Menurut saya, tidak perlu membuat ulang seluruh PlanS09_v2. Cukup minta Gemini memasukkan penajaman berikut ke prompt implementasi yang sesuai.
+
+# GPT Final Technical Sign-off — Gemini2GPT1 / PlanS09_v2
+
+I have reviewed the complete Gemini response and the revised technical contracts.
+
+**Overall decision: CONDITIONAL APPROVAL TO GENERATE THE FOUR BOUNDED ANTIGRAVITY PROMPTS (S09–S12).**
+
+The major review findings have been addressed. The Project Lead's voice-icon clarification is also correctly reflected.
+
+## 1. Voice Cue Clarification — CONFIRMED FINAL
+
+There are two different visual elements:
+
+- `♪` = voice cue indicator. KEEP IT.
+- Round blue speaker badge/button = game audio playback visual. REMOVE IT from the All Script card header.
+
+The intended All Script header is:
+
+`[ ] 🔓 ◆ [BOX #NNN] Speaker ♪ vo_adv_... [N segs]`
+
+Requirements:
+
+- Preserve the inline `♪` symbol.
+- Preserve the voice cue identifier text.
+- Preserve `box.voice_cue` in the AST and all save/export paths.
+- Remove only the unnecessary round blue speaker badge image.
+- Do not remove the voice cue data or replace the `♪` indicator with a speaker icon.
+
+`Expectasi2.png` remains authoritative for this header.
+
+## 2. Additional Implementation Contracts to Include in S10
+
+### A. Multi-Segment Quick Edit
+
+The existing `Box.clean_text` concatenates segment text without a delimiter.
+
+Therefore, a single flattened text field cannot reliably reconstruct original segment boundaries after arbitrary editing.
+
+Do not claim that snapshot-based Undo alone guarantees lossless multi-segment editing.
+
+Please define a segment-aware Quick Edit interaction. Recommended approach:
+
+- Single-segment Box: one simple plain editor.
+- Multi-segment Box: expose each segment as a separate plain editable area/row inside the Quick Edit tab.
+- All segment edits commit as one logical Box transaction.
+- Preserve original segment ownership and ordering.
+- Preserve `speaker`, `voice_cue`, `kind`, `raw_breaks`, and `extra_args`.
+- Use complete `BoxSnapshot` old/new state for Undo/Redo.
+- Preserve immutable JP source keys and Translation Lock.
+
+The interface can remain visually simple without flattening the underlying AST.
+
+### B. Virtualized Card Pool Internal Scrolling
+
+Define how a user scrolls content inside a fixed 3-line card without a visible scrollbar while still scrolling the overall All Script list.
+
+The two scroll behaviors must not conflict.
+
+Specify the exact mouse-wheel, keyboard, or modifier gesture contract, then test:
+
+- Outer list scrolling.
+- Active card internal scrolling.
+- Cards with 4+ lines.
+- Focus changes.
+- Widget recycling while a card is internally scrolled.
+
+### C. Pixel-Exact 54d Geometry
+
+The `tk.Text(width=54)` option is not a reliable implementation of a pixel-calibrated 54 digit-width boundary.
+
+Use the shared 54d measurement helper to calculate the actual pixel width of the card/container, accounting for border and padding.
+
+Apply the same width contract to:
+
+- Virtualized All Script cards.
+- Import from XUAT paired dialogue fields.
+- Import metadata and Actor/Speaker fields.
+
+Add tests with both supported dialogue font presets and the relevant Windows DPI settings.
+
+## 3. Additional S09 Clarifications
+
+### Pin Speaker identity
+
+Maintain a separate captured pinned speaker identity (for example `_pinned_speaker_name`).
+
+Do not use the currently editable `speaker_var` as the authoritative navigation target after a rename.
+
+Define navigation boundaries as the current loaded StoryDocument unless the codebase has an explicit chapter-boundary model.
+
+### Insert with Box 0 active
+
+Replace continues to reject Box 0.
+
+For Insert while Box 0 is active, insert before the first dialogue Box. Add an explicit regression test.
+
+## 4. Additional S11 Clarifications
+
+### Treeview population
+
+Moving classification to a worker is not sufficient if thousands of Treeview rows are inserted in one blocking main-thread operation.
+
+Populate the result in bounded batches through the main-thread queue processor.
+
+Keep:
+
+- Worker Tkinter prohibition.
+- Task generation tokens.
+- Stale result rejection.
+- Cooperative cancellation.
+- Bounded progress/event queue behavior.
+- Safe teardown after dialog close or document switch.
+
+## 5. S12 Test Environment Safety
+
+The non-fixture test hygiene work must not read, overwrite, restore, or modify the user's local `misora_config.json`.
+
+For `misora_config.default.json`:
+
+- Determine whether the project contract requires a tracked clean template.
+- If a clean template is required, test it as a repository-owned artifact.
+- Otherwise use a temporary test-owned fixture or explicitly test the absence policy.
+- Never use the user's machine configuration as a fallback for a clean-template test.
+
+Do not mutate local user configuration to force a passing result.
+
+## 6. Execution Authorization Boundary
+
+These clarifications are implementation details to include in the corresponding bounded prompts.
+
+You may now generate the four bounded prompts:
+
+- S09 (`1.4.8`)
+- S10 (`1.4.9`)
+- S11 (`1.4.10`)
+- S12 (conditional promotion to `1.5.0`)
+
+However:
+
+**This sign-off authorizes prompt generation only. It does NOT authorize Antigravity to execute S09 or modify source code.**
+
+Return the four prompts for independent review before any `/plan` session is started.
+
+Preserve all current project invariants, release hold rules, user-local files, and test honesty requirements.
+
+## **4. Keputusan akhir saya**
+
+Layak untuk prompt generation
+
+Belum untuk eksekusi
+
+Saya setuju Gemini melanjutkan pembuatan empat prompt S09–S12. Saya tidak melihat alasan untuk mengulang diskusi besar tentang desain atau ikon lagi.
+
+Namun, saya ingin Quick Edit multi-segment dan pixel-exact 54d ditulis secara tegas. Keduanya menyentuh struktur AST dan akurasi tampilan, sehingga kesalahan implementasi bisa menghasilkan bug baru yang lebih sulit dideteksi.
+
+Setelah empat prompt tersedia, kita bisa melakukan review terakhir berdasarkan **Allowed Files, test probes, acceptance criteria, dan batas perubahan setiap sesi** sebelum S09 dimulai.
