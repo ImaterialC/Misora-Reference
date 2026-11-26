@@ -1,0 +1,16 @@
+Authorized by Project Lead & both independent reviewers (Qwen + ChatGPT) as a bounded S11b closure micro-fix ONLY (keep `__init__.__version__ = "1.4.11"`; do NOT touch `core/*.py`, `assets/*`, `BoxInsert.png`, `BoxReplace.png`, or any other Forbidden File; do NOT run `git commit` or `git push`; `v1.5.0` remains ON HOLD):
+
+1. `misora.py` (`ProjectDiffDialog.__init__`, around line 1284): Normalize the local palette dictionary once without mutating global `assets.icon.THEME`:
+
+    t = dict(getattr(parent, "theme", None) or THEME)
+    t.setdefault("bg_main", t.get("bg_dark", THEME["bg_dark"]))
+
+   (preserving all three `t["bg_main"]` accesses at lines 1288, 1312, and 1341, and preserving `parent.theme["bg_main"]` when called from `MisoraApp`).
+
+2. `CHANGELOG.md` and `PROJECT_STATE.md`: Update the disclosed S11b `ProjectDiffDialog` note to record the `bg_main` -> `bg_dark` palette normalization fallback cleanly.
+
+3. Verify and report exact verbatim output of:
+   - `py -3.12 -m compileall -q __init__.py misora.py core assets tests`
+   - `py -3.12 -m unittest tests.test_v15_s11b_scanner_save_preview tests.test_p3_s16_misora_workspace -v` (confirm `test_guard_3` passes for both bare parent and `MisoraApp` theme parent -> 6/6 OK in S11b suite)
+   - `py -3.12 -m unittest discover -s tests -v` (report exact discovered/passed/skipped/failed/errored counts; confirm baseline-relative GREEN with 0 new regressions beyond the 6 pre-existing failures + 2 fixture errors + 35 fixture skips)
+   - `git status --short`

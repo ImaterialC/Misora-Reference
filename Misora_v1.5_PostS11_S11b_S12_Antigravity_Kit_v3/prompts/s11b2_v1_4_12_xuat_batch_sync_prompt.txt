@@ -1,0 +1,106 @@
+/plan Implement S11b2 (v1.4.12): Bounded Single-Pass Batched XUAT Sync & Strict `Translation\en\Text` Alignment (`Q-02b`) in `core/xunity_sync.py` and `misora.py` to resolve the reproduced >60s 20-box Save Hang in Misora: Story Editor.
+
+CONTEXT POINTERS (READ DIRECTLY FROM DISK BEFORE PLANNING):
+@AGENTS.md @PROJECT_STATE.md @CHANGELOG.md @__init__.py @core/xunity_sync.py @core/xuat_index.py @core/story_ast.py @misora.py @tests/test_p3_s10_xuat_integrity.py @tests/test_s2_dirty_contract.py @tests/test_p3_s09_replace_all_backups.py
+
+==================================================
+PART 0 — EXECUTION MODE, PLANNING GATE & HARD STOP RULES
+==================================================
+1. Planning-First Gate: Inspect live files on disk first (`core/xunity_sync.py`, `core/xuat_index.py`, `core/story_ast.py::norm_search`, `misora.py::_sync_modified_boxes_to_xuat()` and `on_save()`, and existing tests `test_p3_s10_xuat_integrity.py`, `test_s2_dirty_contract.py`, `test_p3_s09_replace_all_backups.py`), capture pre-session branch, `git rev-parse HEAD`, full `git status --short` (confirming clean green S11b closure baseline with only pre-existing `M assets/icons/BoxInsert.png` and `?? assets/icons/BoxReplace.png` untouched), and Python 3.12 version, then output a symbol-bound Implementation Plan artifact and STOP to wait for explicit Project Lead `Proceed` before editing ANY file.
+2. Version Target: Bump `__init__.__version__` from actual post-S11b `"1.4.11"` -> `"1.4.12"` ONLY after `Proceed`. Release `v1.5.0` remains ON HOLD.
+3. HARD STOP GATE (Async Disk-I/O Boundary):
+   - `S11b2` fixes the O(B x F) per-box traversal/rewrite bottleneck via a single-pass batched main-thread sync (zero async save architecture forced into S11b2).
+   - If profiling during `/plan` or Project Lead real-tree verification reveals that even a strict single-pass O(E + B + M) batched sync remains unacceptably slow on the 1,815-file tree, STOP and spin off a separate `AGENTS.md` §15-safe async disk-I/O session (where worker threads touch disk only, never Tkinter or live `StoryDocument` objects).
+4. Test-Migration Honesty Rule: If any existing test (`test_p3_s10_xuat_integrity.py`, `test_s2_dirty_contract.py`, `test_p3_s09_replace_all_backups.py`) asserts the old per-box `preview_matches` / `find_and_update` call pattern, declare equal-or-stronger migrations explicitly in `/plan` for Project Lead approval before editing. Never weaken assertions.
+5. PERMANENT CARRY-FORWARD INVARIANTS (MUST NEVER REGRESS):
+   - Pure-Core Boundary: `core/xunity_sync.py` MUST import ZERO `tkinter` and ZERO `misora` modules.
+   - Anti-Circular-Import Rule: `core/xuat_index.py` already imports `split_xuat_line` from `.xunity_sync`. Therefore `core/xunity_sync.py` MUST NEVER execute a top-level `from .xuat_index import ...`! Use dependency injection (DI) from `misora.py` passing BOTH strict `resolve_xuat_text_roots()` AND the exact exclusion helper (`_is_excluded_xuat_file`) into the `XUnitySyncManager` batch API (with verified fallback / local lazy import inside function scope only where direct unit callers omit DI), tested in isolated subprocesses under BOTH import orders.
+   - Binary/AST & S02/S10/S11b Safety: Preserve immutable JP source keys (`box.uid` + `orig_jp_map`), conflict preview/confirmation gate, single-line escaped multiline output, original encoding/BOM/CRLF/LF and exact key whitespace, atomic replacement (`write_atomic_encoded`), secondary-sync failure tolerance (`test_s2_dirty_contract::test_07`: primary bundle/file save remains `True`/clean and unsynced boxes retained for retry), `Ctrl+S` Save Project `.misora` dirty preservation, and workspace safety (no destructive Git commands; never read/overwrite/restore local `misora_config.json` or `backups/`).
+
+==================================================
+PART 1 — STRICT FILE OWNERSHIP BOUNDARIES (S11b2)
+==================================================
+Allowed Files to Create/Modify (ONLY after `Proceed`; verify exact paths on disk during `/plan`):
+- `__init__.py` (bump `"1.4.11"` -> `"1.4.12"`)
+- `core/xunity_sync.py` (strict `Translation\en\Text` & rule-exclusion DI alignment, 5-stage O(E + B + M) single-pass batched match/preview + pre-write freshness check + grouped per-file atomic update, explicit same-JP-key conflict detection, granular per-box outcome reporting, backward-compatible single-item wrappers if still used)
+- `misora.py` (ONLY `_sync_modified_boxes_to_xuat()` and its direct DI/logging/conflict-dialog/granular-`_modified_boxes` wiring inside `on_save()`)
+- `tests/test_v15_s11b2_xuat_batch_sync.py` (NEW — failing-first structural & parity probes, synthetic 20-box benchmark, circular-import guard, and regression guards)
+- `CHANGELOG.md` (add `### S11b2 (v1.4.12)`)
+- `PROJECT_STATE.md` (record S11b2 architecture, synthetic structural counts & timings, verification baseline, and Manual Windows QA real-tree 20-box XUAT-sync duration item)
+- Existing test file(s) (`tests/test_p3_s10_xuat_integrity.py`, `tests/test_s2_dirty_contract.py`) ONLY if verified during `/plan` as directly mocking/asserting per-box sync internals (MUST be declared in `/plan` for Project Lead approval before editing).
+
+Forbidden Files (DO NOT MODIFY in S11b2):
+- `core/xuat_index.py` (reuse strictly READ-ONLY), `core/bundle_io.py`, `core/story_ast.py`, `core/script_codec.py`, `core/xuat_cleanup.py`, `core/word_wrap.py`, `core/mtl_engine.py`, `core/undo_journal.py`, `assets/*`, `requirements.txt`, `misora_config.json`, `backups/`.
+
+==================================================
+PART 2 — EXACT TECHNICAL SPECIFICATIONS (`Q-02b`)
+==================================================
+
+### 1. Strict `Q-01` Data-Safety Boundary & Full DI Exclusion Alignment
+- Route ALL XUAT sync file discovery AND writes strictly through the canonical `Translation\en\Text` boundary (`resolve_xuat_text_roots` semantics supporting all 6 concrete path forms including `<GameRoot>\src\BepInEx\Translation\en\Text`) AND ALL `Q-01` exclusions:
+  - 5 official XUAT rule exclusions (case-insensitive `endswith`): `.font.txt`, `.resizer.txt`, `postprocessors.txt`, `preprocessors.txt`, `substitutions.txt`.
+  - All legacy exclusions (case-insensitive): `.missing.txt`, `.report.txt`, `_summary.txt` (fixing the old uppercase `_SUMMARY.txt` mismatch in `xunity_sync.py`), `_warnings.txt`, and `.bak_`.
+- Full DI Requirement: `misora.py` MUST inject BOTH the resolved canonical `Translation\en\Text` roots AND the authoritative exclusion predicate (`core.xuat_index._is_excluded_xuat_file`) into the `XUnitySyncManager` batch API (never maintaining a divergent copy of exclusion rules in `xunity_sync.py`).
+- Hard Data-Safety Guarantee: `Translation\en\Other`, `Translation\en\RedirectedResources`, `Translation\ja\Text`, arbitrary `Text/` dirs, rule files, and `.bak_` files MUST NEVER be read for matching OR written during Save.
+
+### 2. Match-Semantics Preservation (`norm_search` vs `normalize_xuat_key`)
+- CRITICAL: `XUnitySyncManager` matches keys using `core.story_ast.norm_search()` (`game_to_xuat()`, NFKC, dash normalization, whitespace collapse), whereas `XuatIndex` uses `normalize_xuat_key()` (which also strips NGUI tags and unescapes). These are NOT identical.
+- Binding Rule: Preserve `norm_search()` matching semantics during the single-pass batched sync (do NOT silently switch sync matching to `normalize_xuat_key()`).
+- Prove zero behavioral drift with an explicit old-vs-new match-set parity test covering keys with NGUI tags (`[FF0000]...[-]`), `{playername}` / `{0}`, extra whitespace, fullwidth/halfwidth case, and escaped newlines (`\n`).
+
+### 3. Explicit 5-Stage O(E + B + M) Architecture, Read-Count Strategy & Pre-Write Freshness
+Target algorithmic complexity MUST be O(E + B + M) (where E = total dictionary lines read, B = modified boxes, M = matches found) — NEVER a nested B x E loop over dictionary lines:
+1. Stage 1 — Single Fresh Scan (<= 1 Read Per Eligible File): Traverse validated `Translation\en\Text` roots ONCE, skipping all excluded files before opening them. Read and strictly decode each eligible `.txt` file AT MOST ONCE (capturing file metadata snapshot: `st_mtime_ns`, `st_size`, `st_ino`/`st_dev`, plus optional content hash if chosen in `/plan` — clearly state read-count strategy and honest limits of metadata vs hash check in `/plan`, without claiming metadata-only is an absolute guarantee against crafted same-size/same-timestamp edits).
+2. Stage 2 — O(E + B + M) Batch Matching & In-Memory Caching: Build a `norm_search(jp_key) -> batch_target` hash lookup table across all modified boxes first, then scan each decoded dictionary line once against the lookup table. Retain matched `(file_path, line_index, raw_key, current_val)` records AND the decoded content/encoding metadata of affected files in memory so Stage 5 does NOT re-read files unnecessarily.
+3. Stage 3 — Batched Conflict Confirmation:
+   - Same-JP / Different-New-EN Conflict: If multiple modified boxes in the same save share the same `norm_search(jp_key)` with DIFFERENT new English strings, treat that key as an explicit batch conflict — do NOT silently pick a winner by iteration order, do NOT write that key until resolved, and keep ALL involved box UIDs in `_modified_boxes` for retry.
+   - Existing Multi-File / Differing-Translation Conflict Gate: Present ONE batched conflict confirmation after all matches are known (instead of spamming per-box modals).
+4. Stage 4 — Pre-Write Freshness Check: Immediately before writing each affected target `.txt` file, compare current on-disk file snapshot (`st_mtime_ns`, `st_size`, file identity — or SHA-256 if selected in `/plan`) against the Stage 1 snapshot. If the file changed externally between scan and write (e.g., during the conflict dialog), abort updating that file (never clobber external edits) and mark all boxes targeting that file as failed/retained for retry.
+5. Stage 5 — Grouped Per-File Atomic Write & Granular `_modified_boxes` Outcomes:
+   - Group all confirmed line updates by `target_file_path`.
+   - For each affected `.txt` file passing freshness validation: apply all line updates in memory (preserving exact raw key whitespace, escaped single-line multiline value, comments, untouched lines, encoding, BOM, and CRLF/LF), create AT MOST 1 backup, and write via `write_atomic_encoded` AT MOST ONCE per save call.
+   - Granular Batch Result & Retry Preservation: The batch API MUST distinguish succeeded, conflict-skipped, and I/O-or-freshness-failed boxes. In `misora.py::_sync_modified_boxes_to_xuat()`, remove ONLY truly succeeded box UIDs from `_modified_boxes`; retain conflict-skipped and failed box UIDs (including on partial multi-file write failure where File A & C succeed and File B fails) while keeping primary bundle/file save `True`/clean (`test_s2_dirty_contract::test_07`).
+   - Dedicated XUAT Sync Duration Telemetry: Measure specifically `_sync_modified_boxes_to_xuat()` (excluding bundle serialization) with `time.perf_counter()` and log it in `[XUAT Sync]` (e.g., `Synced N box(es) across M XUAT file(s) in X.XXXs (scanned K files)`).
+
+==================================================
+PART 3 — FAILING-FIRST TDD, STRUCTURAL & PARITY VERIFICATION (`tests/test_v15_s11b2_xuat_batch_sync.py`)
+==================================================
+Use strict test isolation (`TemporaryDirectory` config/backups, `MisoraApp(restore_session=False, show_splash=False)`, mocked `messagebox`, `app.destroy()` in `finally:`).
+
+### Failing-First Structural, Data-Safety & Parity Probes (MUST FAIL pre-patch, PASS post-patch):
+1. `test_probe_1_strict_en_text_boundary_and_case_insensitive_exclusions`:
+   - Synthetic tree containing `Translation\en\Text` (valid files + all 5 official rule files `*.font.txt`, `*.resizer.txt`, `*Postprocessors.txt`, `*Preprocessors.txt`, `*Substitutions.txt` + legacy `_summary.txt`, `_SUMMARY.txt`, `.missing.txt`, `.report.txt`, `_warnings.txt`, `foo.bak_123.txt`) PLUS forbidden `Translation\en\Other`, `Translation\en\RedirectedResources`, and `Translation\ja\Text` containing matching JP keys.
+   - Instruments file reads and writes -> asserts forbidden and excluded files are NEITHER read for matching NOR modified (100% untouched byte-for-byte), and asserts filename-exclusion parity against `core.xuat_index._is_excluded_xuat_file`.
+2. `test_probe_2_single_pass_batched_sync_structural_counts_and_20box_benchmark`:
+   - Synthetic `Translation\en\Text` tree (e.g., 100 `.txt` files, 20 modified boxes hitting 3 shared target files).
+   - Instruments directory traversal, file reads, backup creation, and `write_atomic_encoded` calls.
+   - Asserts machine-independent structural invariants:
+     * directory traversal count <= 1 per save,
+     * each eligible file read <= 1 time in the normal path,
+     * each of the 3 affected target files receives EXACTLY 1 backup and EXACTLY 1 `write_atomic_encoded` call (unaffected 97 files receive 0 writes),
+     * all 20 boxes' translations are written accurately preserving BOM, CRLF/LF, single-line `\n` escaping, and exact key whitespace,
+     * `[XUAT Sync]` logs dedicated sync elapsed duration (separate from bundle save).
+   - Prints before/after wall-clock benchmark timing as informational telemetry.
+3. `test_probe_3_norm_search_parity_same_jp_conflict_freshness_and_partial_failure`:
+   - Old-vs-New Match Parity: Identical matched `(file, line)` set against legacy `norm_search()` across NGUI tags, `{playername}`, whitespace variations, and case.
+   - Same-JP / Different-New-EN Conflict: Two modified boxes share the same immutable JP key with different new English strings -> asserts explicit batch conflict, zero silent overwrite, and both box UIDs retained in `_modified_boxes` for retry.
+   - Between-Scan-and-Write External Edit Freshness: Simulates an external disk edit to a target `.txt` file between Stage 1 scan and Stage 5 write (e.g., inside the conflict dialog hook) -> asserts update to that file is aborted (external edit NOT clobbered) and affected box UIDs remain retained for retry.
+   - Partial File-Write Failure: Simulates I/O failure on File B while File A and File C succeed -> asserts File A & C boxes are cleared while File B's box UIDs remain retained in `_modified_boxes` and primary `on_save()` still returns `True`/clean.
+
+### Regression Guards (MUST PASS both pre-patch and post-patch):
+1. `test_guard_1_pure_core_and_zero_circular_import_both_orders`:
+   - Isolated subprocess checks for BOTH `import core.xunity_sync; import core.xuat_index` AND `import core.xuat_index; import core.xunity_sync`; confirms zero circular `ImportError` and zero `tkinter`/`misora` imports in `core.xunity_sync`.
+2. `test_guard_2_s10_immutable_jp_conflict_gate_and_s2_secondary_failure_tolerance`:
+   - Preserves S10 multi-file conflict preview/confirmation gate and S02 secondary-sync failure tolerance (`on_save()` returns `True`, doc clean, failed `_modified_boxes` retained).
+
+==================================================
+PART 4 — VERIFICATION COMMANDS & DEFINITION OF DONE
+==================================================
+Run and report exact real observed output in the Walkthrough artifact:
+1. Pre-patch probes: `py -3.12 -m unittest tests.test_v15_s11b2_xuat_batch_sync -v` (all 3 probes FAIL, both guards PASS).
+2. Post-patch compile check: `py -3.12 -m compileall -q __init__.py misora.py core assets tests`
+3. Targeted suites:
+   `py -3.12 -m unittest tests.test_v15_s11b2_xuat_batch_sync tests.test_p3_s10_xuat_integrity tests.test_s2_dirty_contract tests.test_p3_s09_replace_all_backups tests.test_v15_s11b_scanner_save_preview tests.test_v15_s11_xuat_archiving_progress -v`
+4. Full discovery: `py -3.12 -m unittest discover -s tests -v` (exact counts; 0 new regressions relative to S11b closure baseline).
+5. Baseline-relative `git status --short` confirming only S11b2 Allowed Files modified and pre-existing `BoxInsert.png`/`BoxReplace.png` + Forbidden Files untouched.
+6. Update `CHANGELOG.md` (`### S11b2 (v1.4.12)`) and `PROJECT_STATE.md` (with synthetic structural counts, wall-clock telemetry, and Manual Windows QA real-tree 20-box `Ctrl+Shift+S` XUAT-sync duration measurement).

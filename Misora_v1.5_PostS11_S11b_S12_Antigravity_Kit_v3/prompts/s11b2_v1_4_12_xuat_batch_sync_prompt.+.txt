@@ -1,0 +1,28 @@
+Do NOT proceed to implementation or modify any production source, test, or working-tree files. Please revise S11b2_Implementation_Plan.md to fix these 6 technical gaps before independent review (ChatGPT & Qwen) and Project Lead Proceed:
+
+1. Granular _modified_boxes Token Identity, Unmatched Boxes, and _save_document_entry() Parity (Section 3.1 & 3.2):
+   - Inspect exact element types stored in self._modified_boxes, self._modified_box_uids, and open_documents[p]["modified_boxes"] on disk. Do NOT assume _modified_boxes stores Record.uid if it stores box indices (or optional None UIDs); track an explicit per-target token (e.g. token/key_ref alongside box_index & box_uid) so granular removal clears the exact right entries without index/UID mismatch.
+   - Distinguish UNMATCHED boxes (validly scanned, 0 matches in XUAT) from conflict/freshness/IO-failed boxes: clear succeeded AND unmatched boxes after save (so unmatched boxes do not stay stuck in _modified_boxes forever), while retaining ONLY conflict_skipped, freshness_failed, and io_failed boxes for retry.
+   - Wire the exact same granular clearing and batch_sync() flow into BOTH on_save() AND _save_document_entry() (inactive-tab / Exit Save-All saves).
+
+2. Enforce Strict Translation\en\Text & Deduplication Inside batch_sync() + Audit _resolve_xuat_text_root() Callers (Section 3.1 & 3.3):
+   - batch_sync() itself MUST resolve and validate search_roots through the strict Translation\en\Text resolver (and deduplicate overlapping roots and case-folded file paths) via DI (resolve_roots_fn) with local lazy fallback — never blindly os.walk() arbitrary search_roots (so Other/, RedirectedResources/, ja/Text, and arbitrary Text/ are guaranteed 0 reads and 0 writes even when called directly).
+   - Before modifying misora.py::_resolve_xuat_text_root(), audit EVERY caller and test (specifically tests/test_misora_ui_integration.py::test_04_framework_agnostic_folder_resolution) to prove zero regression; if _resolve_xuat_text_root() is shared with framework-agnostic search tests, keep it intact and apply resolve_xuat_text_roots() strictly at the XUAT sync boundary instead.
+
+3. Eliminate _EXCLUDED_FILE_TAILS Duplication & Forbidden File Comment (Section 5):
+   - NEVER touch core/xuat_index.py (strictly Forbidden/read-only — remove the plan's note about adding a cross-reference comment in both files).
+   - Remove the duplicated _EXCLUDED_FILE_TAILS constant from core/xunity_sync.py. Keep DI (resolve_roots_fn, is_excluded_fn) from misora.py, and when None (direct unit-test callers), use a local lazy import inside function scope (from .xuat_index import resolve_xuat_text_roots, _is_excluded_xuat_file) so there is zero circular import at module load time AND a single source of truth for exclusions.
+
+4. Close 3 Conflict-Handling Edge Cases in Stage 3 (Section 3.1):
+   - Existing-translation conflict check MUST detect differing values across ANY matched lines (len({m.old_value for m in key_matches}) > 1), including duplicates inside the same file — not only >=2 files.
+   - When the batched conflict confirmation returns False ("No"), skip ONLY the conflicting key(s) (conflict_skipped) while still writing clean non-conflicting keys in the same batch.
+   - Explicitly distinguish Same-JP / Same-EN (NOT a conflict: write once, mark all agreeing targets succeeded) vs Same-JP / Different-EN (explicit conflict: do NOT write, retain all involved targets in _modified_boxes, and log/warn explicitly).
+
+5. Stream Stage 1 + Stage 2 Per File to Bound Peak RAM (Section 3.1):
+   - Do NOT hold all 1,815 decoded files in _scanned_files simultaneously. Stream per eligible file: read & decode once, match lines against _target_map, and store FileSnapshot (decoded text, encoding/BOM/newline, stat) in memory ONLY if the file has >= 1 match. Also verify CRLF/LF and trailing EOF newline preservation with write_atomic_encoded (no \r\r\n doubling) and backup naming parity.
+
+6. Baseline Count & STOP Gate Benchmark Consistency (Sections 0, 7, 10, 11):
+   - Fix Section 10 baseline count from "440 tests" to the actual post-S11b-closure baseline (446 tests: 403 pass, 35 fixture-skipped, 6 pre-existing failures, 2 pre-existing fixture errors — to be re-verified after S11b closure commit).
+   - Reconcile Section 7 (100-file fast structural test_probe_2) vs Section 11 (>2s STOP Gate on 1,815-file tree): keep test_probe_2 fast for unittest discover (100 files structural assertions) and run a one-time synthetic 1,815-file profiling check during /plan (or Project Lead real-tree QA) to evaluate the STOP Gate honestly.
+
+Update S11b2_Implementation_Plan.md and STOP for independent review. Keep v1.5.0 ON HOLD.
