@@ -1,0 +1,136 @@
+Saya sudah membaca dan mengaudit `Gemini2GPT_PostS11_Reconciled_v2.md`. Dibandingkan v1, revisi ini jauh lebih matang. Gemini sudah memasukkan lima koreksi teknis utama yang saya minta, termasuk pemisahan Q-22, migrasi tes S08/S10, perlindungan Q-23, STOP gate untuk Q-02 dan Q-18, serta penyesuaian urutan versi.
+
+**Putusan saya: hampir disetujui, tetapi belum saya berikan final sign-off.** Ada beberapa hal yang perlu diperjelas sebelum dokumen ini dijadikan dasar pembuatan prompt Antigravity.
+
+## **1. Perbaikan v2 yang sudah saya setujui**
+
+Disetujui secara teknis
+
+**Q-22 — Quick Edit menjadi satu textbox**
+
+Keputusan memisahkannya ke sesi tersendiri, S11c, sudah tepat. Ini bukan sekadar perubahan tampilan; ini menyentuh AST, distribusi teks antar-segment, Undo/Redo, dan serialisasi.
+
+Delapan invariant yang ditulis sudah mencakup hal-hal penting. Saya juga menyetujui penambahan tes parity antara Manual Dialogue Editor dan Quick Edit. Migrasi tes lama S10 dan stress test S08 juga wajib dilakukan, bukan hanya mengubah tes S10.
+
+Referensi yang harus tetap diperhatikan:
+
+- [S10 Quick Edit tests](https://github.com/ImaterialC/Misora-Editor/blob/main/tests/test_v15_s10_all_script_quick_edit.py?utm_source=chatgpt.com)
+- [S08 release-gate stress tests](https://github.com/ImaterialC/Misora-Editor/blob/main/tests/test_v15_s08_release_gate_stress.py?utm_source=chatgpt.com)
+
+Satu detail tambahan untuk prompt implementasi: snapshot asli harus diambil **sebelum mutasi live pertama**, bukan ketika sesi Quick Edit selesai. Cara membentuk teks gabungan juga harus mengikuti proyeksi teks yang digunakan Dialogue Editor biasa, agar tidak muncul perbedaan perilaku antara kedua editor.
+
+**Q-23 — Menghilangkan red overflow blocks pada Dialogue Preview**
+
+Koreksinya tepat. Menghapus pemanggilan helper di Preview saja belum cukup; defensive guard pada helper juga diperlukan agar jalur lain tidak memasang tag merah secara tidak sengaja.
+
+Migrasi assertion di S03 dan S18 juga sudah benar. Jangan sampai perbaikan ini ikut menghilangkan overflow marker di Dialogue Editor ketika Preview OFF.
+
+- [S03 Preview tests](https://github.com/ImaterialC/Misora-Editor/blob/main/tests/test_v15_s03_all_script_preview_paste.py?utm_source=chatgpt.com)
+- [S18 Game Preview tests](https://github.com/ImaterialC/Misora-Editor/blob/main/tests/test_p3_s18_game_preview.py?utm_source=chatgpt.com)
+
+**STOP gate dan roadmap**
+
+Pemisahan Q-22 dari Import UX sangat membantu. Saya juga menyetujui STOP gate untuk Q-02 jika perbaikan save membutuhkan arsitektur asynchronous besar, dan untuk Q-18 jika Ruby Preview ternyata membutuhkan custom text-layout engine.
+
+Pemetaan icon yang sudah dikoreksi juga konsisten dengan keputusan sebelumnya. S12 yang menggunakan versi terakhir yang benar-benar terpasang, bukan selalu mengasumsikan `1.4.13`, adalah keputusan yang tepat.
+
+## **2. Empat hal yang masih harus diperbaiki**
+
+### **A. S12 belum memiliki acceptance criteria yang cukup tegas untuk test failures**
+
+Ini blocker terbesar.
+
+Dokumen mencatat baseline hasil laporan Gemini/Antigravity:
+
+| Status baseline S11   | Jumlah |
+| --------------------- | ------ |
+| Discovered            | 440    |
+| Passed                | 397    |
+| Fixture-blocked skips | 35     |
+| Pre-existing failures | 6      |
+| Pre-existing errors   | 2      |
+
+Angka tersebut tetap harus dianggap sebagai **laporan eksekusi sebelumnya**, bukan hasil yang sudah saya jalankan sendiri.
+
+S12 menyebut akan memperbaiki tiga pre-existing non-fixture hygiene issues. Namun, dokumen belum menyebutkan secara spesifik:
+
+- Tiga masalah mana yang akan diperbaiki.
+- Dari enam failures dan dua errors, mana yang termasuk tiga masalah tersebut.
+- Apa status akhir lima masalah lainnya.
+- Apakah 35 fixture-blocked skips masih diterima sebagai pengecualian atau wajib diselesaikan.
+
+S12 tidak boleh menyatakan release gate PASS hanya karena jumlah kegagalan tidak bertambah. Harus ada daftar setiap failure/error, penyebabnya, dan keputusan akhirnya.
+
+Saya menyarankan kriteria minimal berikut:
+
+1. Tidak boleh ada regression baru dibandingkan baseline.
+2. Setiap failure dan error baseline harus mempunyai disposition tertulis: diperbaiki, terbukti bukan bug, atau mendapat pengecualian eksplisit dari Project Lead.
+3. Fixture-blocked skips tidak boleh dihitung sebagai passed.
+4. Jumlah test yang ditemukan dan dieksekusi harus dilaporkan, bukan hanya persentase keberhasilan.
+
+### **B. Batasan read-only S12 masih ambigu**
+
+Dokumen menyebut S12 sebagai read-only deep audit, tetapi juga memasukkan tiga hygiene fixes.
+
+Keduanya tidak harus bertentangan, tetapi batasannya harus dibuat eksplisit.
+
+Saya menyarankan S12 hanya diperbolehkan melakukan tiga perbaikan yang sudah diidentifikasi dan disetujui sebelumnya. Selain itu, audit harus read-only.
+
+Jika ditemukan P0/P1 bug baru, memory leak, atau masalah source code lain, jangan diam-diam memperbaikinya di S12. Jadikan blocker dan pindahkan ke sesi perbaikan terpisah, sebagaimana sudah tertulis dalam dokumen.
+
+### **C. Aturan waiver untuk Q-04.1.3 perlu diperjelas**
+
+Saya setuju bahwa Q-04.1.3 harus tetap `NOT TESTED` sampai benar-benar diuji.
+
+Namun, dokumen menyebut Project Lead dapat memberikan waiver. Bila waiver diberikan, statusnya jangan berubah menjadi `PASS`.
+
+Gunakan status yang membedakan keduanya:
+
+- `NOT TESTED` — belum diuji dan belum mendapat waiver.
+- `NOT TESTED — WAIVED` — belum diuji, tetapi Project Lead memberikan persetujuan tertulis untuk menerima pengecualian tersebut.
+
+Release gate boleh mempertimbangkan waiver yang disetujui, tetapi laporan QA tidak boleh mengklaim bahwa pengujian tersebut sudah selesai. Dengan begitu, status pengujian tetap jujur.
+
+### **D. Q-05 harus menyebut persyaratan splash screen secara lengkap**
+
+Q-05 sudah menyebut non-blocking lifecycle dan honest startup progress. Namun, ada satu persyaratan awal yang belum tertulis secara eksplisit:
+
+**Splash screen harus tetap tampil sampai seluruh UI/UX dan state dari sesi sebelumnya selesai dimuat.**
+
+Ini bukan sekadar menunggu window utama dibuat. Program tidak boleh menghilangkan splash ketika pemulihan state, konfigurasi UI, atau pemuatan komponen masih berlangsung.
+
+Tambahkan acceptance test dengan startup yang sengaja diperlambat untuk memastikan splash tidak tertutup terlalu awal dan indikator progress tidak mengklaim pekerjaan yang sebenarnya belum selesai.
+
+## **3. Catatan tambahan untuk Q-01**
+
+Ini bukan alasan utama menahan sign-off, tetapi sebaiknya dimasukkan ke prompt S11b.
+
+Lima exclusion baru harus ditambahkan tanpa menghapus pengecualian yang sudah ada di scanner. Source saat ini sudah mempunyai filter seperti `.missing.txt`, `.report.txt`, `_summary.txt`, `_warnings.txt`, dan `.bak_`.
+
+Selain itu, definisi `duplicate_keys` perlu ditentukan: apakah jumlah kemunculan key duplikat setelah kemunculan pertama, atau jumlah nama key berbeda yang mengalami duplikasi. Kedua cara menghitung itu bisa menghasilkan angka berbeda.
+
+`entries_read`, `unique_keys`, dan `duplicate_keys` harus mempunyai definisi yang konsisten dan tes yang membuktikannya.
+
+## **4. Status akhir saya**
+
+**Roadmap v2**
+
+Conditional approval
+
+Scope dan pembagian sesi sudah layak menjadi baseline perencanaan. Namun, empat koreksi pada bagian 2 masih harus ditambahkan sebelum final sign-off.
+
+**Antigravity prompt**
+
+Belum diizinkan
+
+Jangan mulai `/plan` atau implementasi berdasarkan persetujuan final dari saya karena persetujuan tersebut belum diberikan.
+
+**Release v1.5.0**
+
+Tetap ON HOLD
+
+Tetap ditahan sampai Track A selesai, Manual Windows QA diselesaikan atau diberi waiver resmi, dan S12 Release Gate memenuhi kriteria.
+
+Dokumen yang saya tinjau: [Gemini2GPT_PostS11_Reconciled_v2.md](https://github.com/ImaterialC/Misora-Reference/blob/main/Gemini2GPT_PostS11_Reconciled_v2.md?utm_source=chatgpt.com).
+
+**Kesimpulan:** v2 sudah memperbaiki sebagian besar masalah desain roadmap v1. Saya tidak meminta perombakan roadmap lagi. Cukup revisi empat poin di atas, terutama acceptance criteria S12. Setelah itu, kirimkan v3 untuk pemeriksaan final sebelum Gemini menyusun prompt S11b.
