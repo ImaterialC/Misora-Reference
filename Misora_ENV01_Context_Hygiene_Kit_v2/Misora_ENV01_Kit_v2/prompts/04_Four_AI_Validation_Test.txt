@@ -1,0 +1,41 @@
+MISORA ENV-01 v2 — FOUR-AI READ-ONLY VALIDATION
+
+Run this exact prompt independently in Gemini, GPT-6, Qwen, and Antigravity. Give each model exactly these three files and no others:
+1. `AGENTS.md`
+2. `PROJECT_STATE.md`
+3. `docs/ai/CONTEXT_ROUTER.md`
+
+Do NOT attach `OPEN_ISSUES.md`, `DECISIONS.md`, `ENV01_MIGRATION_MAP.md`, the symbol index, archives, old prompts, or chat history. This tests what a fresh model can correctly understand from Layer 0 + Router only. Do not browse external sources or inspect application code. Do not infer a fact because it sounds plausible. Answer `UNKNOWN FROM PROVIDED CONTEXT` when the three files do not establish it.
+
+ROLE
+You are a fresh independent technical assistant joining Misora: Story Editor. Read only the three attached files. Do not change files or propose implementation beyond the requested routing.
+
+ANSWER THESE SAME 7 QUESTIONS
+
+1. **Current baseline and release truth:** What is the current product version and exact baseline HEAD? Is the v1.5.0 release campaign active, on hold, cancelled, or released? Is version promotion authorized? State exact wording and distinguish product version from release campaign.
+
+2. **S12 and S15 chronology:** What is the status of the old S12 release audit? What is cancelled about S15, and what historical S15 milestone must remain? Explain the difference between a future proposal and a completed milestone.
+
+3. **ENV-01 scope:** What is the only authorized task and what are the absolute read-only paths? Is any production, test, asset, config, backup, release, commit, or push change authorized? What is the required planning/review/proceed sequence?
+
+4. **Current test baseline:** How many tests are discovered? Report the recorded pass/skip/failure/error counts and explicitly state whether `475` means 475 passed. Identify the major fixture blocker and the three non-fixture test-hygiene failures if the provided files list them; otherwise say unknown.
+
+5. **Evidence quality:** What evidence statuses must be used? Can T-01 through T-04 be called confirmed defects from Layer 0 + Router? Explain what evidence is still needed and how lifecycle differs from evidence status.
+
+6. **Where should you look next?** For each task, name the smallest relevant Layer 1 document(s) the Router directs you to, and state whether you need Layer 2 source/test inspection or Layer 3 archive access:
+   a. investigate the empty-state UI report T-01;
+   b. check XUAT sync latency / T-12 proposal;
+   c. inspect historical reasons for an old S-series decision;
+   d. review current release/S15 authority.
+   Do not invent source symbols not present in the three supplied files.
+
+7. **Next safe action and STOP conditions:** What should happen next in ENV-01? State preflight requirements, what Antigravity may do during `/plan`, when independent reviews happen, who authorizes Proceed, and at least four conditions that require STOP. Include expected test-count check and archive verification requirement.
+
+OUTPUT FORMAT
+- Answer Q1–Q7 in order.
+- Add `UNKNOWN / NOT PROVIDED` listing every material fact you refused to infer.
+- Add `CONTEXT LOAD AUDIT`: list exactly which three allowed files you used; confirm no other file/external source was consulted.
+- Do not mention or use content outside the supplied three files.
+
+SCORING (for Project Lead, not the models)
+Compare factual accuracy, exact statuses, forbidden-scope recognition, next-file routing, and honesty about unknowns. Do not score writing style. Any model that says `475 passed`, `v1.5.0 ON HOLD`, old S12 active, future S15 cancellation also cancels completed historical S15, or T-01..T-04 are confirmed without evidence fails the validation.

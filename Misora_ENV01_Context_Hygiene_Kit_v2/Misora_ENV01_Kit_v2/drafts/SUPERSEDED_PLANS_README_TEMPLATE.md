@@ -1,0 +1,3 @@
+# Superseded plans archive policy
+
+Keep old plans as provenance; never execute them because they are present. When a plan is copied here, preserve bytes or clearly identify any separately authored archival wrapper. Record original repository/path/commit, SHA-256, lifecycle `SUPERSEDED`, and replacement decision. Do not create a duplicate copy if the canonical source remains preserved in Misora-Reference. The old S12 v1.5.0 release audit is PAUSED / SUPERSEDED and must not be reactivated; current v1.5.0 campaign status is CANCELLED. Any future release requires a new Project Lead-approved charter.

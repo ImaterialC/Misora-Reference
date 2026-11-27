@@ -1,0 +1,43 @@
+MISORA ENV-01 v2 — INDEPENDENT REVIEW HANDOFF
+
+Reviewer: [Gemini / GPT-6 / Qwen]
+Baseline: `ImaterialC/Misora-Editor` `main`
+Expected HEAD: `ead65077a2a6cf3a664543cfb50f855268a29e2a`
+Product version: `1.4.15`
+Plan under review: `ENV-01_Implementation_Plan.md` (attach the exact same plan to each reviewer)
+
+ROLE
+Act as an independent senior technical reviewer. Do not rubber-stamp Antigravity. Review the plan against the locked Project Lead decision and, where possible, inspect the current repository at the exact baseline. This is read-only. Do not edit, commit, or push.
+
+LOCKED DECISIONS
+- Current product version stays `1.4.15`.
+- `v1.5.0 RELEASE CAMPAIGN: CANCELLED`; `RELEASE STATUS: NOT RELEASED`; `VERSION PROMOTION: NOT AUTHORIZED`.
+- Old S12 release audit: `PAUSED / SUPERSEDED`; old plan must not be executed.
+- Future S15 work proposal: `CANCELLED`; historical completed S15 milestone remains `HISTORICAL-REFERENCE` and must not be deleted.
+- ENV-01 is documentation/context hygiene plus a read-only AST index generator only.
+- Production-code change risk is zero by scope; documentation migration risk is controlled but non-zero.
+
+REVIEW QUESTIONS
+1. Is preflight deterministic and safe? Does it stop on HEAD, branch, dirty-tree, version, or test-count mismatch without attempting recovery?
+2. Is the file allowlist exact and complete? Are code, tests, assets, config, backup, launcher, dependency, and README paths truly read-only?
+3. Is the archive plan byte-identical, executed before replacing root files, SHA-256 verified, and protected against adding a header/TOC/newline/encoding conversion?
+4. Are all 29 AGENTS sections mapped one by one? Are all PROJECT_STATE headings level 1–6 mapped one by one with line, slug, ancestry, IDs, destination, lifecycle, and rationale? Identify omissions or unsafe compression.
+5. Does target Layer 0 preserve critical runtime/data-integrity rules and meet <=6 KiB / <=15 KiB hard caps? Are sizes measured as bytes?
+6. Are T-01..T-04 correctly kept REPORTED / NEEDS-REPRO? Are T-05..T-14, DEF-01..DEF-10, the three non-fixture failures, fixture-caused failures/errors and 35 skips, Tcl_AsyncDelete watch item, and every MANUAL-PENDING item represented without status inflation?
+7. Are release and S15 statements unambiguous and historically safe? Does the plan avoid the old S12 plan and avoid “post-v1.5.0” as an active schedule?
+8. Does the Context Router keep context lean (Layer 0 always; Layer 1 only 1–3 refs; source slices in Layer 2; archive opt-in Layer 3)?
+9. Is the AST generator read-only with strict UTF-8, exact HEAD and per-file fingerprints, deterministic output, `--check`, no timestamps, no third-party dependencies, and explicit heuristic disclaimer?
+10. Are the acceptance commands valid on Windows PowerShell + Python 3.12 and do they verify all 11 gates objectively?
+11. Is rollback practical and limited to documentation paths, with original root bytes recoverable from archive?
+
+REQUIRED OUTPUT
+A. Verdict: exactly one of `CLEARED FOR PROCEED`, `CLEARED WITH NON-BLOCKING NOTES`, or `BLOCKED`.
+B. Critical blockers (must be zero to clear).
+C. High/medium/low findings with exact plan section and evidence.
+D. Omission matrix: AGENTS 1–29; PROJECT_STATE headings/migration map; T-01..T-14; DEF-01..DEF-10; test debt; fixture; MANUAL-PENDING; decision state.
+E. Command audit: quote invalid/incomplete commands and provide corrected commands.
+F. Required plan amendments.
+G. State explicitly what you did NOT verify. Never imply tests or local files were inspected unless they were.
+
+CLEARANCE RULE
+Do not issue `CLEARED FOR PROCEED` if any hard gate, migration row, archive proof, scope boundary, current decision, or rollback requirement is uncertain/incomplete. A non-blocking note cannot conceal a required condition. The Project Lead, not the reviewer, gives final execution authorization.

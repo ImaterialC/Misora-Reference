@@ -1,0 +1,150 @@
+MISORA: STORY EDITOR — ENV-01 CONTEXT HYGIENE v2
+ANTIGRAVITY PLANNING-FIRST PROMPT — READ-ONLY / PLAN ONLY
+
+ROLE
+Act as a senior repository engineer and migration planner. Project Lead authorizes you to INSPECT and PLAN ENV-01 only. You are NOT authorized to edit files in this phase. Return a complete `ENV-01_Implementation_Plan.md` in your response/out-of-worktree artifact, then STOP.
+
+LOCKED BASELINE
+- Repository: ImaterialC/Misora-Editor
+- Expected branch: main
+- Exact expected HEAD: ead65077a2a6cf3a664543cfb50f855268a29e2a (S11e, product v1.4.15)
+- Product version stays 1.4.15.
+- v1.5.0 release campaign: CANCELLED; NOT RELEASED; VERSION PROMOTION NOT AUTHORIZED.
+- Old S12 release audit: PAUSED / SUPERSEDED. Do not execute or revive the old S12 plan.
+- Future S15 work proposal: CANCELLED. The completed historical S15 milestone (`S15 Select Box Both Views...`, 2026-11-25) is HISTORICAL and MUST be retained.
+- Current task: ENV-01 documentation/context hygiene only.
+
+AUTHORITY / CONFLICT RULE
+The newer Project Lead handoff supersedes stale statements inside the S11e-era `PROJECT_STATE.md` and Kit v1. The old text must be preserved verbatim in the archive; active dashboard and decision ledger must say CANCELLED, not ON HOLD. Do not erase history or rewrite completed historical S15. If repository evidence contradicts the handoff on another material fact, report the discrepancy and STOP rather than guessing.
+
+PHASE A — PREFLIGHT (READ-ONLY)
+1. Confirm repository root and branch.
+2. Run and report:
+   - `git rev-parse --show-toplevel`
+   - `git rev-parse HEAD`
+   - `git branch --show-current`
+   - `git status --short --untracked-files=all`
+   - `git log -1 --oneline --decorate`
+3. Confirm HEAD exactly `ead65077a2a6cf3a664543cfb50f855268a29e2a`, branch `main`, and clean working tree. Otherwise STOP immediately. Do not fetch/rebase/reset/checkout/stash/clean, discard untracked files, or automatically recover.
+4. Inspect `__init__.py` read-only and confirm `__version__ == "1.4.15"`.
+5. Read current `AGENTS.md` and `PROJECT_STATE.md` from disk. Record byte lengths, SHA-256, line counts, and EVERY Markdown heading with line number and computed anchor/slug.
+6. Use Python 3.12 test discovery in count-only mode and report `suite.countTestCases()`. Run with `-B` / `PYTHONDONTWRITEBYTECODE=1` so discovery does not create `__pycache__`; do not call `suite.run()`. Example: `py -3.12 -B -c "import unittest; suite=unittest.TestLoader().discover('tests'); n=suite.countTestCases(); print('countTestCases() =', n); raise SystemExit(0 if n == 475 else 1)"`. Expected count exactly 475. If it differs, STOP.
+7. Inspect directory tree only as needed to identify target collisions, untracked/ignored files, symlinks, and pre-existing content. Never overwrite/delete existing target without reporting it.
+8. No write, copy, mkdir, formatting, generated file, test execution, or Git mutation is permitted in this phase. The discovery command imports test modules to count them; `-B` prevents bytecode writes, but report any import-time side effects or environment mutation if observed.
+
+PHASE B — SCOPE AND FILE OWNERSHIP PLAN
+The only candidate paths ENV-01 may create/change after a separate Proceed authorization are:
+
+ROOT LAYER 0
+- `AGENTS.md`
+- `PROJECT_STATE.md`
+
+ROUTING / LEDGERS
+- `docs/ai/CONTEXT_ROUTER.md`
+- `docs/ai/ENV01_MIGRATION_MAP.md`
+- `docs/project/OPEN_ISSUES.md`
+- `docs/project/DECISIONS.md`
+
+READ-ONLY NAVIGATION TOOL + GENERATED DOC
+- `tools/generate_symbol_index.py`
+- `docs/architecture/MISORA_SYMBOL_INDEX.md`
+
+VERBATIM ARCHIVE / INDEX
+- `docs/archive/AGENTS_v1.4_PRE_ENV01.md`
+- `docs/archive/PROJECT_STATE_v1.4_PRE_ENV01.md`
+- `docs/archive/ARCHIVE_SHA256SUMS.txt`
+- `docs/archive/HISTORY_INDEX.md`
+- `docs/archive/superseded-plans/README.md`
+
+No other paths are in scope. Directories may be created only after Proceed and only as parents of these files. Do not create empty domain architecture documents.
+
+ABSOLUTELY READ-ONLY / FORBIDDEN
+- `__init__.py`, `misora.py`, `core/**`, `assets/**`, `tests/**`
+- `misora.bat`, `requirements.txt`, `misora_config.json`, `backups/**`, `README.md`
+- all other application/configuration/build/runtime files
+- no dependencies; Python 3.12 standard library only
+- no tests edited, added, removed, skipped, weakened, or executed
+- no version bump; no product feature/bugfix; no release operation
+- no commit, tag, push, branch mutation, merge, rebase, reset, stash, clean, or checkout
+
+Provide a strict ownership matrix for every candidate path: CREATE / REPLACE / GENERATED / BYTE-COPY, source, preconditions, validation, and rollback. If a listed file already exists in the target repo and is not clearly safe to replace, report a blocker rather than assuming ownership.
+
+PHASE C — VERBATIM ARCHIVE DESIGN (BEFORE ROOT REPLACEMENT)
+Before any eventual edit to root `AGENTS.md` or `PROJECT_STATE.md`:
+1. Read both originals as raw bytes from this exact HEAD.
+2. Copy raw bytes to:
+   - `docs/archive/AGENTS_v1.4_PRE_ENV01.md`
+   - `docs/archive/PROJECT_STATE_v1.4_PRE_ENV01.md`
+3. Do not prepend header/TOC, normalize line endings, transcode, trim whitespace, or append a newline.
+4. Verify SHA-256 source==archive AND byte equality before touching root files.
+5. Record source filename, source HEAD, byte length, SHA-256, archive path, archive SHA-256, and equality result in `ARCHIVE_SHA256SUMS.txt` / `HISTORY_INDEX.md`.
+6. After root replacement, verify archive hashes against captured manifest; do NOT compare archive with now-rewritten root files.
+7. Any failed equality test means STOP; do not replace roots.
+
+PHASE D — COMPLETE RETENTION / MIGRATION MAP
+Produce exact tables, not prose assurances.
+
+A. AGENTS: map all 29 existing numbered sections (1–29) individually. Include old section number/title, line range, old invariant/meaning, target destination (`AGENTS.md`, `OPEN_ISSUES.md`, `DECISIONS.md`, `CONTEXT_ROUTER.md`, or archive/history), lifecycle (`ACTIVE`, `SUPERSEDED`, `DEFERRED`, `RETRACTED`, `HISTORICAL-REFERENCE`), retained/condensed rule, and validation. No skipped section and no silent dropping.
+
+B. PROJECT_STATE: parse EVERY Markdown heading level 1–6 from the exact local file. For every heading record line number, text, computed slug/anchor, parent heading path, canonical IDs/slugs mentioned in its section when extractable, target destination, lifecycle, and rationale. This includes all historical session headings, B1–B20, BUG/FEAT/HYG/DEF/NO entries, retracted claims, invariants, roadmap phases, fixture observations, manual QA, and docs audit. No skipped heading or canonical ID.
+
+Classification guide:
+- Current version/release status, current ENV-01 state, S11e factual baseline and next action -> concise `PROJECT_STATE.md`.
+- T-01..T-14, test revalidation, manual QA, fixture/test debt, DEF-01..10 -> `OPEN_ISSUES.md` with evidence labels and lifecycle separate.
+- Binding decisions and approved invariants -> `DECISIONS.md` and/or concise `AGENTS.md`.
+- Task routing -> `CONTEXT_ROUTER.md`.
+- Symbol navigation -> generated symbol index.
+- Completed milestones, historical baselines, B-series, resolved historic bug tables, audit snapshots, old roadmap details -> verbatim archive + `HISTORY_INDEX.md` (`HISTORICAL-REFERENCE`).
+- Retracted claims -> retained as `RETRACTED` in issue/history ledger; never reintroduce as active bugs.
+- Old release statements contradicted by latest authority -> archive unchanged and mark `SUPERSEDED`; active decision says CANCELLED.
+
+PHASE E — CONTENT REQUIREMENTS
+
+1. `AGENTS.md`: target 3–5 KiB, hard cap 6 KiB (6144 bytes). Permanent high-value rules only: source/evidence discipline; plan/review/proceed; scope/safety; AST/Box/structural identity; binary/save integrity; XUAT encoding/dictionary safety; Tk main-thread/worker architecture; undo/document lifecycle; clipboard/shortcut; secrets/TLS; NGUI/CSIF; UI/version/overflow; startup/logging; delivery/rollback. Do not delete a critical invariant merely to hit the cap.
+
+2. `PROJECT_STATE.md`: ideal 8–10 KiB, hard cap 15 KiB (15360 bytes). State current version 1.4.15, exact S11e HEAD, v1.5.0 CANCELLED / NOT RELEASED / PROMOTION NOT AUTHORIZED, S12 PAUSED/SUPERSEDED, future S15 proposal CANCELLED while historical completed S15 retained, current ENV-01 state, test baseline 475 total = 432 pass + 35 skip + 6 fail + 2 error (not 475 pass), test debt/fixture blocker, manual-pending summary, next authorized action. Label provenance/date; do not invent release dates.
+
+3. `OPEN_ISSUES.md`: include T-01..T-14; revalidation items; three non-fixture failures; fixture-related failures/errors and 35 skips; Tcl_AsyncDelete watch item; MANUAL-PENDING; DEF-01..DEF-10. T-01..T-04 stay REPORTED / NEEDS-REPRO until new evidence.
+
+4. `DECISIONS.md`: reconcile old v1 seed. Current ruling: version 1.4.15; v1.5.0 CANCELLED; not released; promotion unauthorized; old S12 audit PAUSED/SUPERSEDED; future S15 work CANCELLED; completed historical S15 retained. Do not use “post-v1.5.0” as an active schedule; future work is unscheduled and needs fresh approval.
+
+5. `CONTEXT_ROUTER.md`: Layer 0 always AGENTS + Project State. Layer 1 router + 1–3 relevant docs. Layer 2 source slices/tests. Layer 3 archive/history opt-in. Include task->file routing and response/evidence contract. Do not load full backlog/archive for routine code tasks.
+
+6. `MISORA_SYMBOL_INDEX.md` + generator: Python 3.12 stdlib only (`ast`, `pathlib`, `hashlib`, `subprocess`, `argparse`, `sys`). Strict UTF-8; malformed files fail loudly (no `errors="replace"`). Include exact `git rev-parse HEAD` and SHA-256 per indexed source file. Deterministic output; no timestamps. Index top-level functions/classes and immediate class methods with file/line and signatures where parseable. Domain grouping is heuristic. Navigation aid only, NOT dead-code/runtime-call-graph proof. Provide non-writing `--check`; nonzero on mismatch. Never write source. Default files: `misora.py`, `__init__.py`, `core/*.py`, `assets/*.py`.
+
+7. `HISTORY_INDEX.md`: table with source heading, exact line, slug, parent path, lifecycle, canonical IDs, destination, archive pointer. Keep separate from verbatim archives.
+
+PHASE F — REQUIRED PLAN DELIVERABLE
+Return `ENV-01_Implementation_Plan.md` containing:
+- preflight transcript and PASS/STOP result;
+- exact baseline hashes/bytes/lines and test count;
+- current collisions/untracked/ignored-state observations;
+- strict path ownership matrix;
+- byte-copy and rollback sequence;
+- 29 AGENTS mapping rows;
+- exhaustive PROJECT_STATE all-heading migration matrix;
+- draft contents or precise diff for every target file;
+- generator implementation and commands;
+- 11 objective acceptance gates;
+- risks, unresolved questions, STOP triggers;
+- file-by-file rollback plan restoring old root docs without touching product code.
+
+11 ACCEPTANCE GATES TO PLAN FOR
+1. Preflight: exact HEAD, main, clean tree, version 1.4.15.
+2. Strict ownership: changed paths only from allowlist; forbidden paths untouched.
+3. Verbatim archive: raw byte copy; hash/equality before root edits; captured manifest verified after.
+4. Migration proof: exactly 29 AGENTS sections and every PROJECT_STATE heading/slug/ID mapped.
+5. Layer 0 size: AGENTS <=6144 bytes; PROJECT_STATE <=15360 bytes.
+6. Ledger: T-01..T-14, DEF-01..10, test debt, fixture, manual QA/revalidation; evidence and lifecycle separated.
+7. Decisions: exact version/release/S12/S15 state.
+8. Router: Layer 0/1/2/3 and max 1–3 Layer 1 refs.
+9. AST index: strict UTF-8, HEAD + per-file hashes, deterministic generation, `--check`, no deps/source writes.
+10. Product/test boundary: forbidden paths unchanged; production diff empty; `countTestCases()==475` (count only).
+11. Four-AI validation: identical seven-question read-only test for Gemini, GPT-6, Qwen, Antigravity; factual alignment and honest unknowns; no commit/push.
+
+STOP TRIGGERS
+HEAD/branch/status mismatch; version mismatch; test count not 475; target collision; missing/ambiguous source; archive mismatch; migration row missing; unknown canonical ID; scope outside allowlist; any production/test/config change; generator needs external dependency; or any uncertainty that risks user data.
+
+MANDATORY ENDING
+At the end write exactly: `STOP — WAITING FOR INDEPENDENT REVIEW`
+Do not edit files, create directories, run tests, commit, or push. Do not begin execution until a separate explicit Proceed instruction after independent review and Project Lead authorization.
