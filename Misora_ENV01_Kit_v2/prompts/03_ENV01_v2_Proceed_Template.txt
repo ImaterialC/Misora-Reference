@@ -78,7 +78,18 @@ foreach ($line in $manifest) {
   Write-Output "PASS $path $actual"
 }
 ```
-Expected manifest: exactly the two archived files. During pre-replacement, SHA-256 and byte equality between each source root file and its archive copy must also pass. Record that pre-replacement proof in `HISTORY_INDEX.md`.
+Expected manifest: exactly the two archived files. During pre-replacement, run this exact Python raw-byte equality & SHA-256 check BEFORE touching root `AGENTS.md` or `PROJECT_STATE.md`, and record the proof in `HISTORY_INDEX.md`:
+```python
+import hashlib, pathlib
+pairs = [
+    (pathlib.Path("AGENTS.md"), pathlib.Path("docs/archive/AGENTS_v1.4_PRE_ENV01.md")),
+    (pathlib.Path("PROJECT_STATE.md"), pathlib.Path("docs/archive/PROJECT_STATE_v1.4_PRE_ENV01.md")),
+]
+for src, dst in pairs:
+    sb, db = src.read_bytes(), dst.read_bytes()
+    assert sb == db, f"Byte mismatch: {src} != {dst}"
+    print(f"OK {src} == {dst}: {len(sb)} bytes, sha256={hashlib.sha256(sb).hexdigest()}")
+```
 
 GATE 4 — MIGRATION COMPLETENESS
 - AGENTS map contains exactly 29 numbered section rows (1..29), each old heading exactly once.

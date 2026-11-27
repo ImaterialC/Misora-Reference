@@ -205,7 +205,14 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     root = args.root.resolve()
-    output = args.output if args.output.is_absolute() else root / args.output
+    allowed_output = (root / DEFAULT_OUTPUT).resolve()
+    output = (args.output if args.output.is_absolute() else root / args.output).resolve()
+    if output != allowed_output:
+        print(
+            f"ERROR: output path must resolve to {allowed_output} (got {output})",
+            file=sys.stderr,
+        )
+        return 2
     try:
         expected = render(root)
         display_path = output.relative_to(root).as_posix() if output.is_relative_to(root) else str(output)

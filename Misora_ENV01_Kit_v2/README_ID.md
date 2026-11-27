@@ -139,7 +139,7 @@ Jangan membuat enam dokumen arsitektur domain kosong. Buat dokumen domain hanya 
 - Risiko perubahan production code: **nol karena scope**. Risiko migrasi dokumentasi: **terkendali tetapi tidak nol**.
 - Arsip dibuat dari raw bytes pada HEAD lokal sebelum root file diganti. Jangan menambahkan header, TOC, newline, atau normalisasi encoding.
 - Symbol index adalah alat navigasi, bukan bukti dead code atau runtime call graph lengkap.
-- Kit ini belum mengubah repo, menjalankan tes pada mesin pengguna, atau mengunggah dirinya ke GitHub.
+- Kit ini sudah diunggah ke Misora-Reference, tetapi belum menjalankan migrasi pada Misora-Editor atau menjalankan tes di mesin pengguna.
 
 ## Referensi
 
