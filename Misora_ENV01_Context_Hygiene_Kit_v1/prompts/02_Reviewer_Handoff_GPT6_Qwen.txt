@@ -1,0 +1,22 @@
+# MISORA: STORY EDITOR — ENV-01 (CONTEXT HYGIENE & DOC-LAYERING) PLAN REVIEW REQUEST
+
+From: Gemini (on behalf of Project Lead / Cornelia)
+To: GPT-6 & Qwen (Independent Technical Reviewers)
+Committed S11e HEAD: <PASTE_S11E_HEAD_HERE> (S11e v1.4.15 locally committed; 13 files incl. 4 PNG icons; zero git push)
+Release Gate Status: S12 PAUSED by Project Lead; v1.5.0 remains STRICTLY ON HOLD.
+
+Project Lead agreed with both reviewers' recommendation to pause S12 and execute a zero-code-risk Environment & Context Hygiene session (ENV-01) FIRST, before triaging/fixing post-S11e bugs and UI proposals.
+
+`ENV-01_Implementation_Plan.md` is now published on `ImaterialC/Misora-Reference/main`.
+
+Scope Summary (STRICTLY DOCS & READ-ONLY AST INDEXER — ZERO PRODUCTION CODE EDITS):
+1. `AGENTS.md` (~11 KB -> <= 6 KB): Slim permanent engineering constitution with a full 29-section retention mapping proving zero invariants were silently dropped.
+2. `PROJECT_STATE.md` (~224-250 KB -> <= 15 KB): Slim live operational dashboard (version, HEAD, 475-test baseline, active blockers, pointers).
+3. `docs/archive/PROJECT_STATE_HISTORY_v1.4.md` (NEW): Verbatim move of pre-ENV-01 S00..S11e history + searchable heading/slug index (zero history deleted).
+4. `docs/project/OPEN_ISSUES.md` (NEW): Structured master ledger capturing Project Lead's newly compiled post-S11e notes (`T-01` `BUG-UI-EMPTY-STATE-01` through `T-14`), revalidation items, 3 non-fixture test debt items, fixture blocker, `MANUAL-PENDING` items, and `DEF-01`..`DEF-10`.
+5. `docs/project/DECISIONS.md` (NEW): Status-tagged (`ACTIVE` / `DEFERRED` / `SUPERSEDED` / `REJECTED`) rulings ledger.
+6. `docs/release/V1_5_0_GATE.md` (NEW): Reconciled single authoritative v1.5.0 Release Gate anchored to `v1.4.15` / `475` tests / 2-Gate 8-condition model (`STATUS: HOLD`).
+7. `tools/generate_symbol_index.py` + `docs/architecture/MISORA_SYMBOL_INDEX.md` (NEW): Stdlib-only read-only AST generator mapping `misora.py`, `core/*.py`, and `assets/*.py` so AI agents read targeted slices instead of 1 MB monoliths.
+8. Strictly 100% READ-ONLY: `__init__.py`, `misora.py`, `core/*.py`, `assets/*`, `tests/*`, `misora.bat`, `requirements.txt`, `misora_config.json`, `backups/`.
+
+Please review `ENV-01_Implementation_Plan.md` on `Misora-Reference/main` (especially the 29-section `AGENTS.md` retention mapping and archive completeness) and confirm `CLEARED FOR PROCEED` for ENV-01, keeping `v1.5.0` STRICTLY ON HOLD.
