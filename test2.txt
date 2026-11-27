@@ -1,0 +1,374 @@
+Microsoft Windows [Version 10.0.26100.6725]
+(c) Microsoft Corporation. All rights reserved.
+
+D:\Misora-Editor># 1. Verifikasi sumber teks yang dibaca ImportFromXUATDialog (apakah _original_jp_by_uid atau box.clean_text)
+'#' is not recognized as an internal or external command,
+operable program or batch file.
+
+D:\Misora-Editor>Select-String -Path misora.py -Pattern "class ImportFromXUATDialog|_original_jp_by_uid" -Context 0,3 | Select-Object -Last 25
+'Select-String' is not recognized as an internal or external command,
+operable program or batch file.
+
+D:\Misora-Editor>
+D:\Misora-Editor># 2. Jalankan sisa modul S07..S11c secara utuh (64 tes) untuk menutup bagian yang terpotong Tcl_AsyncDelete
+'#' is not recognized as an internal or external command,
+operable program or batch file.
+
+D:\Misora-Editor>py -3.12 -m unittest tests.test_v15_s07_xuat_cleanup_archive tests.test_v15_s08_release_gate_stress tests.test_v15_s09_core_fixes_54d tests.test_v15_s10_all_script_quick_edit tests.test_v15_s11_xuat_archiving_progress tests.test_v15_s11b_scanner_save_preview tests.test_v15_s11b2_xuat_batch_sync tests.test_v15_s11c_quick_edit_unified -v
+test_guard_1_import_cancel_never_opens_cleanup_or_modifies_xuat (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_guard_1_import_cancel_never_opens_cleanup_or_modifies_xuat)
+[Guard 1] Cancelling ImportFromXUATDialog never opens cleanup dialog or modifies XUAT files. ... [2026-11-27 19:31:48.453] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07__o1syvd3\misora_config.json
+[2026-11-27 19:31:48.572] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07__o1syvd3\g1.v2.txt' (boxes=1)
+ok
+test_guard_2_strict_decode_rejects_corrupt_bytes_without_rewriting (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_guard_2_strict_decode_rejects_corrupt_bytes_without_rewriting)
+[Guard 2] Corrupt binary bytes in an XUAT file raise UnicodeDecodeError without errors='replace' corruption. ... [2026-11-27 19:31:50.081] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_gj_3smpu\misora_config.json
+ok
+test_probe_1_transactional_cleanup_preserves_bom_crlf_comments_and_linebreak_modes (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_probe_1_transactional_cleanup_preserves_bom_crlf_comments_and_linebreak_modes)
+[Probe 1] Both keep_blank_line and remove_line_break preserve BOM, CRLF/LF, comments, regex, escaped '=', whitespace values, and short JP keys. ... [2026-11-27 19:31:51.484] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_o0colyow\misora_config.json
+ok
+test_probe_2_stale_source_sha256_aborts_before_modifying_disk (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_probe_2_stale_source_sha256_aborts_before_modifying_disk)
+[Probe 2] External modification to a targeted XUAT file raises StaleSourceError before archive or source writes. ... [2026-11-27 19:31:52.967] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_5zzidfig\misora_config.json
+ok
+test_probe_3_mandatory_archive_encoding_contracts_and_irreversible_optout (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_probe_3_mandatory_archive_encoding_contracts_and_irreversible_optout)
+[Probe 3] Verify per_source_file raw encoding/BOM/EOL + append, combined UTF-8/LF metadata headers, target validation, and unarchived opt-out. ... [2026-11-27 19:31:54.406] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_mn7gpaho\misora_config.json
+ok
+test_probe_4_archive_first_and_partial_batch_failure_report (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_probe_4_archive_first_and_partial_batch_failure_report)
+[Probe 4] Archive writes first; failure on File #2 leaves File #1 modified, File #2 intact/rolled back, and returns granular CleanupReport. ... [2026-11-27 19:31:56.131] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_62cjt393\misora_config.json
+ok
+test_probe_5_duplicate_scope_and_conservative_uncertain_classification (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_probe_5_duplicate_scope_and_conservative_uncertain_classification)
+[Probe 5] Duplicate scope (selected_only vs all_duplicates, UI hidden at 0 dups), no substring delete, unique vs uncertain classification & speaker guard. ... [2026-11-27 19:31:57.565] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_c_f2af8v\misora_config.json
+ok
+test_probe_6_empty_file_detection_and_debug_safety_toggle (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_probe_6_empty_file_detection_and_debug_safety_toggle)
+[Probe 6] Comments+whitespace-only file flagged empty without auto-delete, 2-step delete quotes exact backup path, and Debug > Safety persists. ... [2026-11-27 19:31:59.142] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_hzrsldmh\misora_config.json
+[2026-11-27 19:31:59.176] [INFO   ] [UI / Theme / Config] XUAT cleanup safety backup toggled: OFF (Not Recommended)
+[2026-11-27 19:31:59.329] [INFO   ] [UI / Theme / Config] XUAT cleanup safety backup toggled: ON
+[2026-11-27 19:32:00.833] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_hzrsldmh\malformed_xc_config.json
+ok
+test_probe_7_pure_core_boundary_no_tkinter_or_misora_import (tests.test_v15_s07_xuat_cleanup_archive.TestV15S07XuatCleanupArchive.test_probe_7_pure_core_boundary_no_tkinter_or_misora_import)
+[Probe 7] core.xuat_cleanup imports zero tkinter or misora modules and accepts injected backup_path_fn. ... [2026-11-27 19:32:02.253] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s07_c86bhfkf\misora_config.json
+ok
+test_guard_1_misora_workspace_v1_schema_and_stable_locks (tests.test_v15_s08_release_gate_stress.TestV15S08ReleaseGateStress.test_guard_1_misora_workspace_v1_schema_and_stable_locks)
+[Guard 1] .misora v1 JSON matches WorkspaceSession.to_dict() schema with zero drafts, blobs, or Record.uid. ... [2026-11-27 19:32:03.757] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08__lg5cpqh\misora_config.json
+ok
+test_guard_2_binary_cmd_35_32_and_empty_arg_sentinel_intact (tests.test_v15_s08_release_gate_stress.TestV15S08ReleaseGateStress.test_guard_2_binary_cmd_35_32_and_empty_arg_sentinel_intact)
+[Guard 2] Binary cmd_id 35 (narration), 32 (subtitle), and empty-arg sentinel ' ' round-trip losslessly. ... [2026-11-27 19:32:05.148] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_e9y17xtl\misora_config.json
+ok
+test_stress_1_memory_leak_and_env_disposal_open_close_cycles (tests.test_v15_s08_release_gate_stress.TestV15S08ReleaseGateStress.test_stress_1_memory_leak_and_env_disposal_open_close_cycles)
+[Stress 1] 20 open/close cycles release StoryDocument weakrefs & per-doc caches with bounded tracemalloc growth. ... [2026-11-27 19:32:06.555] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\misora_config.json
+[2026-11-27 19:32:06.889] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_00.v2.txt' (boxes=1)
+[2026-11-27 19:32:07.380] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_01.v2.txt' (boxes=1)
+[2026-11-27 19:32:07.784] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_02.v2.txt' (boxes=1)
+[2026-11-27 19:32:08.184] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_03.v2.txt' (boxes=1)
+[2026-11-27 19:32:08.582] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_04.v2.txt' (boxes=1)
+[2026-11-27 19:32:08.989] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_05.v2.txt' (boxes=1)
+[2026-11-27 19:32:09.402] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_06.v2.txt' (boxes=1)
+[2026-11-27 19:32:09.804] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_07.v2.txt' (boxes=1)
+[2026-11-27 19:32:10.208] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_08.v2.txt' (boxes=1)
+[2026-11-27 19:32:10.612] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_09.v2.txt' (boxes=1)
+[2026-11-27 19:32:11.067] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_10.v2.txt' (boxes=1)
+[2026-11-27 19:32:11.534] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_11.v2.txt' (boxes=1)
+[2026-11-27 19:32:11.969] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_12.v2.txt' (boxes=1)
+[2026-11-27 19:32:12.404] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_13.v2.txt' (boxes=1)
+[2026-11-27 19:32:12.832] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_14.v2.txt' (boxes=1)
+[2026-11-27 19:32:13.270] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_15.v2.txt' (boxes=1)
+[2026-11-27 19:32:13.711] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_16.v2.txt' (boxes=1)
+[2026-11-27 19:32:14.142] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_17.v2.txt' (boxes=1)
+[2026-11-27 19:32:14.572] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_18.v2.txt' (boxes=1)
+[2026-11-27 19:32:15.003] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_afumj92x\cycle_19.v2.txt' (boxes=1)
+
+[S08 Stress 1] 20-cycle tracemalloc delta (cycle 5 -> 20): +26.15 KiB
+ok
+test_stress_2_search_cancel_race_and_thread_cleanup (tests.test_v15_s08_release_gate_stress.TestV15S08ReleaseGateStress.test_stress_2_search_cancel_race_and_thread_cleanup)
+[Stress 2] 5 rapid search start/cancel cycles via on_cancel_search() leave zero live _search_thread workers. ... [2026-11-27 19:32:16.577] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_u9zi_mqe\misora_config.json
+[2026-11-27 19:32:16.641] [INFO   ] [Search] Started search query='検索テスト' scope=folder roots=1
+[2026-11-27 19:32:16.642] [INFO   ] [Search] Search cancelled by user.
+[2026-11-27 19:32:16.745] [INFO   ] [Search] Search finished. Total matches=0, skipped=0
+[2026-11-27 19:32:16.760] [INFO   ] [Search] Started search query='検索テスト' scope=folder roots=1
+[2026-11-27 19:32:16.760] [INFO   ] [Search] Search cancelled by user.
+[2026-11-27 19:32:16.762] [INFO   ] [Search] Started search query='検索テスト' scope=folder roots=1
+[2026-11-27 19:32:16.762] [INFO   ] [Search] Search cancelled by user.
+[2026-11-27 19:32:16.763] [INFO   ] [Search] Started search query='検索テスト' scope=folder roots=1
+[2026-11-27 19:32:16.763] [INFO   ] [Search] Search cancelled by user.
+[2026-11-27 19:32:16.766] [INFO   ] [Search] Started search query='検索テスト' scope=folder roots=1
+[2026-11-27 19:32:16.767] [INFO   ] [Search] Search cancelled by user.
+[2026-11-27 19:32:16.870] [INFO   ] [Search] Search finished. Total matches=0, skipped=0
+ok
+test_stress_3_500_box_word_wrap_csif_and_binary_roundtrip (tests.test_v15_s08_release_gate_stress.TestV15S08ReleaseGateStress.test_stress_3_500_box_word_wrap_csif_and_binary_roundtrip)
+[Stress 3] 500-box story survives Auto Word Wrap, Undo/Redo, CSIF round-trip, and binary round-trip. ... [2026-11-27 19:32:18.323] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_h0a805jw\misora_config.json
+[2026-11-27 19:32:18.406] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_h0a805jw\stress_500.v2.txt' (boxes=500)
+[2026-11-27 19:32:24.386] [INFO   ] [UI / Theme / Config] Undid operation: Auto Word Wrap
+[2026-11-27 19:32:25.230] [INFO   ] [UI / Theme / Config] Redid operation: Auto Word Wrap
+ok
+test_stress_3b_mtl_cancel_pending_futures_and_stale_rejection (tests.test_v15_s08_release_gate_stress.TestV15S08ReleaseGateStress.test_stress_3b_mtl_cancel_pending_futures_and_stale_rejection)
+[Stress 3b] Cancelling Translate All mid-flight drains executor/threads and rejects late stale results. ... [2026-11-27 19:32:26.602] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_yekkd8jm\misora_config.json
+[2026-11-27 19:32:26.874] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_yekkd8jm\mtl_cancel.v2.txt' (boxes=1)
+ok
+test_stress_4_all_script_virtualized_pool_and_preview_bleed (tests.test_v15_s08_release_gate_stress.TestV15S08ReleaseGateStress.test_stress_4_all_script_virtualized_pool_and_preview_bleed)
+[Stress 4] Virtualized All Script pool stays bounded across 150/300/1000 boxes, recycles locks/selection, and Dialogue Preview keeps wrap='none'. ... [2026-11-27 19:32:29.194] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_b01yhidb\misora_config.json
+[2026-11-27 19:32:29.362] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_b01yhidb\stress_150.v2.txt' (boxes=150)
+[2026-11-27 19:32:29.660] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_b01yhidb\stress_300.v2.txt' (boxes=300)
+[2026-11-27 19:32:29.927] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_b01yhidb\stress_1000.v2.txt' (boxes=1000)
+
+[S10 Stress 4] 150-box render=177.54 ms | 1000-box scroll_cycle=121.83 ms | QuickEdit_1card=28.86 ms | Paste145=568.95 ms | pool={150: 8, 300: 8, 1000: 8} (OS=Windows-11-10.0.26100-SP0, Python=3.12.10, Tk=8.6)
+ok
+test_stress_5_version_parity_and_no_hardcoded_duplicates (tests.test_v15_s08_release_gate_stress.TestV15S08ReleaseGateStress.test_stress_5_version_parity_and_no_hardcoded_duplicates)
+[Stress 5] Single-source semver __version__ parity across all modules with zero hardcoded version strings. ... [2026-11-27 19:32:33.060] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s08_c9ywoa1y\misora_config.json
+ok
+test_guard_1_dialogue_preview_remains_readonly_and_excluded_from_save (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_guard_1_dialogue_preview_remains_readonly_and_excluded_from_save) ... [2026-11-27 19:32:35.154] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_s555m2r6\misora_config.json
+ok
+test_guard_2_adjacent_narration_separation_and_cmd_35_32_preserved (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_guard_2_adjacent_narration_separation_and_cmd_35_32_preserved) ... [2026-11-27 19:32:36.746] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_z_4m1i1q\misora_config.json
+ok
+test_guard_3_translation_lock_cut_box_and_clear_skeleton (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_guard_3_translation_lock_cut_box_and_clear_skeleton) ... [2026-11-27 19:32:38.299] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_y0hs0dyv\misora_config.json
+[2026-11-27 19:32:38.565] [INFO   ] [UI / Theme / Config] Undid operation: Clear Dialogue Skeleton
+ok
+test_guard_4_post_autocomplete_select_focus_restoration (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_guard_4_post_autocomplete_select_focus_restoration)
+After selecting from autocomplete popup, entry_speaker must remain ... [2026-11-27 19:32:39.978] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_ak4ej_6s\misora_config.json
+ok
+test_probe_1_paste_replace_uses_selected_boxes_and_insert_box0 (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_1_paste_replace_uses_selected_boxes_and_insert_box0) ... [2026-11-27 19:32:41.556] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_pxb78cyd\misora_config.json
+[2026-11-27 19:32:42.358] [INFO   ] [UI / Theme / Config] Undid operation: Replace 2 Box(es)
+[2026-11-27 19:32:42.415] [INFO   ] [UI / Theme / Config] Redid operation: Replace 2 Box(es)
+[2026-11-27 19:32:42.473] [INFO   ] [UI / Theme / Config] Undid operation: Replace 2 Box(es)
+[2026-11-27 19:32:42.556] [INFO   ] [UI / Theme / Config] Undid operation: Paste 2 Box(es)
+ok
+test_probe_2_pin_speaker_captured_identity_and_no_wrap_boundaries (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_2_pin_speaker_captured_identity_and_no_wrap_boundaries) ... [2026-11-27 19:32:43.916] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_iql72boy\misora_config.json
+ok
+test_probe_3_speaker_autocomplete_withdrawn_and_positioned_never_zero_zero (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_3_speaker_autocomplete_withdrawn_and_positioned_never_zero_zero) ... [2026-11-27 19:32:46.253] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_pym_8qa3\misora_config.json
+ok
+test_probe_3b_speaker_autocomplete_full_list_and_editing (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_3b_speaker_autocomplete_full_list_and_editing) ... [2026-11-27 19:32:47.784] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_my69zksd\misora_config.json
+ok
+test_probe_4_shared_54d_reference_pixel_contract_and_box0_immunity (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_4_shared_54d_reference_pixel_contract_and_box0_immunity) ... [2026-11-27 19:32:49.369] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_idnysl_i\misora_config.json
+ok
+test_probe_5_dialogue_preview_pink_arrow_unclipped_and_continuous_border (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_5_dialogue_preview_pink_arrow_unclipped_and_continuous_border) ... [2026-11-27 19:32:50.945] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_1obz609r\misora_config.json
+ok
+test_probe_5b_dialogue_preview_pink_actor_nameplate (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_5b_dialogue_preview_pink_actor_nameplate) ... [2026-11-27 19:32:52.565] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_dmhzxwqt\misora_config.json
+ok
+test_probe_6_console_toggle_completely_removed_and_legacy_config_tolerated (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_6_console_toggle_completely_removed_and_legacy_config_tolerated) ... [2026-11-27 19:32:54.158] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_82tvge0r\misora_config.json
+ok
+test_probe_7_mtl_apply_button_left_of_engine_name (tests.test_v15_s09_core_fixes_54d.TestV15S09CoreFixes54d.test_probe_7_mtl_apply_button_left_of_engine_name) ... [2026-11-27 19:32:55.705] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s09_7vb2pcy4\misora_config.json
+ok
+test_guard_1_raw_commands_tab_name_and_binary_roundtrip_preserved (tests.test_v15_s10_all_script_quick_edit.TestV15S10AllScriptQuickEdit.test_guard_1_raw_commands_tab_name_and_binary_roundtrip_preserved)
+Guard 1: Bottom Raw Commands title and lossless binary round-trip work pre & post patch. ... [2026-11-27 19:32:57.275] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_uxbbkzwx\misora_config.json
+[2026-11-27 19:32:57.329] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_uxbbkzwx\s10_story.v2.txt' (boxes=2)
+ok
+test_guard_2_multisegment_box_snapshot_immutable_jp_keys_preserved (tests.test_v15_s10_all_script_quick_edit.TestV15S10AllScriptQuickEdit.test_guard_2_multisegment_box_snapshot_immutable_jp_keys_preserved)
+Guard 2: BoxSnapshot.from_box() & immutable _original_jp_by_uid preserved. ... [2026-11-27 19:32:58.751] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_7n4xi12t\misora_config.json
+[2026-11-27 19:32:58.805] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_7n4xi12t\s10_story.v2.txt' (boxes=1)
+ok
+test_probe_1_virtualized_pool_bounded_across_150_300_1000_boxes_and_recycling_safety (tests.test_v15_s10_all_script_quick_edit.TestV15S10AllScriptQuickEdit.test_probe_1_virtualized_pool_bounded_across_150_300_1000_boxes_and_recycling_safety)
+Probe 1: Pool size scales dynamically with viewport height across 150/300/1000 boxes & recycles safely. ... [2026-11-27 19:33:00.241] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_6ogmk7i_\misora_config.json
+[2026-11-27 19:33:00.304] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_6ogmk7i_\s10_150.v2.txt' (boxes=150)
+[2026-11-27 19:33:00.588] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_6ogmk7i_\s10_300.v2.txt' (boxes=300)
+[2026-11-27 19:33:00.869] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_6ogmk7i_\s10_1000.v2.txt' (boxes=1000)
+ok
+test_probe_2_pixel_exact_54d_card_geometry_header_voice_cue_and_no_red_markers (tests.test_v15_s10_all_script_quick_edit.TestV15S10AllScriptQuickEdit.test_probe_2_pixel_exact_54d_card_geometry_header_voice_cue_and_no_red_markers)
+Probe 2: Exact 54d x 3 geometry invariant across Global/JP presets, header contract, Box 0 unclipped, zero red markers. ... [2026-11-27 19:33:02.982] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_wwv43zd_\misora_config.json
+[2026-11-27 19:33:03.039] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_wwv43zd_\s10_story.v2.txt' (boxes=2)
+ok
+test_probe_3_internal_card_scroll_does_not_conflict_with_outer_list_scroll (tests.test_v15_s10_all_script_quick_edit.TestV15S10AllScriptQuickEdit.test_probe_3_internal_card_scroll_does_not_conflict_with_outer_list_scroll)
+Probe 3: Plain wheel scrolls outer list; Shift+Wheel and focused Up/Down scroll card body only; recycle resets scroll. ... [2026-11-27 19:33:04.787] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_rx2rcjzq\misora_config.json
+[2026-11-27 19:33:04.840] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_rx2rcjzq\s10_story.v2.txt' (boxes=25)
+ok
+test_probe_4_active_box_highlight_and_all_script_preview_removal (tests.test_v15_s10_all_script_quick_edit.TestV15S10AllScriptQuickEdit.test_probe_4_active_box_highlight_and_all_script_preview_removal)
+Probe 4: Active highlight + marker updates in-place; All Script Preview removed while Dialogue Preview works. ... [2026-11-27 19:33:06.616] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_1o0t9cou\misora_config.json
+[2026-11-27 19:33:06.671] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_1o0t9cou\s10_story.v2.txt' (boxes=5)
+ok
+test_probe_5_quick_edit_raw_breaks_multisegment_binary_roundtrip_and_s09b_lock_parity (tests.test_v15_s10_all_script_quick_edit.TestV15S10AllScriptQuickEdit.test_probe_5_quick_edit_raw_breaks_multisegment_binary_roundtrip_and_s09b_lock_parity)
+Probe 5 (S11c-migrated): Unified single-box Quick Edit, Dialogue-Editor Option A parity, 1-op Undo/Redo, and S09b Lock parity. ... [2026-11-27 19:33:08.361] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_sze5evul\misora_config.json
+[2026-11-27 19:33:08.418] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_sze5evul\s10_p5_dlg_ref.v2.txt' (boxes=2)
+[2026-11-27 19:33:08.511] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s10_sze5evul\s10_story.v2.txt' (boxes=2)
+[2026-11-27 19:33:08.748] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+[2026-11-27 19:33:08.824] [INFO   ] [UI / Theme / Config] Redid operation: Edit box #1
+[2026-11-27 19:33:09.149] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #2
+ok
+test_guard_1_s07_sha256_stale_guard_and_mandatory_archive_first_intact (tests.test_v15_s11_xuat_archiving_progress.TestV15S11XuatArchivingProgress.test_guard_1_s07_sha256_stale_guard_and_mandatory_archive_first_intact)
+[Guard 1] S07 SHA-256 StaleSourceError & mandatory archive-first remain intact. ... [2026-11-27 19:33:10.548] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_t9f0pfkt\misora_config.json
+ok
+test_guard_2_core_xuat_modules_remain_free_of_tkinter_and_misora_imports (tests.test_v15_s11_xuat_archiving_progress.TestV15S11XuatArchivingProgress.test_guard_2_core_xuat_modules_remain_free_of_tkinter_and_misora_imports)
+[Guard 2] Pure-core boundary: core.xuat_cleanup and core.xuat_index import 0 tkinter/misora. ... [2026-11-27 19:33:11.987] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_3si83vzi\misora_config.json
+ok
+test_probe_1_async_archiving_worker_batched_treeview_and_stale_rejection (tests.test_v15_s11_xuat_archiving_progress.TestV15S11XuatArchivingProgress.test_probe_1_async_archiving_worker_batched_treeview_and_stale_rejection)
+[Probe 1] Archiving scan runs off main thread, uses batched ttk.Treeview, supports cancel & stale rejection. ... [2026-11-27 19:33:13.535] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_26fz129s\misora_config.json
+[2026-11-27 19:33:13.723] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_26fz129s\probe1.v2.txt' (boxes=550)
+ok
+test_probe_2_pre_import_archive_checkbox_default_on_and_unchecked_import_only (tests.test_v15_s11_xuat_archiving_progress.TestV15S11XuatArchivingProgress.test_probe_2_pre_import_archive_checkbox_default_on_and_unchecked_import_only)
+[Probe 2] 'Archive the XUAT translation' defaults True; unchecked is import-only with warning; checked opens Archiving. ... [2026-11-27 19:33:15.362] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_nwdsz1kp\misora_config.json
+[2026-11-27 19:33:15.484] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_nwdsz1kp\probe2_unchecked.v2.txt' (boxes=1)
+[2026-11-27 19:33:15.770] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_nwdsz1kp\probe2_checked.v2.txt' (boxes=1)
+ok
+test_probe_3_global_speaker_dictionary_completely_excluded_from_archiving (tests.test_v15_s11_xuat_archiving_progress.TestV15S11XuatArchivingProgress.test_probe_3_global_speaker_dictionary_completely_excluded_from_archiving)
+[Probe 3] U-11: Global speaker dictionary entries excluded across Pass 1/2/3 & multi-file duplicates. ... [2026-11-27 19:33:17.411] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_a3z8sla0\misora_config.json
+ok
+test_probe_4_import_1line_metadata_unique_actors_no_box0_and_pixel_54d_width (tests.test_v15_s11_xuat_archiving_progress.TestV15S11XuatArchivingProgress.test_probe_4_import_1line_metadata_unique_actors_no_box0_and_pixel_54d_width)
+[Probe 4] U-14: 1-line 54d metadata & unique actors, no Box 0 in dialogue, no Include Actor, identity guard, multi-seg & rollback. ... [2026-11-27 19:33:18.798] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11__txwyln7\misora_config.json
+[2026-11-27 19:33:18.923] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11__txwyln7\probe4.v2.txt' (boxes=3)
+[2026-11-27 19:33:19.671] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11__txwyln7\probe4_clean.v2.txt' (boxes=3)
+[2026-11-27 19:33:20.054] [ERROR  ] [Errors & Exceptions] XUAT import rolled back due to error:
+Traceback (most recent call last):
+  File "D:\Misora-Editor\misora.py", line 21098, in _on_apply_import
+    doc.inject_box(b_idx, new_sp, old_tx, seg_texts=old_segs)
+  File "C:\Users\Cornelia\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cornelia\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cornelia\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: Inject boom
+[2026-11-27 19:33:20.473] [INFO   ] [UI / Theme / Config] Undid operation: Import from XUAT
+[2026-11-27 19:33:20.476] [INFO   ] [UI / Theme / Config] Redid operation: Import from XUAT
+ok
+test_probe_5_unified_progress_controller_concurrent_isolation_and_reload_xuat_async (tests.test_v15_s11_xuat_archiving_progress.TestV15S11XuatArchivingProgress.test_probe_5_unified_progress_controller_concurrent_isolation_and_reload_xuat_async)
+[Probe 5] Unified _ProgressTaskManager concurrent isolation, O(1) progress flood + reliable terminal delivery, cancellable os.walk. ... [2026-11-27 19:33:21.871] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11_0a8t3k8k\misora_config.json
+ok
+test_guard_1_core_xuat_index_free_of_tkinter_and_misora_imports (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_guard_1_core_xuat_index_free_of_tkinter_and_misora_imports)
+[Guard 1] core.xuat_index remains 100% free of tkinter and misora imports. ... [2026-11-27 19:33:23.472] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_qa_lk3h5\misora_config.json
+ok
+test_guard_2_dialogue_preview_readonly_non_save_and_box0_exemption_intact (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_guard_2_dialogue_preview_readonly_non_save_and_box0_exemption_intact)
+[Guard 2] Dialogue Preview stays disabled/non-save and Box 0 stays exempt from overflow markers. ... [2026-11-27 19:33:24.981] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_blcr6t2p\misora_config.json
+[2026-11-27 19:33:25.033] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_blcr6t2p\guard2.v2.txt' (boxes=1)
+[2026-11-27 19:33:25.094] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_blcr6t2p\guard2.v2.txt'
+[2026-11-27 19:33:27.712] [INFO   ] [XUAT Sync] Synced 0/1 box(es) across 0 XUAT file(s) in 2.617s (scanned 1814 files, 243177 lines)
+ok
+test_guard_3_project_diff_dialog_theme_fallback_no_keyerror (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_guard_3_project_diff_dialog_theme_fallback_no_keyerror)
+[Guard 3] ProjectDiffDialog resolves flat assets.icon.THEME when parent lacks .theme and uses parent.theme when provided. ... [2026-11-27 19:33:29.097] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_694u3zdq\misora_config.json
+ok
+test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics)
+[Probe 1 — Q-01] Strict Translation\en\Text resolver, 5 endswith rule exclusions, ... [2026-11-27 19:33:30.605] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_fi_23jny\misora_config.json
+[2026-11-27 19:33:30.761] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_fi_23jny\probe1_ui.v2.txt' (boxes=1)
+ok
+test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut)
+[Probe 2 — Q-02] Ctrl+S saves .misora project (single-fire 'break', preserves dirty), ... [2026-11-27 19:33:32.322] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_4xrzn2aw\misora_config.json
+[2026-11-27 19:33:32.399] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_4xrzn2aw\probe2.v2.txt' (boxes=1)
+[2026-11-27 19:33:32.551] [ERROR  ] [Errors & Exceptions] Failed to save project 'proj_a.misora':
+Traceback (most recent call last):
+  File "D:\Misora-Editor\misora.py", line 16153, in save_project
+    save_workspace(ws_path, session)
+  File "C:\Users\Cornelia\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cornelia\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cornelia\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+OSError: Disk full
+[2026-11-27 19:33:32.647] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_4xrzn2aw\probe2.v2.txt' (boxes=1)
+[2026-11-27 19:33:32.763] [WARNING] [UI / Theme / Config] All 1 file(s) referenced by 'missing_all.misora' were not found on disk.
+ok
+test_probe_3_dialogue_preview_has_zero_red_blocks_while_editor_keeps_markers (tests.test_v15_s11b_scanner_save_preview.TestV15S11bScannerSavePreview.test_probe_3_dialogue_preview_has_zero_red_blocks_while_editor_keeps_markers)
+[Probe 3 — Q-23] Dialogue Preview has 0 line_overflow ranges (including defensive guard), ... [2026-11-27 19:33:34.149] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_pnz2uyvx\misora_config.json
+[2026-11-27 19:33:34.205] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11b_pnz2uyvx\probe3.v2.txt' (boxes=1)
+ok
+test_guard_1_pure_core_and_zero_circular_import_both_orders (tests.test_v15_s11b2_xuat_batch_sync.TestV15S11b2XuatBatchSync.test_guard_1_pure_core_and_zero_circular_import_both_orders)
+[Guard 1 — Pure-Core & Anti-Circular Import] ... ok
+test_guard_2_s10_immutable_jp_conflict_gate_and_s2_secondary_failure_tolerance (tests.test_v15_s11b2_xuat_batch_sync.TestV15S11b2XuatBatchSync.test_guard_2_s10_immutable_jp_conflict_gate_and_s2_secondary_failure_tolerance)
+[Guard 2 — S10 Immutable JP Key & S02 Secondary Sync Failure Tolerance] ... [2026-11-27 19:33:35.903] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\tmpc21ft8_b\misora_config.json
+[2026-11-27 19:33:35.991] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmpc21ft8_b\guard.v2.txt' (boxes=1)
+[2026-11-27 19:33:35.993] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmpc21ft8_b\guard.v2.txt'
+[2026-11-27 19:33:36.000] [INFO   ] [XUAT Sync] Synced 1/1 box(es) across 1 XUAT file(s) in 0.007s (scanned 1 files, 2 lines)
+[2026-11-27 19:33:36.000] [INFO   ] [XUAT Sync] Synced XUAT file(s): Guard.txt
+[2026-11-27 19:33:36.002] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmpc21ft8_b\guard.v2.txt'
+[2026-11-27 19:33:36.012] [INFO   ] [XUAT Sync] Synced 1/1 box(es) across 1 XUAT file(s) in 0.010s (scanned 1 files, 2 lines)
+[2026-11-27 19:33:36.012] [INFO   ] [XUAT Sync] Synced XUAT file(s): Guard.txt
+[2026-11-27 19:33:36.014] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmpc21ft8_b\guard.v2.txt'
+[2026-11-27 19:33:36.016] [WARNING] [XUAT Sync] Failed atomic write on XUAT file(s) and retained boxes for retry: Guard.txt
+[2026-11-27 19:33:36.016] [INFO   ] [XUAT Sync] Synced 0/1 box(es) across 0 XUAT file(s) in 0.001s (scanned 1 files, 2 lines)
+ok
+test_probe_1_strict_en_text_boundary_and_case_insensitive_exclusions (tests.test_v15_s11b2_xuat_batch_sync.TestV15S11b2XuatBatchSync.test_probe_1_strict_en_text_boundary_and_case_insensitive_exclusions)
+[Probe 1 — Q-01/Q-02b Alignment + Direct .txt Roots] ... [2026-11-27 19:33:37.375] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\tmp9zy3olx6\misora_config.json
+[2026-11-27 19:33:37.490] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmp9zy3olx6\probe1.v2.txt' (boxes=2)
+[2026-11-27 19:33:37.492] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmp9zy3olx6\probe1.v2.txt'
+[2026-11-27 19:33:37.504] [INFO   ] [XUAT Sync] Synced 2/2 box(es) across 2 XUAT file(s) in 0.012s (scanned 2 files, 4 lines)
+[2026-11-27 19:33:37.505] [INFO   ] [XUAT Sync] Synced XUAT file(s): DirectRoot.txt, Main.txt
+[2026-11-27 19:33:37.518] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmp9zy3olx6\probe1.v2.txt'
+[2026-11-27 19:33:37.520] [INFO   ] [XUAT Sync] Synced 1/1 box(es) across 1 XUAT file(s) in 0.001s (scanned 1 files, 2 lines)
+[2026-11-27 19:33:37.520] [INFO   ] [XUAT Sync] Synced XUAT file(s): DirectRoot.txt
+ok
+test_probe_2_single_pass_batched_sync_structural_counts_and_20box_benchmark (tests.test_v15_s11b2_xuat_batch_sync.TestV15S11b2XuatBatchSync.test_probe_2_single_pass_batched_sync_structural_counts_and_20box_benchmark)
+[Probe 2 — Single-Pass O(E + B + M) Structural Counts + 100-File Benchmark Telemetry] ... [2026-11-27 19:33:38.890] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\tmpudxlqbb0\misora_config.json
+[2026-11-27 19:33:39.077] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmpudxlqbb0\probe2_20box.v2.txt' (boxes=20)
+[2026-11-27 19:33:39.081] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmpudxlqbb0\probe2_20box.v2.txt'
+[2026-11-27 19:33:39.259] [INFO   ] [XUAT Sync] Synced 20/20 box(es) across 3 XUAT file(s) in 0.179s (scanned 100 files, 4120 lines)
+[2026-11-27 19:33:39.261] [INFO   ] [XUAT Sync] Synced XUAT file(s): Dict_003.txt, Dict_042.txt, Dict_088.txt
+
+[Probe 2 100-file structural telemetry] 182.89 ms; logs=['Synced 20/20 box(es) across 3 XUAT file(s) in 0.179s (scanned 100 files, 4120 lines)']
+ok
+test_probe_3_norm_search_parity_same_jp_conflict_freshness_and_partial_failure (tests.test_v15_s11b2_xuat_batch_sync.TestV15S11b2XuatBatchSync.test_probe_3_norm_search_parity_same_jp_conflict_freshness_and_partial_failure)
+[Probe 3 — Parity, All 4 Conflict Edge Cases, Freshness Abort, Partial Failure & None-UID/Inactive Retention] ... [2026-11-27 19:33:40.629] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\misora_config.json
+[2026-11-27 19:33:40.727] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\probe3_conflicts.v2.txt' (boxes=8)
+[2026-11-27 19:33:40.730] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\probe3_conflicts.v2.txt'
+[2026-11-27 19:33:40.756] [WARNING] [XUAT Sync] Skipped C3 (Same-JP/Different-EN) conflict key(s) and retained boxes for retry: C3_DIFF
+[2026-11-27 19:33:40.756] [WARNING] [XUAT Sync] Skipped declined C1 conflict key(s) and retained boxes for retry: C1_CROSS, C1_INTRA
+[2026-11-27 19:33:40.756] [WARNING] [XUAT Sync] Aborted Stage 4 freshness-modified XUAT file(s) and retained boxes for retry: Fresh.txt
+[2026-11-27 19:33:40.756] [INFO   ] [XUAT Sync] Synced 3/8 box(es) across 1 XUAT file(s) in 0.026s (scanned 3 files, 11 lines)
+[2026-11-27 19:33:40.756] [INFO   ] [XUAT Sync] Synced XUAT file(s): One.txt
+[2026-11-27 19:33:40.862] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\partial.v2.txt' (boxes=4)
+[2026-11-27 19:33:40.865] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\partial.v2.txt'
+[2026-11-27 19:33:40.873] [WARNING] [XUAT Sync] Failed atomic write on XUAT file(s) and retained boxes for retry: FileB.txt
+[2026-11-27 19:33:40.873] [INFO   ] [XUAT Sync] Synced 2/4 box(es) across 2 XUAT file(s) in 0.008s (scanned 3 files, 8 lines)
+[2026-11-27 19:33:40.873] [INFO   ] [XUAT Sync] Synced XUAT file(s): FileA.txt, FileC.txt
+[2026-11-27 19:33:40.927] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\inactive.v2.txt' (boxes=1)
+[2026-11-27 19:33:40.974] [INFO   ] [File I/O] Saved inactive v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\inactive.v2.txt'
+[2026-11-27 19:33:40.974] [WARNING] [XUAT Sync] Secondary XUAT sync failed for inactive doc: Boom
+[2026-11-27 19:33:41.023] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\mixed.v2.txt' (boxes=4)
+[2026-11-27 19:33:41.025] [INFO   ] [File I/O] Saved v2 script 'C:\Users\Cornelia\AppData\Local\Temp\tmph9vrs69_\mixed.v2.txt'
+[2026-11-27 19:33:41.028] [WARNING] [XUAT Sync] Skipped declined C1 conflict key(s) and retained boxes for retry: MIX_CONF
+[2026-11-27 19:33:41.028] [INFO   ] [XUAT Sync] Synced 2/4 box(es) across 1 XUAT file(s) in 0.002s (scanned 1 files, 5 lines)
+[2026-11-27 19:33:41.028] [INFO   ] [XUAT Sync] Synced XUAT file(s): Mixed.txt
+ok
+test_guard_1_raw_commands_tab_name_and_box0_quick_edit_safety (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_guard_1_raw_commands_tab_name_and_box0_quick_edit_safety)
+Guard 1: Raw Commands title preserved; Box 0 disables/hides editable Quick Edit; binary round-trip intact. ... [2026-11-27 19:33:42.392] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_r173h_t0\misora_config.json
+[2026-11-27 19:33:42.458] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_r173h_t0\s11c_story.v2.txt' (boxes=2)
+ok
+test_guard_2_s08_stress_quick_edit_benchmark_compatibility (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_guard_2_s08_stress_quick_edit_benchmark_compatibility)
+Guard 2: `_qe_seg_widgets[0]` compatibility alias supports S08 stress edit/sync/flush flow. ... [2026-11-27 19:33:44.107] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_7f0wrkc5\misora_config.json
+[2026-11-27 19:33:44.173] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_7f0wrkc5\s11c_story.v2.txt' (boxes=2)
+ok
+test_guard_3_quick_edit_pack_geometry_idempotent_across_box_switches (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_guard_3_quick_edit_pack_geometry_idempotent_across_box_switches)
+Guard 3: Repeated editable -> Box 0 -> editable -> editable switches keep pack geometry & theme styling intact. ... [2026-11-27 19:33:45.810] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_ite8k_co\misora_config.json
+[2026-11-27 19:33:45.885] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_ite8k_co\s11c_story.v2.txt' (boxes=2)
+ok
+test_probe_1_quick_edit_uses_single_unified_textbox_with_box_clean_text (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_probe_1_quick_edit_uses_single_unified_textbox_with_box_clean_text)
+Probe 1: Quick Edit uses ONE persistent txt_quick_edit (wrap='none'), box.clean_text, and [N segs] badge. ... [2026-11-27 19:33:47.778] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_znocyzx8\misora_config.json
+[2026-11-27 19:33:47.851] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_znocyzx8\s11c_story.v2.txt' (boxes=2)
+ok
+test_probe_2_manual_dialogue_vs_quick_edit_ast_and_binary_parity (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_probe_2_manual_dialogue_vs_quick_edit_ast_and_binary_parity)
+Probe 2: Exact Option A AST & binary parity between Main Dialogue Editor and Unified Quick Edit. ... [2026-11-27 19:33:49.443] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_w79cbo43\misora_config.json
+[2026-11-27 19:33:49.510] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_w79cbo43\parity_dialogue.v2.txt' (boxes=2)
+[2026-11-27 19:33:49.690] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_w79cbo43\parity_quick_edit.v2.txt' (boxes=2)
+ok
+test_probe_3_pre_mutation_snapshot_undo_restores_exact_4_segments_and_binary_roundtrip (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_probe_3_pre_mutation_snapshot_undo_restores_exact_4_segments_and_binary_roundtrip)
+Probe 3: Multi-keystroke Session 1 + same-box Session 2 Undo/Redo & JP cache/UID/lock survival. ... [2026-11-27 19:33:51.257] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_scc3nyl8\misora_config.json
+[2026-11-27 19:33:51.325] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_scc3nyl8\s11c_story.v2.txt' (boxes=2)
+[2026-11-27 19:33:51.749] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+[2026-11-27 19:33:51.838] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+[2026-11-27 19:33:51.922] [INFO   ] [UI / Theme / Config] Redid operation: Edit box #1
+[2026-11-27 19:33:52.006] [INFO   ] [UI / Theme / Config] Redid operation: Edit box #1
+ok
+test_probe_4_s09b_lock_parity_and_view_aware_sync_preserved (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_probe_4_s09b_lock_parity_and_view_aware_sync_preserved)
+Probe 4: Locked-box manual typing ALLOWED in QE & Dialogue, Pin_|_Lock, View-Aware sync, single-fire Ctrl+Z/Y. ... [2026-11-27 19:33:53.406] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_4k1o_skf\misora_config.json
+[2026-11-27 19:33:53.493] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_4k1o_skf\s11c_story.v2.txt' (boxes=2)
+[2026-11-27 19:33:53.897] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+[2026-11-27 19:33:53.952] [INFO   ] [UI / Theme / Config] Redid operation: Edit box #1
+[2026-11-27 19:33:54.011] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+ok
+test_probe_5_external_mutation_flushes_without_sync_from_widget_overwrite (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_probe_5_external_mutation_flushes_without_sync_from_widget_overwrite)
+Probe 5: External model mutation while QE dirty flushes with sync_from_widget=False without overwriting model. ... [2026-11-27 19:33:55.549] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_w82e81vv\misora_config.json
+[2026-11-27 19:33:55.604] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_w82e81vv\s11c_story.v2.txt' (boxes=2)
+ok
+test_probe_6_dialogue_edit_while_quick_edit_dirty_flushes_cleanly (tests.test_v15_s11c_quick_edit_unified.TestV15S11cQuickEditUnified.test_probe_6_dialogue_edit_while_quick_edit_dirty_flushes_cleanly)
+Probe 6: Dirty QE without FocusOut flushes cleanly before _on_dialogue_edited() (Part A) and _on_card_text_edited() (Part B). ... [2026-11-27 19:33:57.166] [INFO   ] [UI / Theme / Config] Misora initialized. Config path: C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_hf1jom9h\misora_config.json
+[2026-11-27 19:33:57.219] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_hf1jom9h\p6_dialogue.v2.txt' (boxes=2)
+[2026-11-27 19:33:57.354] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+[2026-11-27 19:33:57.402] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+[2026-11-27 19:33:57.446] [INFO   ] [File I/O] Opened v2 script 'C:\Users\Cornelia\AppData\Local\Temp\misora_v15_s11c_hf1jom9h\p6_card.v2.txt' (boxes=2)
+[2026-11-27 19:33:57.641] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+[2026-11-27 19:33:57.714] [INFO   ] [UI / Theme / Config] Undid operation: Edit box #1
+ok
+
+----------------------------------------------------------------------
+Ran 64 tests in 137.071s
+
+OK
+
+D:\Misora-Editor>
