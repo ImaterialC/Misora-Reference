@@ -1,0 +1,10 @@
+REVIEWER RULING (ChatGPT): S11e Rev 3 CONDITIONAL — NOT yet cleared for Proceed.
+C-1/C-2/C-3 fixed. Q-03/Q-05/Q-13/Q-14/Q-15/Q-16 sound; 53-PNG alpha audit thorough;
+Insert/Replace icon map + menu dedup PL-confirmed; baseline 475 math correct; migrations
+equal-strength. ONE BLOCKER: Q-17 reinterprets "3-layer" as UI coverage tiers, not the
+agreed 3-information-layer tooltip content; Sub-Gate 2 written definition + PL approval
+is missing and probe_7 doesn't verify structure. Project Lead must choose (a) implement
+3-content-layer tooltips + definition + probe, or (b) explicitly approve coverage-tier
+interpretation and record it. Minor: align About button to "Support the Creator" (PL
+preference) + migrate test; guard splash dooneevent dispatch. Resolve Q-17 -> Proceed.
+v1.5.0 ON HOLD.
