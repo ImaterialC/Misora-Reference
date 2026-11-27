@@ -110,7 +110,7 @@ PHASE E — CONTENT REQUIREMENTS
 
 5. `CONTEXT_ROUTER.md`: Layer 0 always AGENTS + Project State. Layer 1 router + 1–3 relevant docs. Layer 2 source slices/tests. Layer 3 archive/history opt-in. Include task->file routing and response/evidence contract. Do not load full backlog/archive for routine code tasks.
 
-6. `MISORA_SYMBOL_INDEX.md` + generator: Python 3.12 stdlib only (`ast`, `pathlib`, `hashlib`, `subprocess`, `argparse`, `sys`). Strict UTF-8; malformed files fail loudly (no `errors="replace"`). Include exact `git rev-parse HEAD` and SHA-256 per indexed source file. Deterministic output; no timestamps. Index top-level functions/classes and immediate class methods with file/line and signatures where parseable. Domain grouping is heuristic. Navigation aid only, NOT dead-code/runtime-call-graph proof. Provide non-writing `--check`; nonzero on mismatch. Never write source. Default files: `misora.py`, `__init__.py`, `core/*.py`, `assets/*.py`.
+6. `MISORA_SYMBOL_INDEX.md` + generator: Python 3.12 stdlib only (`ast`, `pathlib`, `hashlib`, `subprocess`, `argparse`, `sys`). Strict UTF-8; malformed files fail loudly (no `errors="replace"`). Include `Indexed Source Revision` via `git log -1 --format=%H HEAD -- __init__.py misora.py ":(glob)core/*.py" ":(glob)assets/*.py"` and SHA-256 per indexed source file; reject uncommitted/untracked/ignored `*.py` files in indexed roots. Deterministic output; no timestamps. Index top-level functions/classes and immediate class methods with file/line and signatures where parseable. Domain grouping is heuristic. Navigation aid only, NOT dead-code/runtime-call-graph proof. Provide non-writing `--check`; nonzero on mismatch. Never write source. Default files: `misora.py`, `__init__.py`, `core/*.py`, `assets/*.py`.
 
 7. `HISTORY_INDEX.md`: table with source heading, exact line, slug, parent path, lifecycle, canonical IDs, destination, archive pointer. Keep separate from verbatim archives.
 
@@ -138,7 +138,7 @@ Return `ENV-01_Implementation_Plan.md` containing:
 6. Ledger: T-01..T-14, DEF-01..10, test debt, fixture, manual QA/revalidation; evidence and lifecycle separated.
 7. Decisions: exact version/release/S12/S15 state.
 8. Router: Layer 0/1/2/3 and max 1–3 Layer 1 refs.
-9. AST index: strict UTF-8, HEAD + per-file hashes, deterministic generation, `--check`, no deps/source writes.
+9. AST index: strict UTF-8, `Indexed Source Revision` (`git log -1 --format=%H HEAD -- __init__.py misora.py ":(glob)core/*.py" ":(glob)assets/*.py"`) + per-file hashes, clean indexed-source check (rejecting uncommitted/untracked/ignored `*.py`), deterministic generation, `--check`, no deps/source writes.
 10. Product/test boundary: forbidden paths unchanged; production diff empty; `countTestCases()==475` (count only).
 11. Four-AI validation: identical seven-question read-only test for Gemini, GPT-6, Qwen, Antigravity; factual alignment and honest unknowns; no commit/push.
 

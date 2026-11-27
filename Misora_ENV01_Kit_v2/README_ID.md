@@ -57,7 +57,7 @@ Semua file di `drafts/` adalah rancangan target, bukan file yang boleh disalin t
 | `drafts/DECISIONS.md` | Salin/review sebagai `docs/project/DECISIONS.md`. | Otoritas keputusan aktif; DEC-01A membatalkan status ON HOLD lama. |
 | `drafts/HISTORY_INDEX_TEMPLATE.md` | Gunakan untuk membuat `docs/archive/HISTORY_INDEX.md`. | Index terpisah; jangan menambahkan apa pun ke dua arsip byte-identical. |
 | `drafts/SUPERSEDED_PLANS_README_TEMPLATE.md` | Salin ke `docs/archive/superseded-plans/README.md`. | Tandai plan S12 lama sebagai superseded; simpan file plan asli tanpa menjalankannya. |
-| `scripts/generate_symbol_index.py` | Salin ke `tools/generate_symbol_index.py`. | Jalankan hanya setelah Proceed; membuat `docs/architecture/MISORA_SYMBOL_INDEX.md`. `--check` hanya membandingkan bytes dan tidak menulis. |
+| `scripts/generate_symbol_index.py` | Salin ke `tools/generate_symbol_index.py`. | Jalankan hanya setelah Proceed; membuat `docs/architecture/MISORA_SYMBOL_INDEX.md` dengan `Indexed Source Revision` (pathspec Python-only) dan penolakan file `.py` untracked/ignored. `--check` hanya membandingkan bytes dan tidak menulis. |
 | `prompts/01_...PLAN_Prompt.txt` | Tempel ke Antigravity dalam sesi baru. | Perencanaan read-only. Hasil akhir harus STOP sebelum edit. |
 | `prompts/02_...Reviewer_Handoff_Template.txt` | Kirim bersama plan yang sama ke Gemini, GPT-6, dan Qwen. | Review independen; bukan otorisasi edit. |
 | `prompts/03_...Proceed_Template.txt` | Isi dan kirim hanya setelah Project Lead memberi Proceed eksplisit dan reviewer tidak menemukan blocker. | Mengotorisasi allowlist sempit saja; tidak mengizinkan commit/push. |

@@ -44,7 +44,7 @@ IMPLEMENTATION ORDER
 5. Produce `ENV01_MIGRATION_MAP.md`: all 29 AGENTS sections + EVERY old PROJECT_STATE Markdown heading level 1–6 and canonical IDs. Include source line, slug, hierarchy, destination, lifecycle, rationale. No omissions.
 6. Write concise `AGENTS.md` and `PROJECT_STATE.md` from the reviewed plan. Hard caps are bytes: AGENTS <= 6144; PROJECT_STATE <= 15360. Preferred targets: AGENTS 3–5 KiB; PROJECT_STATE 8–10 KiB.
 7. Write `CONTEXT_ROUTER.md`, `OPEN_ISSUES.md`, and `DECISIONS.md`. Evidence and lifecycle are separate axes. T-01..T-04 remain REPORTED / NEEDS-REPRO absent new proof.
-8. Add the reviewed stdlib `tools/generate_symbol_index.py`; generate `MISORA_SYMBOL_INDEX.md`. It must use strict UTF-8, current `git rev-parse HEAD`, per-file SHA-256, deterministic output, and non-writing `--check`.
+8. Add the reviewed stdlib `tools/generate_symbol_index.py`; generate `MISORA_SYMBOL_INDEX.md`. It must use strict UTF-8, `Indexed Source Revision` (`git log -1 --format=%H HEAD -- __init__.py misora.py ":(glob)core/*.py" ":(glob)assets/*.py"`), per-file SHA-256, clean indexed-source check (rejecting uncommitted/untracked/ignored `*.py`), deterministic output, and non-writing `--check`.
 9. Run all 11 acceptance gates. If one fails, STOP and report; do not expand scope to force a pass.
 10. Do not commit or push. Return a complete evidence report and wait for Project Lead.
 
@@ -118,7 +118,7 @@ GATE 9 — AST INDEX GENERATOR
 py -3.12 tools/generate_symbol_index.py
 py -3.12 tools/generate_symbol_index.py --check
 ```
-Expected: first command deterministically generates only `docs/architecture/MISORA_SYMBOL_INDEX.md`; second exits 0 and does not write. Header contains exact current HEAD and SHA-256 per indexed source. Malformed UTF-8 must fail (no replacement decoding). No third-party dependency or source write.
+Expected: first command deterministically generates only `docs/architecture/MISORA_SYMBOL_INDEX.md`; second exits 0 and does not write. Header contains `Indexed Source Revision` (`git log -1 --format=%H HEAD -- __init__.py misora.py ":(glob)core/*.py" ":(glob)assets/*.py"`) and SHA-256 per indexed source, and rejects uncommitted/untracked/ignored `*.py` files in indexed roots. Malformed UTF-8 must fail (no replacement decoding). No third-party dependency or source write.
 
 GATE 10 — PRODUCTION DIFF EMPTY + TEST COUNT EXACT
 ```powershell
@@ -132,7 +132,7 @@ GATE 11 — FOUR-AI VALIDATION + REPORT
 Run the exact same `prompts/04_Four_AI_Validation_Test.txt` questions with Gemini, GPT-6, Qwen and Antigravity. Each receives only Layer 0 plus Context Router. Record replies and compare facts/statuses/scope/paths/unknowns. Disagreement on a locked fact or forbidden path requires correction and re-review. Final report includes changed paths, bytes, hashes, migration row counts, generator output, 11 gate results, limitations and rollback instructions.
 
 ROLLBACK
-Restore only root `AGENTS.md` and `PROJECT_STATE.md` from byte-identical archives and revert only approved ENV-01 files. Preserve user data and unrelated changes. Never use `git reset --hard`, `git clean`, blanket checkout, or broad deletion. If unrelated changes appear, STOP for Project Lead intervention.
+Verify root `AGENTS.md` and `PROJECT_STATE.md` still match their post-ENV-01 hashes before restoring (STOP on any post-migration edit). Restore root `AGENTS.md` (`40bc51b69270262f31651faec3ad9e48cb633d2c972e24f9a3ec7dc77de682aa`) and `PROJECT_STATE.md` (`6823100d99b91bf266a9035c9d2c581c7a61657dbe0a5a5f99b17e9265b4d39d`) via raw-byte copy from their verified archives, delete ONLY the exact 11 ENV-01-created files, preserve any unexpected files (STOP on collision), and remove directories only if completely empty using non-recursive `Path.rmdir()` / `os.rmdir()`. Never use `git reset --hard`, `git clean`, `Remove-Item -Recurse`, `rmdir /s`, or blanket checkout.
 
 FINAL REPORT
 List every changed file, bytes, hashes, migration row counts, generator output, all 11 gate results, test discovery count, forbidden-path diff result, limitations, and rollback status. State explicitly: no production files changed; no tests executed; no commit/push performed. Then WAIT for Project Lead.

@@ -23,10 +23,13 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def git_head(root: Path) -> str:
+INDEXED_PATHSPECS = ("__init__.py", "misora.py", ":(glob)core/*.py", ":(glob)assets/*.py")
+
+
+def indexed_source_revision(root: Path) -> str:
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--verify", "HEAD"],
+            ["git", "log", "-1", "--format=%H", "HEAD", "--", *INDEXED_PATHSPECS],
             cwd=root,
             check=True,
             capture_output=True,
@@ -35,11 +38,32 @@ def git_head(root: Path) -> str:
             errors="strict",
         )
     except (OSError, subprocess.CalledProcessError, UnicodeError) as exc:
-        raise RuntimeError(f"Unable to read exact Git HEAD: {exc}") from exc
-    head = result.stdout.strip()
-    if len(head) < 40 or any(ch not in "0123456789abcdefABCDEF" for ch in head):
-        raise RuntimeError(f"Unexpected Git HEAD value: {head!r}")
-    return head.lower()
+        raise RuntimeError(f"Unable to read Indexed Source Revision: {exc}") from exc
+    rev = result.stdout.strip()
+    if len(rev) < 40 or any(ch not in "0123456789abcdefABCDEF" for ch in rev):
+        raise RuntimeError(f"Unexpected Indexed Source Revision value: {rev!r}")
+    return rev.lower()
+
+
+def check_clean_indexed_sources(root: Path) -> None:
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain=v1", "--ignored=matching", "--untracked-files=all", "--", *INDEXED_PATHSPECS],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="strict",
+        )
+    except (OSError, subprocess.CalledProcessError, UnicodeError) as exc:
+        raise RuntimeError(f"Unable to verify clean indexed sources: {exc}") from exc
+    dirty = [line for line in result.stdout.splitlines() if line.strip()]
+    if dirty:
+        raise RuntimeError(
+            "Indexed Python source files have uncommitted, untracked, or ignored changes:\n"
+            + "\n".join(dirty)
+        )
 
 
 def indexed_paths(root: Path) -> list[Path]:
@@ -125,7 +149,8 @@ def parse_file(path: Path, root: Path) -> tuple[str, str, list[dict[str, object]
 
 
 def render(root: Path) -> str:
-    head = git_head(root)
+    check_clean_indexed_sources(root)
+    rev = indexed_source_revision(root)
     parsed = [parse_file(path, root) for path in indexed_paths(root)]
     lines = [
         "# Misora — AST Symbol Index",
@@ -134,7 +159,7 @@ def render(root: Path) -> str:
         "> **Navigation aid only:** declarations do not prove runtime reachability, call relationships, test coverage, safety, or dead code.",
         "> Domain grouping is heuristic, not semantic classification.",
         "",
-        f"- Source Git HEAD: `{head}`",
+        f"- Indexed Source Revision: `{rev}`",
         f"- Indexed Python files: {len(parsed)}",
         "- Parser: Python `ast` (stdlib); UTF-8 decoding is strict.",
         "",
@@ -163,7 +188,7 @@ def render(root: Path) -> str:
         "",
         "## Safe use",
         "",
-        "1. Check the embedded Git HEAD and per-file fingerprints against the current working tree.",
+        "1. Check the embedded Indexed Source Revision and per-file fingerprints against the current working tree.",
         "2. Open actual source around the indexed line and inspect relevant helpers/callers as needed.",
         "3. Inspect narrow tests and reproduce runtime behavior for bug reports.",
         "4. Do not infer dead code from absence here: dynamic dispatch, callbacks, Tk bindings, plugin hooks, and reflection may not appear as direct AST references.",
