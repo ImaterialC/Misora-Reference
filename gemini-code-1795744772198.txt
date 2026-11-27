@@ -1,0 +1,39 @@
+# MISORA: STORY EDITOR — S11b2 (v1.4.12) CLOSURE AUDIT & REAL-TREE QA REPORT
+
+From: Gemini (on behalf of Project Lead / Cornelia)
+To: ChatGPT & Qwen (Independent Technical Reviewers)
+Baseline Commit (HEAD): f2ab4a15a82754970309b1f9965a6e5503ee358f (S11b closure v1.4.11)
+Execution Boundary: CLOSURE AUDIT ONLY. S11b2 changes remain uncommitted locally; zero git push; v1.5.0 remains ON HOLD.
+
+1. WORKING-TREE & SCOPE COMPLIANCE (git status --short + git diff --stat)
+- Exact 8 S11b2 Allowed Files modified/created:
+  M __init__.py (1.4.11 -> 1.4.12, 2 lines)
+  M core/xunity_sync.py (+358/-... pure-core, zero tkinter/misora, zero top-level xuat_index import)
+  M misora.py (+235/-... _sync_modified_boxes_to_xuat + on_save + _save_document_entry; _resolve_xuat_text_root confirmed 0 diff)
+  M tests/test_p3_s10_xuat_integrity.py (4 lines — approved test_probe_1 path migration)
+  M tests/test_s2_dirty_contract.py (4 lines — approved test_07 mock target migration)
+  ?? tests/test_v15_s11b2_xuat_batch_sync.py (NEW — 3 probes + 2 guards)
+  M CHANGELOG.md
+  M PROJECT_STATE.md
+- Pre-existing local icon files preserved untouched: M assets/icons/BoxInsert.png, ?? assets/icons/BoxReplace.png.
+- All Forbidden Files confirmed untouched (including core/xuat_index.py, core/bundle_io.py, core/story_ast.py, core/xuat_cleanup.py, core/mtl_engine.py, assets/*, misora_config.json, backups/).
+
+2. AUTOMATED VERIFICATION SUMMARY (Antigravity Execution on Windows Python 3.12.10)
+- Authoritative pre-patch baseline (HEAD f2ab4a1): Ran 446 tests in 521.775s -> 403 pass, 35 fixture-skip, 6 pre-existing failures, 2 pre-existing fixture errors.
+- Pre-patch TDD (test_v15_s11b2_xuat_batch_sync): 2 guards PASS; 3 probes FAIL/ERROR as expected (Probe 1 caught excluded Noto.font.txt read; Probe 2 caught 40x scan of dict_000.txt; Probe 3 ImportError on BatchSyncTarget).
+- Post-patch compileall: EXIT 0.
+- Targeted 6 suites (S11b2, S10, S02, S09, S11b, S11): Ran 43 tests in 58.375s -> OK (skipped=3); S11b2 5/5 PASS.
+- Probe 2 synthetic 100-file / 20-box structural counts: os.walk=1, 100 files decoded 1x each, 3 backups + 3 write_atomic_encoded writes (97 untouched files = 0 writes), elapsed 0.111s (114.08 ms total on_save).
+- Post-patch full discovery: Ran 451 tests in 523.183s -> 408 pass (+5), 35 fixture-skip, exact same 6 pre-existing failures (test_probe_8 now '1.4.12' != '1.4.1') + 2 pre-existing fixture errors -> 0 new regressions.
+
+3. REAL-TREE WINDOWS MANUAL QA (1,814 FILES / 243,186 LINES) & HONEST >2s STOP-GATE CHECK
+- Project Lead reproduced the exact 19-box save scenario on copied real bundle storydata_1001012 - Copy.unity3d (142 boxes) with real C:\[Gacha]\PriconneRe-TL\src\BepInEx\Translation\en\Text:
+  [08:56:26.375] [File I/O] Patched bundle '...storydata_1001012 - Copy.unity3d' (23445 bytes)
+  [08:56:29.274] [XUAT Sync] Synced 0/19 box(es) across 0 XUAT file(s) in 2.899s (scanned 1814 files, 243186 lines)
+- Performance impact: Reduced from >60s UI hang (force-close) to 2.899s (>20x speedup; now O(E+B+M) independent of box count).
+- Honest HARD STOP Gate disclosure (Section 11 threshold was >2.0s): 2.899s exceeds the 2.0s nominal threshold due to pure-Python NTFS reads + norm_search across 1,814 files / 243,186 lines on the main thread.
+- Project Lead Ruling on >2.0s threshold: [PROJECT LEAD CHOICE: Option A = Accept 2.899s for v1.5.0 & defer optional async disk-I/O XUAT sync to Track B post-v1.5.0, proceed to S11c (v1.4.13) / OR Option B = Spin off bounded S11b3 async disk-I/O session before S11c].
+
+4. DECISIONS REQUESTED FROM CHATGPT & QWEN
+1) Do you clear S11b2 (v1.4.12) for local commit of the exact 8 S11b2 files (leaving BoxInsert.png & BoxReplace.png uncommitted, no git push)?
+2) Confirm disposition of the 2.899s real-tree timing per Project Lead's choice above (and confirm next session is S11c v1.4.13 — Q-22 Unified Quick Edit, keeping v1.5.0 ON HOLD).
