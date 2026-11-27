@@ -1,0 +1,282 @@
+Independent Review — S11b2 v1.4.12
+Saya sudah membaca ketiga dokumen dari GitHub:
+Dokumen	Hasil
+S11b2_Implementation_Plan.md	Plan yang sedang menunggu revisi
+Draft arahan revisi Gemini	Enam gap teknis untuk diperbaiki
+Qwen4.txt	Review independen yang menyetujui keenam gap
+
+NOT CLEARED FOR PROCEED
+Saya menyetujui seluruh enam temuan Gemini dan penilaian Qwen. Arsitektur S11b2 sudah benar arahnya, tetapi Implementation Plan saat ini masih memiliki kekurangan yang berisiko menyebabkan data sinkronisasi hilang atau menimpa perubahan pengguna.
+
+Saya juga menemukan satu detail penting pada jalur penyimpanan dokumen tidak aktif yang harus dijadikan persyaratan eksplisit.
+1. Verifikasi enam gap Gemini
+#	Temuan	Putusan saya
+1	Identitas token _modified_boxes, unmatched, dan _save_document_entry()	Kritis  Setuju
+2	Validasi strict root di dalam batch_sync()	Kritis  Setuju
+3	Duplikasi exclusion constant dan ketergantungan antarmodul	Kritis  Setuju
+4	Tiga edge case konflik	Kritis  Setuju
+5	Streaming per file untuk mengendalikan RAM	Penting  Setuju
+6	Baseline dan benchmark tidak konsisten	Penting  Setuju
+
+1.1 Identitas _modified_boxes adalah masalah paling penting
+Saya memeriksa source misora.py.
+
+Saat ini:
+- _modified_boxes berisi indeks box, misalnya 0, 1, 2.
+- _modified_box_uids berisi UID box.
+- open_documents[path]["modified_box_uids"] menyimpan UID untuk dokumen terkait.
+Contohnya terlihat pada on_save() dan penyimpanan state dokumen.
+
+Karena itu, BatchSyncResult.succeeded_uids saja belum cukup untuk membersihkan seluruh state dengan benar.
+
+Saya setuju dengan Gemini: gunakan identitas per-target yang eksplisit, setidaknya menghubungkan:
+- document path atau identitas dokumen;
+- box index;
+- box UID jika tersedia;
+- token yang dapat digunakan untuk menghapus entri persis dari collection asal.
+Hasil batch juga harus memisahkan:
+Hasil	Perlakuan
+Matched dan berhasil ditulis	Clear
+Tidak ditemukan di XUAT setelah scan valid	Clear
+Tidak mempunyai immutable JP key / tidak eligible	Status terpisah dan keputusan clear yang eksplisit
+Same-JP/different-EN conflict	Retain
+Existing translation conflict yang ditolak	Retain
+Freshness gagal	Retain
+File I/O gagal	Retain
+
+Jangan mempertahankan box yang memang tidak mempunyai match selamanya. Sebaliknya, jangan menghapus box yang belum berhasil disinkronkan.
+1.2 Saya menemukan tambahan masalah nyata pada _save_document_entry()
+Ini penting karena belum cukup hanya mengubah _sync_modified_boxes_to_xuat() dan on_save().
+
+Pada source sekarang, _save_document_entry() melakukan:
+modified_uids = set(entry.get("modified_box_uids", set()))
+
+
+
+Kemudian saat primary save berhasil, ia mengosongkan:
+entry["modified_box_uids"] = set()
+
+
+
+Baru setelah itu, fungsi menjalankan XUAT sync.
+
+Lihat misora.py::_save_document_entry().
+
+Artinya, bila secondary XUAT sync gagal, UID untuk dokumen tidak aktif berpotensi sudah hilang sebelum kegagalannya ditangani. Padahal kontrak S02 mengharuskan perubahan yang gagal disinkronkan tetap tersedia untuk retry.
+
+Wajib: S11b2 harus menggunakan granular batch result pada kedua jalur:
+- on_save() untuk active document.
+- _save_document_entry() untuk inactive document / Save-All / Exit Save-All.
+Untuk jalur inactive, jangan mengosongkan entry["modified_box_uids"] sebelum hasil XUAT sync diketahui.
+
+Tambahkan pengujian khusus yang membuktikan bahwa kegagalan sync dokumen tidak aktif tetap mempertahankan UID untuk retry. Pengujian S02 yang ada sekarang terutama melindungi active save.
+
+2. Strict boundary: tegakkan di batch_sync(), bukan helper umum
+Setuju dengan Gemini dan Qwen
+Saya mendukung perubahan desain ini.
+
+Pertahankan _resolve_xuat_text_root() dan _resolve_project_search_roots() dari perubahan scope S11b2. Letakkan enforcement strict di batas XUAT batch sync:
+MisoraApp
+    |
+    | resolve_roots_fn
+    | is_excluded_fn
+    v
+XUnitySyncManager.batch_sync()
+    |
+    +-- validate canonical roots
+    +-- deduplicate overlapping roots
+    +-- deduplicate file paths
+    +-- exclude non-dictionary files
+    +-- scan eligible Translation/en/Text
+
+
+batch_sync() harus aman meskipun dipanggil langsung dengan root yang tidak valid. Jangan mengandalkan asumsi bahwa misora.py selalu mengirim root yang benar.
+Nuansa tentang test_04
+Saya memeriksa tests/test_misora_ui_integration.py::test_04_framework_agnostic_folder_resolution.
+
+Tes tersebut membangun kandidat direktori UserData/Text dan UserData/RedirectedResources secara langsung. Tes itu tidak memanggil _resolve_xuat_text_root() secara eksplisit.
+
+Namun, keputusan untuk tidak mengubah helper umum tetap tepat. Ada dua kepentingan berbeda:
+- Framework-agnostic folder/search discovery.
+- Strict English XUAT dictionary sync.
+Keduanya jangan digabungkan dalam satu resolver yang mengubah perilaku aplikasi di luar scope.
+
+Referensi: test_04 dan resolver di misora.py.
+
+3. Single source of truth untuk exclusions
+Setuju dengan pendekatan lazy import
+core/xuat_index.py tetap Forbidden dan read-only untuk S11b2.
+
+Saya setuju dengan solusi:
+- misora.py memberikan resolve_roots_fn dan is_excluded_fn melalui dependency injection.
+- Jika keduanya tidak diberikan pada pemanggilan langsung, batch_sync() menggunakan lazy import lokal dari core.xuat_index.
+- Tidak ada top-level import dari xuat_index di xunity_sync.py.
+- Tidak ada duplikasi _EXCLUDED_FILE_TAILS.
+- Tidak ada perubahan komentar atau kode pada xuat_index.py.
+Karena xuat_index.py mengimpor split_xuat_line dari xunity_sync.py, lazy import di dalam pemanggilan fungsi batch aman dari circular import pada alur normal setelah modul selesai dimuat. Tetap pertahankan regression test dua urutan import.
+
+4. Conflict handling: tiga kasus harus dibedakan
+Saya mendukung koreksi Gemini.
+Kondisi	Perilaku wajib
+Same JP key, same new English	Satu update; seluruh target yang setuju dianggap berhasil
+Same JP key, different new English	Konflik eksplisit; tidak boleh ada silent overwrite
+Existing translation berbeda pada matched lines	Conflict confirmation, termasuk duplikat dalam file yang sama
+
+Ketika pengguna menolak konfirmasi untuk suatu key, hanya key tersebut yang dilewati. Key lain yang tidak berkonflik tetap harus diproses.
+
+Hal ini penting untuk menghindari satu konflik kecil membatalkan seluruh batch.
+
+Saya juga menyarankan laporan konflik menyebut box yang terlibat, bukan hanya JP key. Pengguna perlu mengetahui dialog mana yang mempunyai terjemahan baru saling bertentangan.
+
+5. Streaming per file dan pembacaan data
+Setuju
+Jangan menyimpan 1.815 file hasil decode sekaligus di RAM.
+
+Gunakan pola:
+1. Baca dan decode satu file.
+2. Periksa seluruh baris file terhadap target map.
+3. Jika tidak ada match, lepaskan konten file dari memory.
+4. Jika terdapat match, simpan FileSnapshot untuk file tersebut.
+5. Setelah conflict decision, lakukan freshness check dan grouped write.
+Ada satu detail yang perlu dibedakan dalam instrumentasi test:
+
+One scan/read berarti satu kali pembacaan dan decoding file dictionary untuk proses matching. Pembuatan backup melalui copy2() juga membaca sumber file secara fisik, sehingga jangan mencampur backup I/O dengan counter pembacaan scanner.
+
+Tegaskan hal tersebut supaya assertion tidak salah menganggap backup sebagai traversal atau decode kedua.
+
+Pertahankan:
+- BOM dan encoding asli.
+- CRLF/LF.
+- Trailing EOF newline.
+- Exact raw key whitespace.
+- Escaped multiline values.
+- Comments dan baris yang tidak berubah.
+- Atomic write.
+- Backup collision-safe dengan naming yang konsisten dan tetap dikecualikan scanner.
+Satu keterbatasan yang harus dicatat: (mtime_ns, size, ino, dev) mengurangi risiko stale write, tetapi masih mempunyai celah TOCTOU antara pemeriksaan metadata terakhir dan atomic replace. Jangan menyebut strategi ini sebagai jaminan absolut terhadap semua perubahan eksternal yang bersamaan.
+
+6. Baseline dan benchmark
+Saya setuju dengan koreksi Gemini dan Qwen.
+
+Angka 440 sudah tidak tepat untuk baseline pasca-S11b closure jika guard tambahan benar-benar masuk ke suite.
+
+Angka yang dilaporkan Qwen:
+- 446 discovered.
+- 403 passed.
+- 35 fixture-skipped.
+- 6 pre-existing failures.
+- 2 pre-existing errors.
+Jumlah tersebut konsisten secara aritmetika:
+\[
+403+35+6+2=446
+\]
+
+Tetapi jangan menetapkan 446 sebagai fakta final tanpa menjalankan full discovery setelah S11b closure fix.
+
+Saya juga setuju memisahkan:
+- test_probe_2: 100 file untuk structural assertions yang cepat pada full test discovery.
+- Satu kali profiling 1.815 file: dilakukan selama /plan atau QA khusus.
+Ambang STOP 2 detik harus dinilai berdasarkan hasil pengukuran yang benar-benar dicatat. Jangan membuat seluruh unittest discovery bergantung pada benchmark filesystem besar.
+
+7. Dua penguatan tambahan dari review saya
+Selain keenam gap, saya meminta dua hal ini dimasukkan ke revisi berikutnya.
+
+A. Perjelas penanganan partial file-write.
+
+Misalnya JP key yang sama terdapat pada file A dan B:
+- File A berhasil diperbarui.
+- File B gagal ditulis.
+UID terkait tidak boleh dianggap sukses sepenuhnya. Ia harus tetap tersedia untuk retry agar sinkronisasi berikutnya bisa memeriksa kedua file lagi.
+
+Sebaliknya, box lain yang hanya bergantung pada file A dan seluruh pembaruannya berhasil tidak perlu ikut ditahan.
+
+B. Tetapkan backup path strategy melalui dependency injection.
+
+core/xunity_sync.py tidak boleh mengimpor misora.py untuk menggunakan helper backup UI.
+
+Jika ingin mempertahankan collision-resistant backup naming yang digunakan jalur save saat ini, berikan callback/path factory ke batch_sync(). Tetapkan pula bahwa setiap affected file memperoleh maksimal satu backup per save, dan backup harus cocok dengan exclusion .bak_.
+
+8. Status S11b2 saat ini
+S11b2 Implementation Plan
+REVISE
+
+Arsitektur 5-stage O(E+B+M) diterima. Implementasi belum disetujui.
+
+S11b closure
+PREREQUISITE
+
+Perbaiki ProjectDiffDialog, pastikan Guard 3 PASS, jalankan full discovery baseline-relative, dan selesaikan closure commit terlebih dahulu.
+
+S11b2 version
+Target v1.4.12
+
+Version bump hanya setelah Proceed untuk implementasi.
+
+v1.5.0
+HOLD
+
+Tidak ada perubahan status release.
+
+Urutan yang saya setujui:
+1. Selesaikan S11b closure dan pastikan baseline lokal bersih serta terukur.
+2. Antigravity revisi S11b2_Implementation_Plan.md berdasarkan enam gap Gemini, tambahan Qwen, dan dua penguatan saya.
+3. ChatGPT dan Qwen melakukan re-review atas dokumen revisi.
+4. Project Lead memberikan Proceed terpisah sebelum implementasi.
+
+9. Pesan review untuk disampaikan ke Gemini dan Qwen
+Berikut rangkuman keputusan yang bisa digunakan agar kedua reviewer mengevaluasi revisi dengan dasar yang sama.
+ChatGPT Independent Review — S11b2 v1.4.12
+Verdict: REVISE — NOT CLEARED FOR PROCEED
+
+I independently reviewed S11b2_Implementation_Plan.md, Gemini's six-gap correction proposal, and Qwen4.txt.
+
+I endorse all six Gemini findings and Qwen's additional recommendations.
+Required corrections
+1. Granular token identity and both save paths
+   - _modified_boxes stores box indices, _modified_box_uids stores UIDs, and inactive documents store open_documents[path]["modified_box_uids"].
+   - Use explicit per-target identity; do not assume these collections share the same element type.
+   - Distinguish successful, unmatched/ineligible, conflict-skipped, freshness-failed, and I/O-failed targets.
+   - Clear successful and unmatched/ineligible targets; retain conflict, freshness, and I/O failures.
+   - Wire the same granular result handling into both on_save() and _save_document_entry().
+   - Important source finding: _save_document_entry() currently clears entry["modified_box_uids"] before secondary XUAT sync. Preserve these UIDs until the batch result is known; otherwise an inactive-document sync failure loses retry state.
+2. Strict boundary inside batch_sync()
+   - Validate and resolve roots inside the batch API through injected resolve_roots_fn.
+   - Deduplicate overlapping roots and case-insensitive file paths.
+   - Never trust arbitrary caller-supplied roots.
+   - Keep _resolve_xuat_text_root() and general Project Search resolution unchanged in S11b2; enforce strict XUAT rules at the sync boundary.
+3. Single source of truth for exclusions
+   - core/xuat_index.py remains Forbidden/read-only.
+   - Remove duplicated _EXCLUDED_FILE_TAILS from core/xunity_sync.py.
+   - Use DI for resolver and exclusion helpers, with a local lazy import fallback inside batch_sync() if callbacks are not provided.
+   - No top-level xuat_index import from xunity_sync.
+4. Conflict edge cases
+   - Detect differing old values across any matched lines, including duplicates inside one file.
+   - Declining a conflict skips only the affected key(s), not the whole batch.
+   - Same JP + same new EN is one update shared by all agreeing targets.
+   - Same JP + different new EN is an explicit conflict; never choose by iteration order.
+5. Streaming and file preservation
+   - Stream Stage 1/2 one file at a time.
+   - Retain decoded FileSnapshot only for files with matches.
+   - Preserve BOM, encoding, CRLF/LF, EOF newline, exact key whitespace, escaped values, comments, and atomic write behavior.
+   - Instrument scanner read/decode counts separately from backup-copy I/O.
+   - Keep backup naming collision-safe and .bak_-excluded.
+6. Baseline and benchmark
+   - Re-run full discovery after S11b closure; do not hardcode 446 unless that is the observed result.
+   - Keep the 100-file structural test fast.
+   - Run the separate 1,815-file profiling check during /plan or dedicated Windows QA, not as a long full-discovery test.
+Additional required assertions
+- Partial file-write failure: retain only targets that depend on failed files; do not mark a multi-file target successful until all its matched files are written.
+- Inactive-document failure: preserve open_documents[path]["modified_box_uids"] for retry.
+- Backup path generation must preserve collision-safe policy without importing misora.py into pure core; use dependency injection where appropriate.
+- Freshness metadata checks reduce stale-write risk but do not eliminate the final stat-to-replace TOCTOU window. Document this limitation honestly.
+Approval boundary
+- S11b2 architecture: approved for revised planning.
+- Current S11b2 Implementation Plan: revision required.
+- No implementation Proceed yet.
+- Complete and commit S11b closure before starting S11b2.
+- v1.5.0 remains ON HOLD.
+
+
+
+
+Kesimpulan: Qwen dan saya sepakat bahwa draft S11b2 memiliki fondasi arsitektur yang baik, tetapi belum layak diberi Proceed. Prioritas tertinggi adalah identitas token dan retry untuk inactive documents, strict boundary pada API batch, serta perilaku konflik. Ketiganya langsung menyangkut keselamatan data XUAT. Saya belum membuat perubahan source atau memulai implementasi.

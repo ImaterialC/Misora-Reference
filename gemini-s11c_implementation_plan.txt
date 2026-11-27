@@ -1,0 +1,11 @@
+S11b2 (v1.4.12) is now locally committed into HEAD (leaving only M assets/icons/BoxInsert.png and ?? assets/icons/BoxReplace.png uncommitted). Proceed with S11c (v1.4.13) implementation strictly per s11c_implementation_plan.md (Rev 3), with one small safety guard during implementation:
+
+- Add optional parameter sync_from_widget: bool = True to _flush_quick_edit_session(self, sync_from_widget: bool = True), and pass sync_from_widget=False when called from the external-mutation branch inside _refresh_quick_edit_pane() (Section 3.3) so flushing a stale dirty session on external change never calls _on_quick_edit_changed() to overwrite the external model edit.
+- Also guard repeated .pack() calls in _rebuild_quick_edit_widgets() cleanly (pack_forget or winfo_ismapped check) so qe_scroll_x / qe_scroll_y / txt_quick_edit pack geometry never drifts across consecutive box switches.
+
+Preconditions & Locked Boundaries:
+- Verify the committed S11b2 HEAD and git status --short first, and confirm the observed 451-test pre-patch baseline.
+- Keep pre-existing working-tree files (M assets/icons/BoxInsert.png, ?? assets/icons/BoxReplace.png), tests/test_v15_s08_release_gate_stress.py (inspect-only / untouched), and ALL Forbidden Files (core/*.py, assets/*, requirements.txt, misora_config.json, backups/) 100% untouched.
+- Keep v1.5.0 ON HOLD — bump __init__.__version__ from "1.4.12" to "1.4.13" only.
+- Follow strict TDD order: create tests/test_v15_s11c_quick_edit_unified.py first, confirm all 4 probes FAIL and both guards PASS pre-patch, then patch __init__.py, misora.py, and tests/test_v15_s10_all_script_quick_edit.py.
+- Run compileall, targeted suites (S11c, S10, S08, S09), full unittest discover -s tests -v (0 new regressions vs committed S11b2 baseline), and git status --short; update CHANGELOG.md and PROJECT_STATE.md. Do NOT run git commit or git push.
