@@ -117,7 +117,9 @@ py -3.12 -B -c "import unittest; s=unittest.TestLoader().discover('tests'); prin
 
 ---
 
-## 5  Windows Manual QA Checklist (`M-1..M-9` — `MANUAL-PENDING`)
+## 5  Windows Manual QA Checklist (`M-1..M-9` — `ALL PASS — OPERATOR VERIFIED`)
+
+**Operator Sign-Off:** `PASS` (`M-1..M-9` all verified on Windows 11, `v1.4.15` @ `02de57f148747d9dbf71574e0748fa66c80a8925`, Project Lead).
 
 - [pass] **M-1**: Line 4+ short text (`Line 1\nLine 2\nLine 3\nLine 4`) in Dialogue Editor shows red background + underline (`line_overflow`) across line 4, red bold gutter `4`, and red header `N/54d · 4/3L`.
 - [pass] **M-2**: Line 4+ text that also exceeds 54d highlights the entire line `4` (`4.0..4.end`), not just past `54d`.
