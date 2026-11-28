@@ -1,0 +1,89 @@
+# QWEN — FINAL CLEARANCE: DOCS-01 CHARTER REV 2
+VERDICT: CLEARED FOR PROCEED. Five binding execution notes (E-1..E-5); no Rev 3 required.
+
+## 0. VERIFICATION BOUNDARY (stated honestly)
+The five image URLs are links only; no image content reached my session. I did NOT see the
+T-02/T-03 screenshots. My clearance covers the charter's gates, allowlist, rollback and
+ledger wording — not a re-verification of the visual evidence. The misora.py / AGENTS.md /
+PROJECT_STATE.md in my context are the OLD v1.3.3-era snapshots, so current line numbers
+(incl. AGENTS.md §7 line 40) remain unverified by me. Rev 2 correctly converts that risk into
+a preflight obligation (read-only grep of ALL "50" hits + exact line confirmation). Good.
+
+## 1. MY CORRECTIONS — ALL VERIFIED FOLDED
+C-1  §2.A.1 records the ACTUAL observed `54/54d · 1/3L`, explicitly notes it is NOT
+     `>54/54d`, and logs numerator clamping/boundary semantics as an open question under
+     T-04. Adds the audit-honest M-1/M-2 vs M-3 vs M-4 split and affirms T-02 (string) is
+     distinct from T-08a (window geometry). Fully honored.
+D-1  Repo B now has a real preflight (clean worktree on main, exact <REF_HEAD> captured),
+     gate 2 (`git -C ... status` -> ONLY T-02_Walkthrough.md), and its own pinned-SHA
+     rollback. Stronger than I asked. Honored.
+D-2  The invented 15,360-byte cap for AGENTS.md is GONE, replaced by preflight byte-size
+     capture + `size_after == size_before`. PROJECT_STATE.md keeps its established
+     <=15,360 cap. Correct separation. Honored.
+D-3  Gate 3 uses `git diff --numstat -- AGENTS.md` == `1 1 AGENTS.md` AND requires the FULL
+     verbatim `git diff -- AGENTS.md` pasted. The verbatim paste is a genuine improvement:
+     it lets a human confirm only §7 changed. Honored.
+D-4  Gate 5 adds EOL invariance on all 3 Repo A .md files, explicitly backslash-free
+     (honoring my earlier shell-quoting note), plus preflight capture of native EOL.
+     Honored.
+D-5  §2.A.5 + gate 6 require T-01's HISTORICAL-REFERENCE row, the 35-SKIP fixture blocker
+     and the 3 non-fixture hygiene failures (6 FAIL + 2 ERROR) to survive. Feasibility
+     checked against the T-02 commit: the N-4 note lives in T-02's row/section, NOT T-01's,
+     so retiring it does not conflict with preserving T-01 byte-intact. Consistent.
+D-6  T-03 evidence upgraded to CONFIRMED (Windows user-machine, 8 repros / 4 screenshots)
+     with ROOT-CAUSE: NEEDS-CODE-VERIFY and `_selected_boxes` corruption explicitly marked
+     unproven. Matches the T-02 precedent. Honored.
+D-7  Description is raw-observation-only and PRESERVES the two discriminating anomalies I
+     raised: Repro 1 #004 white vs #003/#005/#007 purple; Repro 5 #003 white vs
+     #002/#004/#005/#006 purple. This is exactly the data a future planner needs, and it
+     does not assert a mechanism. Honored.
+Also adopted: R-1 (T-08a promoted to Phase 1a), R-3 (T-03 2a then T-10 2b under ONE shared
+visual-state contract), T-06b split with F-GPT-03 verification first and .misora existence
+check, T-13 changed-entries-only + capture-time provenance + strictly after T-11, T-11
+forbidden from using runtime Record.uid/Box.uid as its key, and a dedicated ledger row for
+the stale test docstring. Roadmap explicitly marked PLANNING ORDER ONLY / NOT AUTHORIZED.
+Version lock and zero commit/push intact.
+
+## 2. FIVE BINDING EXECUTION NOTES (apply during execution; no Rev 3 needed)
+E-1 REPO B PARITY. Gate 2 checks only WHICH file changed, not how much or how. Apply the
+    same discipline as Repo A: report `git -C <Repo B> diff --numstat` for
+    T-02_Walkthrough.md; assert EOL invariance there too; and preserve the §2.1-2.5 verbatim
+    verification transcripts BYTE-INTACT — those are the audit evidence. Only the §4 QA
+    table statuses, the operator sign-off, and the N-C sentence may change. Inspect Repo B's
+    .gitattributes BEFORE asserting EOL invariance, so a normalization rule cannot cause a
+    false STOP.
+E-2 STAGING BLIND SPOT. Gate 3 uses `git diff --numstat`, which reports NOTHING for staged
+    edits. If the agent runs `git add`, gate 3 could read empty and be misinterpreted.
+    Use `git diff HEAD --numstat` (covers index + worktree), or additionally assert
+    `git diff --cached --numstat` is empty. Same applies to the AGENTS.md `1 1` assertion.
+E-3 REPRO 6/7 WORDING PRECISION. Rev 2 says clicking a card "clears the clicked card".
+    Ambiguous, and this is the discriminating observation. The reported fact is: click
+    #003 (becomes active), then click #006 -> ONLY the immediately-previous active card
+    (#003) turns white, while earlier orphans #002/#004/#005 stay purple. Write it that
+    way. D-7 exists precisely to stop observation drift; do not let it drift in the rewrite.
+E-4 T-04 ROW MUST CARRY THE QUESTION. §2.A.1 instructs logging the numerator semantics
+    "under T-04", but §2.A.3 does not enumerate a T-04 row update. Ensure T-04's OWN row
+    carries the open question (clamped vs boundary numerator; RED at `54/54d` reads as
+    compliant against a tooltip that says "<= 54"), not merely a mention inside T-02's row.
+E-5 DO NOT LET THE PRIORITY CHALLENGE EVAPORATE. My T13-6 challenge is still unanswered:
+    is F-GPT-07 (XUAT-JP-KEY-DRIFT) still present in v1.4.15, and does XUAT sync still run
+    synchronously on the UI thread during save? Both are unverified. DOCS-01 is docs-only
+    and cannot fix them, but it CAN and SHOULD record two explicit open questions:
+      - "F-GPT-07 status at 3edf43e: UNVERIFIED. If drift persists, T-11 is P1 data
+         correctness and must be re-sequenced ahead of UI work, not left in Phase 6."
+      - "T-12: confirm whether XUAT sync blocks the UI thread on save at 3edf43e."
+    Recording them costs two lines and prevents a P1 candidate from hiding behind polish.
+
+## 3. PROPORTIONALITY
+I do NOT require a full ~850s suite run for a zero-.py change. Gate 7 (`--check` PASS +
+countTestCases() == 494) is the correct, proportionate verification. The dual-repo pinned
+rollback with no `reset --hard` is correct; because each pinned SHA equals that repo's HEAD,
+the path-scoped checkout leaves both indexes clean, so the "clean tree" expectation holds.
+
+## 4. CLEARANCE
+CLEARED FOR PROCEED on DOCS-01 Rev 2, with E-1..E-5 applied during execution.
+Scope remains strictly 4 files / zero .py / zero symbol-index regeneration.
+1.4.15 UNCHANGED; v1.5.0 CANCELLED / NOT AUTHORIZED; zero commit/push by Antigravity.
+The recorded roadmap stays PLANNING ORDER ONLY — T-08a is the next planned target but is
+NOT authorized for code execution by this charter.
+No files edited, no commands run against either worktree by me this turn.
