@@ -1,8 +1,8 @@
-# T-01 (BUG-UI-EMPTY-STATE-01) — Implementation Plan (Rev 2)
+# T-01 (BUG-UI-EMPTY-STATE-01) — Implementation Plan (Rev 3)
 
 **Evidence:** `CONFIRMED` (upgraded from `REPORTED + NEEDS-REPRO` via source audit + real `MisoraApp` reproduction)  
 **Lifecycle:** `ACTIVE` (remains `ACTIVE` until Windows manual QA `M-1..M-12` passes)  
-**Prepared:** 2026-11-28 (Rev 2 incorporating Gemini + GPT-6 review rulings)  
+**Prepared:** 2026-11-28 (Rev 3 folding in Qwen V-1..V-3 / N-1..N-4 & GPT-6 zero-`.pyc` compile + count corrections)  
 **Scope:** Minimal root-cause fix to `_update_empty_state_visibility()` in `misora.py` (8 lines) + strict TDD suite `tests/test_t01_empty_state_overlay.py`
 
 ---
@@ -34,14 +34,22 @@ countTestCases: 475                                     # unittest discovery (te
   - Line `2314`: calls `self._update_empty_state_visibility()` **while `self` is still withdrawn**.
   - Lines `2358-2364`: if `show_splash=False` (`splash_owns_reveal == False`), line `2362` calls `self.deiconify()`. If `show_splash=True`, `self` stays withdrawn until `_deferred_restore()` finishes and line `2423` calls `self.deiconify()`.
   - Lines `2367-2425`: `_deferred_restore()` is scheduled via `self.after_idle(_deferred_restore)` and restores `self._saved_opened_files` via `self.open_file(fp)` before closing splash and calling `self.deiconify()`.
-- `_build_main_panels()` (`misora.py:5239-6500`):
+- `_build_main_panels()` (`misora.py:5239-6500`) & full unfiltered `top_view.pack_slaves()` hierarchy:
+  - Packed header/toolbar children of `top_view`: `gd_header` (`anon(Frame)` at `5485`), `speaker_view_row`, and (when `var_show_ngui_ribbon` is True) `ribbon_actions_row` (which `_on_toggle_ngui_ribbon` at `7595` explicitly packs `after=self.speaker_view_row`).
   - Line `6123`: creates `self.empty_state_frame = self._tag_role(tk.Frame(top_view, bg=t["bg_panel"]), "panel")` (not packed at creation).
   - Lines `6161-6162`: creates `self.gd_scroll_wrap = self._tag_role(tk.Frame(top_view, bg=t["bg_panel"]), "panel")` and **immediately packs it** (`self.gd_scroll_wrap.pack(fill="both", expand=True, padx=4, pady=(0, 4))`).
   - Lines `6204-6254`: inside `text_container` (inside `gd_inner` inside `gd_canvas` inside `gd_scroll_wrap`), packs `self.clean_editor_row` (`fill="both", expand=True`), `self.clean_scroll_x` (`side="bottom", fill="x"`, Q-03), `self.gutter_clean` (`side="left", fill="y"`), and `self.txt_dialogue` (`side="left", fill="both", expand=True`).
   - Line `6447`: creates `self.continuous_wrap = self._tag_role(tk.Frame(top_view, bg=t["bg_panel"]), "panel")` (not packed at creation).
+  - **Full `top_view.pack_slaves()` ordering verified on live `MisoraApp` (V-3):**
+    - `1_doc_dialogue`: `['anon(Frame)', 'speaker_view_row', 'gd_scroll_wrap']`
+    - `1_doc_allscript`: `['anon(Frame)', 'speaker_view_row', 'continuous_wrap']`
+    - `0_docs_after_close`: `['anon(Frame)', 'speaker_view_row', 'empty_state_frame']`
+    - **Zero** sibling widgets are ever packed after `gd_scroll_wrap`'s original slot; the active view container (`empty_state_frame`, `gd_scroll_wrap`, or `continuous_wrap`) always occupies the sole terminal `fill="both", expand=True` slot in `top_view`.
 - `_update_empty_state_visibility()` (`misora.py:9763-9786`):
   - Uses `winfo_ismapped()` 8 times (lines `9767, 9769, 9771, 9774, 9778, 9780, 9783, 9785`) to decide whether to call `.pack_forget()` or `.pack(...)` on `gd_scroll_wrap`, `continuous_wrap`, and `empty_state_frame`.
 - `_on_toggle_continuous_view()` (`misora.py:8961-8987`): uses unconditional `.pack_forget()` / `.pack(...)`, then calls `self._update_views()` (which calls `_update_empty_state_visibility()` at line `9790`).
+- **N-2 Read-only sibling check (`_update_views()`, `misora.py:9787-9920`):**
+  - Inspected `misora.py:9787-9920` read-only: **0** occurrences of `winfo_ismapped()` exist in `_update_views()`. All visibility checks for `panel_box0_metadata`, `dialogue_preview_canvas`, `clean_editor_row`, and `ruler_clean` (lines `9880, 9882, 9884, 9886, 9905, 9908, 9910, 9912`) use `self._is_widget_packed(...)` (`bool(w.pack_info())`), so those sibling widgets are unaffected by the withdrawn-window `winfo_ismapped()` defect. *(Note only; T-01 scope unchanged.)*
 
 ### 2.2 Exact mechanism of T-01
 
@@ -52,7 +60,7 @@ In Tk, `widget.winfo_ismapped()` returns `0` (`False`) for **all descendants** w
    - `_update_empty_state_visibility()` runs with `has_docs == False`:
      - Line `9767`: `if self.gd_scroll_wrap.winfo_ismapped():` evaluates `False` -> **`gd_scroll_wrap.pack_forget()` is SKIPPED**.
      - Line `9771`: `if not self.empty_state_frame.winfo_ismapped():` evaluates `True` -> **`empty_state_frame.pack(fill="both", expand=True, ...)` is EXECUTED**.
-   - **Result:** Both `gd_scroll_wrap` and `empty_state_frame` are simultaneously packed inside `top_view` in order `['gd_scroll_wrap', 'empty_state_frame']`.
+   - **Result:** Both `gd_scroll_wrap` and `empty_state_frame` are simultaneously packed inside `top_view`: `['anon(Frame)', 'speaker_view_row', 'gd_scroll_wrap', 'empty_state_frame']`.
 2. On fresh 0-doc startup (`show_splash=False`), line `2362` calls `self.deiconify()`, immediately displaying **both** `gd_scroll_wrap` and `empty_state_frame` stacked vertically.
 3. On startup with splash and saved session files (`show_splash=True, restore_session=True`):
    - `self` remains withdrawn throughout `_deferred_restore()` (`misora.py:2367-2425`) until line `2423`.
@@ -122,11 +130,11 @@ Executed via `py -3.12 -B` against genuine `MisoraApp` instances with `CONFIG_PA
 
 ## 3. Smallest Root-Cause Fix Design & `pack`-Only Invariant
 
-### 3.1 `pack`-only geometry manager invariant verification
+### 3.1 `pack`-only geometry manager invariant verification & N-1 design note
 
-Read-only search of `misora.py` for `empty_state_frame`, `gd_scroll_wrap`, and `continuous_wrap` returned all 24 references (`6123, 6124, 6161, 6162, 6164, 6169, 6447, 6451, 6462, 8961, 8962, 8984, 8985, 9767-9786`). **None** of these three containers are ever managed by `grid` or `place` anywhere in `misora.py` (only `empty_center` is placed *inside* `empty_state_frame`).
-
-Using explicit `winfo_manager() == "pack"` and `winfo_manager() != "pack"` checks directly verifies `pack` ownership without relying on `winfo_ismapped()`, which is `0` whenever the `Tk` root is withdrawn.
+- Read-only search of `misora.py` (`23912` lines) for `empty_state_frame`, `gd_scroll_wrap`, and `continuous_wrap` returned **29** matching lines (`37` token occurrences across lines `6123, 6124, 6161, 6162, 6164, 6169, 6447, 6451, 6462, 8961, 8962, 8984, 8985, 9767-9786`). **None** of these three containers are ever managed by `grid` or `place` anywhere in `misora.py` (only `empty_center` is placed *inside* `empty_state_frame`).
+- Unfiltered `top_view.pack_slaves()` inspection confirms no sibling is ever packed after `gd_scroll_wrap`'s original slot; `_on_toggle_ngui_ribbon` (`misora.py:7595`) explicitly packs `ribbon_actions_row` `after=self.speaker_view_row`, keeping the active view container as the terminal packed child.
+- **N-1 Note (`_is_widget_packed` vs `winfo_manager() == "pack"`):** `misora.py:7355` already defines `_is_widget_packed(w)` (`bool(w.pack_info())`). Explicit `winfo_manager() == "pack"` / `winfo_manager() != "pack"` is chosen here to enforce the `pack`-only geometry-manager invariant directly without calling `pack_info()` or catching exceptions, preventing future audits from flagging idiom drift.
 
 ### 3.2 Exact patch in `misora.py` (`_update_empty_state_visibility`, lines 9763–9786)
 
@@ -190,9 +198,9 @@ Using explicit `winfo_manager() == "pack"` and `winfo_manager() != "pack"` check
 |---|---|---|
 | `misora.py` | **MODIFY** | Only the 8 `winfo_ismapped()` conditions in `_update_empty_state_visibility()` (`9767–9785`). |
 | `tests/test_t01_empty_state_overlay.py` | **CREATE (NEW)** | Exactly **11** `test_*` methods (**4** failing-first Defect Probes + **7** Regression Guards) using stdlib `unittest`. |
-| `docs/project/OPEN_ISSUES.md` | **MODIFY** | Update T-01: Evidence `CONFIRMED`; automated fix & TDD verification `PASS`; Windows manual QA `M-1..M-12` `MANUAL-PENDING`; full closure deferred until manual QA passes; keep Lifecycle `ACTIVE`. Do **NOT** claim `CONFIRMED + FIXED` / closed before manual QA. |
-| `PROJECT_STATE.md` | **MODIFY** | Record T-01 automated test count (`475 + 11 = 486`) and note `MANUAL-PENDING` QA; keep file size ≤ 15 KiB (15,360 bytes). |
-| `docs/architecture/MISORA_SYMBOL_INDEX.md` | **DEFERRED TO POST-COMMIT** | **Do NOT run `--write` while `misora.py` has uncommitted edits.** `tools/generate_symbol_index.py:48-69` (`check_clean_indexed_sources`) intentionally rejects uncommitted `.py` changes, and even identical line spans change `misora.py`'s SHA-256 fingerprint. Project Lead / maintainer regenerates and `--check`s after committing T-01. |
+| `docs/project/OPEN_ISSUES.md` | **MODIFY** | Update T-01: Evidence `CONFIRMED`; automated fix & TDD verification `PASS`; Windows manual QA `M-1..M-12` `MANUAL-PENDING`; full closure deferred until manual QA passes; keep Lifecycle `ACTIVE`; record the expected transient `generate_symbol_index.py --check` non-zero exit between T-01 commit and maintainer symbol-index regeneration commit (**N-4**). Do **NOT** claim `CONFIRMED + FIXED` / closed before manual QA. |
+| `PROJECT_STATE.md` | **MODIFY** | Record T-01 automated test count (`475 + 11 = 486`), `MANUAL-PENDING` QA, and the expected transient `--check` non-zero state until maintainer symbol-index regeneration (**N-4**); keep file size <= 15 KiB (15,360 bytes). |
+| `docs/architecture/MISORA_SYMBOL_INDEX.md` | **DEFERRED TO POST-COMMIT** | **Do NOT run `--write` while `misora.py` has uncommitted edits.** `tools/generate_symbol_index.py:48-69` (`check_clean_indexed_sources`) intentionally rejects uncommitted `.py` changes, and even identical line spans change `misora.py`'s SHA-256 fingerprint. **N-4:** Between Project Lead's T-01 commit and the subsequent symbol-index regeneration commit, `tools/generate_symbol_index.py --check` is expected to exit non-zero due to `misora.py`'s updated SHA-256; Project Lead / maintainer regenerates `MISORA_SYMBOL_INDEX.md` and runs `--check` after committing T-01. |
 
 ### 4.3 Strictly FORBIDDEN / READ-ONLY
 
@@ -202,12 +210,12 @@ Using explicit `winfo_manager() == "pack"` and `winfo_manager() != "pack"` check
 
 ## 5. Strict TDD & `unittest` Verification Plan
 
-All test runs use Python 3.12 stdlib `unittest` (**no `pytest`**). Discovery (`countTestCases()`) and execution are reported separately.
+All test runs use Python 3.12 stdlib `unittest` (**no `pytest`**), zero `.pyc` file emission (`-B` + in-memory `compile()`), and separate reporting for discovery (`countTestCases()`) vs execution.
 
 ### 5.1 Pre-patch baseline & failing-first verification
 
-1. **Compile check:**
-   `py -3.12 -B -m compileall -q misora.py __init__.py` -> exit `0`
+1. **In-memory syntax check (writes ZERO `.pyc` files):**
+   `py -3.12 -B -c "import pathlib; [compile(pathlib.Path(p).read_text(encoding='utf-8'), p, 'exec') for p in ('misora.py', '__init__.py')]; print('IN-MEMORY COMPILE OK')"` -> `IN-MEMORY COMPILE OK` (exit `0`)
 2. **Pre-addition discovery baseline:**
    `py -3.12 -B -c "import unittest; s=unittest.TestLoader().discover('tests'); print('countTestCases:', s.countTestCases())"` -> `countTestCases: 475`
 3. **Create `tests/test_t01_empty_state_overlay.py`** (`11` `test_*` methods = `4` Probes + `7` Guards).
@@ -217,15 +225,17 @@ All test runs use Python 3.12 stdlib `unittest` (**no `pytest`**). Discovery (`c
    `py -3.12 -B -m unittest tests.test_t01_empty_state_overlay.TestT01DefectProbes -v` -> all 4 probes **FAIL** (and `Ran 4 tests`).
 6. **Pre-patch Regression Guards (MUST PASS — 7 passes):**
    `py -3.12 -B -m unittest tests.test_t01_empty_state_overlay.TestT01RegressionGuards -v` -> all 7 guards **PASS** (`Ran 7 tests ... OK`).
+   - **N-3 Guard Re-Label Rule:** *"If any Guard fails pre-patch due to an unmasked defect, RE-LABEL it as a Probe — never weaken or skip it."* (Update exact Probe/Guard split counts cleanly while keeping total `11` methods -> `486`, or STOP and report if unexpected.)
 
-### 5.2 Apply patch
+### 5.2 Apply patch (V-1 & V-2 execution locks)
 
-Apply the 8-line substitution in `_update_empty_state_visibility()` (`misora.py:9767-9785`).
+- **V-1 Verbatim Context Lock:** Before patching `misora.py`, Antigravity MUST inspect `misora.py:9763-9786` and confirm the 8 target lines and surrounding context match §3.2 verbatim. **No fuzzy-apply; STOP on any mismatch.**
+- **V-2 Diff & Line-Count Lock:** Apply the exact 8-line replacement in `_update_empty_state_visibility()` (`misora.py:9767-9785`), then confirm `misora.py` line count == `23912` and `git diff -- misora.py` touches **exactly 8 lines** inside `9763-9786`.
 
 ### 5.3 Post-patch verification & sequencing
 
-1. **Compile check (including root `__init__.py`):**
-   `py -3.12 -B -m compileall -q misora.py __init__.py` -> exit `0`
+1. **In-memory syntax check (writes ZERO `.pyc` files):**
+   `py -3.12 -B -c "import pathlib; [compile(pathlib.Path(p).read_text(encoding='utf-8'), p, 'exec') for p in ('misora.py', '__init__.py')]; print('IN-MEMORY COMPILE OK')"` -> `IN-MEMORY COMPILE OK` (exit `0`)
 2. **Full T-01 suite (MUST PASS all 11):**
    `py -3.12 -B -m unittest tests.test_t01_empty_state_overlay -v` -> `Ran 11 tests ... OK` (4 probes PASS + 7 guards PASS)
 3. **Targeted UI regression suites (exact verified module names on disk):**
@@ -233,10 +243,10 @@ Apply the 8-line substitution in `_update_empty_state_visibility()` (`misora.py:
 4. **Post-patch discovery check (exact arithmetic):**
    `py -3.12 -B -c "import unittest; s=unittest.TestLoader().discover('tests'); print('countTestCases:', s.countTestCases())"` -> **`countTestCases: 486`** (`475 + 11 = 486`).
 5. **Line-count & symbol-span invariance check (while uncommitted):**
-   Verify `misora.py` line count remains `23912` and `_update_empty_state_visibility` remains at lines `9763–9786`; verify `git diff -- misora.py` touches only 8 lines.
+   Verify `misora.py` line count == `23912`, `_update_empty_state_visibility` spans lines `9763–9786`, and `git diff -- misora.py` touches exactly 8 lines.
    *(Do **NOT** run `generate_symbol_index.py` on dirty `misora.py`; Project Lead regenerates `docs/architecture/MISORA_SYMBOL_INDEX.md` and runs `--check` after committing T-01.)*
 6. **Version-source parity & diff/status check:**
-   Verify `__init__.__version__ == "1.4.15"`, `PROJECT_STATE.md` byte size `<= 15360`, and `git status --short --untracked-files=all` contains only the authorized T-01 files.
+   Verify `__init__.__version__ == "1.4.15"`, `PROJECT_STATE.md` byte size `<= 15360`, and `git status --short --untracked-files=all` contains only the authorized T-01 files (zero stray `.pyc` / `__pycache__` in repo).
 
 ### 5.4 Exact 7-State Coverage & Probe/Guard Matrix (`tests/test_t01_empty_state_overlay.py`, 11 methods)
 
@@ -255,12 +265,12 @@ All 4 Defect Probes instantiate genuine `MisoraApp` instances (patching `CONFIG_
 
 | Method | Matrix State | Scenario & Assertions | Pre-patch | Post-patch |
 |---|---|---|---:|---:|
-| `test_guard_1_state2_open_one_doc_box1_dialogue` | **State 2** | Mapped `MisoraApp`, open 1 Box-1 doc -> `empty_state_frame.winfo_manager() == ""`, `gd_scroll_wrap.winfo_manager() == "pack"`, `clean_editor_row`/`txt_dialogue`/`clean_scroll_x` all packed & mapped (`winfo_height() > 1`). | **PASS** | **PASS** |
+| `test_guard_1_state2_open_one_doc_box1_dialogue` | **State 2** | Mapped `MisoraApp`, open 1 Box-1 doc -> `empty_state_frame.winfo_manager() == ""`, `gd_scroll_wrap.winfo_manager() == "pack"`, `clean_editor_row`/`txt_dialogue`/`clean_scroll_x` all packed & mapped (`winfo_height() > 1`), and asserts the **full `top_view.pack_slaves()` ordering** preserves `[gd_header, speaker_view_row, ..., gd_scroll_wrap]` with `gd_scroll_wrap` as the terminal view child (**V-3**). | **PASS** | **PASS** |
 | `test_guard_2_state3_two_docs_open_hides_empty_state` | **State 3** | Mapped `MisoraApp`, open 2 docs -> `len(open_documents) == 2`, `empty_state_frame.winfo_manager() == ""`, `empty_state_frame.winfo_ismapped() == 0`, `gd_scroll_wrap.winfo_manager() == "pack"`. | **PASS** | **PASS** |
 | `test_guard_3_state4_deferred_restore_no_splash_two_files` | **State 4 (`show_splash=False`)** | `MisoraApp(restore_session=True, show_splash=False)` with 2 saved session files -> `update()`: asserts 2 open docs restored, `empty_state_frame.winfo_manager() == ""`, `gd_scroll_wrap.winfo_manager() == "pack"`, `clean_scroll_x.winfo_ismapped() == 1`. | **PASS** | **PASS** |
 | `test_guard_4_state5_close_one_of_two_docs_stays_hidden` | **State 5** | With 2 docs open, `close_file(f2)` -> `len(open_documents) == 1`, `empty_state_frame.winfo_manager() == ""`, `gd_scroll_wrap.winfo_manager() == "pack"`, `clean_scroll_x.winfo_ismapped() == 1`. | **PASS** | **PASS** |
 | `test_guard_5_state6_close_last_doc_restores_empty_state` | **State 6** | Close last doc (`close_file(f1)`) -> `empty_state_frame.winfo_manager() == "pack"`, `empty_state_frame.winfo_ismapped() == 1`, `gd_scroll_wrap.winfo_manager() == ""`, `continuous_wrap.winfo_manager() == ""`. | **PASS** | **PASS** |
-| `test_guard_6_state7_view_toggles_and_mutual_exclusion` | **State 7** | With 1 doc open, exercise Dialogue <-> All Script, Box 0 <-> Box 1, Dialogue Preview ON/OFF, Line Numbers ON/OFF -> mutual exclusion holds at every step, `empty_state_frame.winfo_manager() == ""` throughout, `clean_scroll_x` restored & mapped in Box 1 Dialogue. | **PASS** | **PASS** |
+| `test_guard_6_state7_view_toggles_and_mutual_exclusion` | **State 7** | With 1 doc open, exercise Dialogue <-> All Script, Box 0 <-> Box 1, Dialogue Preview ON/OFF, Line Numbers ON/OFF -> mutual exclusion holds at every step, `empty_state_frame.winfo_manager() == ""` throughout, **full `top_view.pack_slaves()` ordering** preserves `[gd_header, speaker_view_row, ..., continuous_wrap]` in All Script and `[gd_header, speaker_view_row, ..., gd_scroll_wrap]` when returning to Dialogue (**V-3**), and `clean_scroll_x` is restored & mapped in Box 1 Dialogue. | **PASS** | **PASS** |
 | `test_guard_7_q03_pack_only_and_s15_empty_state_widgets` | **Invariants** | Asserts `clean_scroll_x.master is clean_editor_row`, `clean_scroll_x.winfo_manager() == "pack"`, `btn_empty_open`/`lbl_empty_dnd_hint` children of `empty_state_frame`, and `empty_state_frame`/`gd_scroll_wrap`/`continuous_wrap` never use `grid` or `place`. | **PASS** | **PASS** |
 
 ---
@@ -295,4 +305,4 @@ Record exact version (`1.4.15`), OS/DPI, steps, expected vs actual, and operator
 
 ---
 
-**STOP — WAITING FOR INDEPENDENT REVIEW**
+**STOP — WAITING FOR FINAL CLEARANCE**
