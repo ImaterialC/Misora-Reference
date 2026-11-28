@@ -106,7 +106,11 @@ T-01 remains `ACTIVE` until a Windows operator verifies on `v1.4.15`:
 - [pass] `M-9`: Resize window / snap half-screen in 0-doc and 1-doc states -> no overlap or clipping.
 - [pass] `M-10`: Open Box 0 Summary vs Box 1 Dialogue -> lower `clean_scroll_x` border unobscured.
 - [pass] `M-11`: Verify 125% DPI scaling on Windows -> empty state centered, no bleed.
-- [ ] `M-12`: Record OS, DPI, build (`1.4.15`), and operator sign-off in `docs/project/OPEN_ISSUES.md`.
+- [pass] `M-12`: Record OS, DPI, build (`1.4.15`), and operator sign-off in `docs/project/OPEN_ISSUES.md`:
+  - **OS:** Windows 11 (`Microsoft Windows [Version 10.0.26100.6725]`)
+  - **Display / DPI:** `1920x1080`, `125% DPI`
+  - **Build / HEAD:** `v1.4.15` @ `33b6f7dc10dcb86b853aa71ab833864eeb843dfa`
+  - **Operator:** Project Lead (`M-1..M-11` PASS; Lifecycle -> `HISTORICAL-REFERENCE`)
 
 
 ## Tester environtment:

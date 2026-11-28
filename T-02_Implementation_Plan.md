@@ -146,17 +146,17 @@ A single hardcoded tooltip string at `misora.py:5577` was written when the nativ
 -            "Native 50 x 3 dialogue rule: <= 50 digit-widths without linebreak AND < 3 linebreaks (<= 3 lines).\n"
 -            "Measured using the active editor font as an estimate of the in-game font (NGUI tags excluded)."
 +            f"Native {DIALOGUE_MAX_DIGITS}d x {DIALOGUE_MAX_LINES} dialogue rule: <= {DIALOGUE_MAX_DIGITS} digit-widths without linebreak AND < {DIALOGUE_MAX_LINES} linebreaks (<= {DIALOGUE_MAX_LINES} lines).\n"
-+            "Measured with the fixed reference font calibrated to the in-game dialogue box (NGUI tags excluded)."
++            "Line widths measured in the active editor font against a fixed reference boundary calibrated to the in-game box (NGUI tags excluded)."
          )
 ```
 
 This renders at runtime as:
 ```
 Native 54d x 3 dialogue rule: <= 54 digit-widths without linebreak AND < 3 linebreaks (<= 3 lines).
-Measured with the fixed reference font calibrated to the in-game dialogue box (NGUI tags excluded).
+Line widths measured in the active editor font against a fixed reference boundary calibrated to the in-game box (NGUI tags excluded).
 ```
 
-Line 5577 uses `f"..."` to interpolate `DIALOGUE_MAX_DIGITS` and `DIALOGUE_MAX_LINES` (future-proof). Line 5578 is a plain string (no `f` prefix) — it describes the reference font truthfully without interpolation. The old "active editor font" claim was inaccurate: the 54d boundary is calibrated from the locked Nunito Bold ruler font (`_get_ruler_measure_font` → `_get_54d_reference_safe_w`, `misora.py:13449-13453`), not the user's active editor font.
+Line 5577 uses `f"..."` to interpolate `DIALOGUE_MAX_DIGITS` and `DIALOGUE_MAX_LINES` (future-proof). Line 5578 is a plain string (no `f` prefix) — it describes the dual-font measurement truthfully without interpolation: rendered line widths use the active editor font (`_get_dialogue_measure_font`, `misora.py:13462`/`13493`), while the 54d boundary (`safe_w`) is calibrated from the locked Nunito Bold ruler font (`_get_ruler_measure_font` → `_get_54d_reference_safe_w`, `misora.py:13449-13463`).
 
 **Change 2 — Line 13423 (docstring of `_get_ruler_measure_font`):**
 
@@ -279,7 +279,7 @@ All Probes and Guards instantiate `MisoraApp(restore_session=False, show_splash=
 
 **Defect Probes (pre-patch MUST FAIL, post-patch MUST PASS):**
 
-- **Probe 1 — Tooltip string uses dynamic constants:** Access `self.app.lbl_char_overflow._tooltip.text`. Assert it contains `str(DIALOGUE_MAX_DIGITS)` (i.e. `"54"`) and does NOT contain the stale literal `"50 x 3"` or `"50 digit-widths"`. Also assert it contains `"fixed reference font"` (updated line 5578 wording).
+- **Probe 1 — Tooltip string uses dynamic constants:** Access `self.app.lbl_char_overflow._tooltip.text`. Assert it contains `str(DIALOGUE_MAX_DIGITS)` (i.e. `"54"`) and does NOT contain the stale literal `"50 x 3"` or `"50 digit-widths"`. Also assert it contains both `"active editor font"` and `"fixed reference boundary"` (updated line 5578 wording).
 
 - **Probe 2 — `_update_char_overflow_indicator` docstring:** Assert `self.app._update_char_overflow_indicator.__doc__` contains `"54d"` and does not contain `"50d"`.
 
@@ -393,7 +393,7 @@ All items are `MANUAL-PENDING` until operator confirmation.
 
 | ID | Check | DPI | Steps | Expected | Status |
 |----|-------|-----|-------|----------|--------|
-| **M-1** | Tooltip text at 100% DPI | 100% | Hover over `lbl_char_overflow` (the `0/54d · 1/3L` indicator label) for >350ms | Tooltip reads: `"Native 54d x 3 dialogue rule: <= 54 digit-widths without linebreak AND < 3 linebreaks (<= 3 lines)."` + `"\nMeasured with the fixed reference font calibrated to the in-game dialogue box (NGUI tags excluded)."` | `MANUAL-PENDING` |
+| **M-1** | Tooltip text at 100% DPI | 100% | Hover over `lbl_char_overflow` (the `0/54d · 1/3L` indicator label) for >350ms | Tooltip reads: `"Native 54d x 3 dialogue rule: <= 54 digit-widths without linebreak AND < 3 linebreaks (<= 3 lines)."` + `"\nLine widths measured in the active editor font against a fixed reference boundary calibrated to the in-game box (NGUI tags excluded)."` | `MANUAL-PENDING` |
 | **M-2** | Tooltip text at 125% DPI | 125% | Same as M-1 | Same expected text as M-1 | `MANUAL-PENDING` |
 | **M-3** | Next/Prev tooltips unaffected | 100% | Hover over Next button, then Prev button | `"Next Dialogue Box (Alt+Right / Alt+Down)"` / `"Previous Dialogue Box (Alt+Left / Alt+Up)"` unchanged | `MANUAL-PENDING` |
 | **M-4** | Label text dynamic update | 100% | Type >54 characters in dialogue, verify label turns red and shows `>54/54d` | Label updates correctly, tooltip unchanged | `MANUAL-PENDING` |
@@ -405,7 +405,7 @@ All items are `MANUAL-PENDING` until operator confirmation.
 T-02 row in §A table, after execution:
 
 ```markdown
-| **T-02** | `u-08` | `CONFIRMED` | `ACTIVE` | **Report:** Overflow indicator tooltip (`lbl_char_overflow`) displayed stale `"50 x 3"` / `"50 digit-widths"` instead of dynamic `"54d x 3"` / `"54 digit-widths"`. **Root cause:** hardcoded tooltip string not updated when `DIALOGUE_MAX_DIGITS` changed from 50 to 54 in S09 (font calibration established constant Nunito Bold 54d reference, superseding the earlier 50-digit figure). **Fix:** line 5577 converted to dynamic f-string using `DIALOGUE_MAX_DIGITS`/`DIALOGUE_MAX_LINES` constants; line 5578 updated to describe fixed reference font accurately; 3 stale docstrings (`_get_ruler_measure_font`, `_update_char_overflow_indicator`, `_draw_single_pixel_ruler`) corrected from `50d`/`50` to `54d`/`54`. Protected by `tests/test_t02_next_tooltip.py` (4 Probes + 4 Guards). **Automated TDD: `PASS`.** Windows QA `M-1..M-4`: `MANUAL-PENDING` (keep `ACTIVE` until manual QA passes). **Clarification:** original report said "Next-button tooltip" but the stale string was on `lbl_char_overflow`, the overflow indicator label adjacent to the Next button; the Next button's own tooltip was always correct. **Note:** T-01 `M-1..M-12` closeout is tracked separately under T-01 and is not gated by T-02. |
+| **T-02** | `u-08` | `CONFIRMED` | `ACTIVE` | **Report:** Overflow indicator tooltip (`lbl_char_overflow`) displayed stale `"50 x 3"` / `"50 digit-widths"` instead of dynamic `"54d x 3"` / `"54 digit-widths"`. **Root cause:** hardcoded tooltip string not updated when `DIALOGUE_MAX_DIGITS` changed from 50 to 54 in S09 (font calibration established constant Nunito Bold 54d reference, superseding the earlier 50-digit figure). **Fix:** line 5577 converted to dynamic f-string using `DIALOGUE_MAX_DIGITS`/`DIALOGUE_MAX_LINES` constants; line 5578 updated to describe the dual-font scheme (active editor font widths against fixed reference boundary) accurately; 3 stale docstrings (`_get_ruler_measure_font`, `_update_char_overflow_indicator`, `_draw_single_pixel_ruler`) corrected from `50d`/`50` to `54d`/`54`. Protected by `tests/test_t02_next_tooltip.py` (4 Probes + 4 Guards). **Automated TDD: `PASS`.** Windows QA `M-1..M-4`: `MANUAL-PENDING` (keep `ACTIVE` until manual QA passes). **Clarification:** original report said "Next-button tooltip" but the stale string was on `lbl_char_overflow`, the overflow indicator label adjacent to the Next button; the Next button's own tooltip was always correct. **Note:** T-01 `M-1..M-12` closeout is tracked separately under T-01 and is not gated by T-02. |
 ```
 
 ---
