@@ -1,0 +1,911 @@
+# Misora POST-T-04 — AST Static Analysis Report
+
+**Scan date:** 2026-11-28  
+**Baseline HEAD:** `8affb7c53b6af6047ace423c7e4d830a978eb644`  
+**Scanner:** `scan_static_ast.py` (stdlib `ast` module, zero .pyc writes)  
+**Production scope:** `misora.py`, `core/**/*.py`, `assets/**/*.py`  
+**Cross-reference scope:** ALL repo `.py` files + `.bat` launchers
+
+**Production files scanned:** 33  
+**Total .py files scanned:** 103  
+**BAT files scanned:** 3
+
+## 1. Duplicate Functions / Methods (Silent Shadowing)
+
+**2 finding(s):**
+
+- `misora.py:3143` — Duplicate method `MisoraApp.dialogue_font_family` (first at line 3138)
+- `misora.py:3155` — Duplicate method `MisoraApp.dialogue_font_size` (first at line 3150)
+
+## 2. Unreachable Statements
+
+*No findings.*
+
+## 3. Mutable Default Arguments
+
+*No findings.*
+
+## 4. Zero-Caller Dead-Code Candidates
+
+> **CAVEAT:** Token counts include comments/docstrings and miss dynamic Tk dispatch (`command=`, `.bind(`, `.after(`, `.protocol(`, `getattr`, `hasattr`). Items are `UNVERIFIED-DEAD` ONLY — **never declare dead without manual verification**.
+
+**501 finding(s):**
+
+- `core/xuat_cleanup.py:110` — UNVERIFIED-DEAD: `CleanupAnalysis.selected_candidates` (method) — token count: 1 (includes definition)
+- `core/font_manager.py:223` — UNVERIFIED-DEAD: `FontManager.resolve_font_family` (method) — token count: 1 (includes definition)
+- `misora.py:20768` — UNVERIFIED-DEAD: `ImportFromXUATDialog._build_section_header` (method) — token count: 1 (includes definition)
+- `misora.py:21424` — UNVERIFIED-DEAD: `ImportFromXUATDialog._select_candidate` (method) — token count: 1 (includes definition)
+- `misora.py:10640` — UNVERIFIED-DEAD: `MisoraApp._card_shortcut_wrap` (method) — token count: 1 (includes definition)
+- `misora.py:10632` — UNVERIFIED-DEAD: `MisoraApp._copy_single_card_dialogue` (method) — token count: 1 (includes definition)
+- `misora.py:12514` — UNVERIFIED-DEAD: `MisoraApp._nearest_continuous_box_to_index` (method) — token count: 1 (includes definition)
+- `misora.py:10681` — UNVERIFIED-DEAD: `MisoraApp._on_cont_mousewheel` (method) — token count: 1 (includes definition)
+- `misora.py:10689` — UNVERIFIED-DEAD: `MisoraApp._resize_cont_canvas` (method) — token count: 1 (includes definition)
+- `misora.py:16906` — UNVERIFIED-DEAD: `MisoraApp.on_open_bepinex_folder` (method) — token count: 1 (includes definition)
+- `tests/test_phase1_manual_verification.py:332` — UNVERIFIED-DEAD: `TestContinuousView.test_card_paste_caret_undo_redo_save_reload` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:248` — UNVERIFIED-DEAD: `TestMisoraCore.test_12_metadata_insertion_then_dialogue_edit_writes_correct_record` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:275` — UNVERIFIED-DEAD: `TestMisoraCore.test_13_structural_insert_delete_move_clone_binary_roundtrip` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:318` — UNVERIFIED-DEAD: `TestMisoraCore.test_14_multisegment_clone_preserves_segment_count` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:336` — UNVERIFIED-DEAD: `TestMisoraCore.test_15_empty_text_and_narration_preserve_arity_and_no_phantom` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:358` — UNVERIFIED-DEAD: `TestMisoraCore.test_16_v2_roundtrip_lossless` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:385` — UNVERIFIED-DEAD: `TestMisoraCore.test_17_unmodified_fixture_bundle_save_byte_exact` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:420` — UNVERIFIED-DEAD: `TestMisoraCore.test_18_forced_verification_failure_leaves_original_unchanged` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:443` — UNVERIFIED-DEAD: `TestMisoraCore.test_19_multiline_xuat_sync_stays_one_physical_line` (method) — token count: 1 (includes definition)
+- `tests/test_misora_core.py:476` — UNVERIFIED-DEAD: `TestMisoraCore.test_20_second_save_of_same_box_still_syncs_with_immutable_jp_key` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:49` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_01_two_way_project_folder_linking` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:68` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_02_scope_switch_preserves_project_and_folder_paths` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:95` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_03_config_backward_compatibility` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:113` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_04_framework_agnostic_folder_resolution` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:147` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_05_dnd_folder_scope_actions` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:162` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_06_process_opened_folder_empty` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:172` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_07_process_opened_folder_single_file` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:183` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_08_line_numbers_and_ruler_toggles` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:209` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_09_undo_redo_shortcuts_and_dialogue_binding` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:216` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_10_theme_swatches_and_commit_hex` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:224` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_11_ribbon_compact_buttons_and_undo_redo` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:236` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_12_inject_box_no_trailing_spaces` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:252` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_13_editor_clean_one_pixel_borders` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:259` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_14_box0_metadata_navigation_and_ui` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:288` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_15_box0_metadata_editing_and_undo_redo` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:325` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_16_box0_continuous_view_rendering` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:351` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_17_search_finds_metadata_and_jumps_to_box0` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:374` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_18_custom_theme_apply` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:380` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_19_opened_files_context_menu_close_others_and_all` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:420` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_20_seamless_cursor_and_box_sync` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:448` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_21_plain_text_editing_and_save_continuous_and_page` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:501` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_22_single_root_splash_speaker_and_continuous_binding` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:529` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_23_paste_cross_box_smart_plain_text` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:574` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_24_paste_cross_box_delimited` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:605` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_25_continuous_card_stream_edit_sync_and_retention` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:640` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_26_paste_script_triple_enter` (method) — token count: 1 (includes definition)
+- `tests/test_misora_ui_integration.py:681` — UNVERIFIED-DEAD: `TestMisoraUIIntegration.test_27_box0_speaker_disabled_and_protected` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:260` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_guard_1_lead_ruling_a_commands_35_and_32_invariance` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:280` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_guard_2_tap_breaker_and_voice_cue_and_dialogue_projection` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:295` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_guard_3_existing_core_suite_and_empty_arg_sentinel_intact` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:55` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_probe_1_bug01_strict_binary_parse_validation` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:77` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_probe_2_bug03_cmd0_binary_serialization_not_remapped` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:91` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_probe_3_bug03_lossless_v2_whitespace_categories_literal_b64` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:145` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_probe_4_bug04_midscript_breakers_split_same_speaker_boxes` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:161` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_probe_5_bug09_synthetic_multi_object_non_target_verification` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s03_binary_v2.py:227` — UNVERIFIED-DEAD: `TestP3S03BinaryV2.test_probe_6_bug03_raw_view_highlights_single_arg_title_cmd0` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s04_ast_mutations.py:340` — UNVERIFIED-DEAD: `TestP3S04AstMutations.test_guard_1_lightweight_ast_binary_invariance` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s04_ast_mutations.py:51` — UNVERIFIED-DEAD: `TestP3S04AstMutations.test_probe_1_bug02_kind_conversion_box_separation_no_collapse` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s04_ast_mutations.py:100` — UNVERIFIED-DEAD: `TestP3S04AstMutations.test_probe_2_bug05_structural_ownership_voice_and_breakers` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s04_ast_mutations.py:163` — UNVERIFIED-DEAD: `TestP3S04AstMutations.test_probe_3_bug06_multisegment_undo_and_internal_box_paste` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s04_ast_mutations.py:243` — UNVERIFIED-DEAD: `TestP3S04AstMutations.test_probe_4_bug17_uid_coalesce_and_seg_texts_propagation` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s04_ast_mutations.py:322` — UNVERIFIED-DEAD: `TestP3S04AstMutations.test_probe_5_hyg04_bounded_removed_records` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s05_treeview_csif.py:279` — UNVERIFIED-DEAD: `TestP3S05TreeviewCsif.test_guard_1_lightweight_csif_contracts` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s05_treeview_csif.py:53` — UNVERIFIED-DEAD: `TestP3S05TreeviewCsif.test_probe_1_bug31_treeview_theme_contrast` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s05_treeview_csif.py:113` — UNVERIFIED-DEAD: `TestP3S05TreeviewCsif.test_probe_2_bug07_atomic_sparse_csif_and_metadata` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s05_treeview_csif.py:233` — UNVERIFIED-DEAD: `TestP3S05TreeviewCsif.test_probe_3_bug08_backslash_parity_csif_roundtrip` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s06_doc_state_save.py:321` — UNVERIFIED-DEAD: `TestP3S06DocStateSave.test_guard_1_s1_s2_s3_s8b3_core_contracts` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s06_doc_state_save.py:97` — UNVERIFIED-DEAD: `TestP3S06DocStateSave.test_probe_1_bug11_plain_text_preview_save_preserves_tags` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s06_doc_state_save.py:131` — UNVERIFIED-DEAD: `TestP3S06DocStateSave.test_probe_2_bug12_per_document_state_locks_and_inactive_save` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s06_doc_state_save.py:225` — UNVERIFIED-DEAD: `TestP3S06DocStateSave.test_probe_3_bug18_write_atomic_encoded_lf_and_export_script` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s06_doc_state_save.py:260` — UNVERIFIED-DEAD: `TestP3S06DocStateSave.test_probe_4_bug19_zero_box_story_saves_cleanly` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s07_undo_locks_raw.py:304` — UNVERIFIED-DEAD: `TestP3S07UndoLocksRaw.test_guard_1_lightweight_contracts` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s07_undo_locks_raw.py:91` — UNVERIFIED-DEAD: `TestP3S07UndoLocksRaw.test_probe_1_bug10_caret_paste_dirty_and_lock` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s07_undo_locks_raw.py:137` — UNVERIFIED-DEAD: `TestP3S07UndoLocksRaw.test_probe_2_bug13_mutate_before_undo_error_surfaced` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s07_undo_locks_raw.py:168` — UNVERIFIED-DEAD: `TestP3S07UndoLocksRaw.test_probe_3_bug15_non_contiguous_cut_undo_redo_and_locks` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s07_undo_locks_raw.py:222` — UNVERIFIED-DEAD: `TestP3S07UndoLocksRaw.test_probe_4_bug16_lock_enforcement_skeleton_and_translator` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s07_undo_locks_raw.py:276` — UNVERIFIED-DEAD: `TestP3S07UndoLocksRaw.test_probe_5_bug37_raw_view_read_only` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s08_search_roots_focus.py:377` — UNVERIFIED-DEAD: `TestP3S08SearchRootsFocus.test_guard_1_combining_character_normalization_retained` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s08_search_roots_focus.py:385` — UNVERIFIED-DEAD: `TestP3S08SearchRootsFocus.test_guard_2_background_search_posts_finished_in_finally` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s08_search_roots_focus.py:84` — UNVERIFIED-DEAD: `TestP3S08SearchRootsFocus.test_probe_1_bug_21_case_sensitive_whitespace_search` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s08_search_roots_focus.py:136` — UNVERIFIED-DEAD: `TestP3S08SearchRootsFocus.test_probe_2_bug_22_errors_snapshots_sequences_spans` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s08_search_roots_focus.py:239` — UNVERIFIED-DEAD: `TestP3S08SearchRootsFocus.test_probe_3_bug_23_bounded_project_roots_and_replacement` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s08_search_roots_focus.py:306` — UNVERIFIED-DEAD: `TestP3S08SearchRootsFocus.test_probe_4_bug_30_search_focus_gutter_and_noop_keyrelease` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:475` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_guard_1_collision_resistant_pattern_compatibility` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:489` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_guard_2_open_doc_key_normalizer` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:174` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_probe_1a_bulk_undo_cache_keys_and_env_disposal` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:224` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_probe_1b_replace_next_shared_matcher_and_skip_locked` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:268` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_probe_1c_multi_file_replace_all_enforces_locks` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:311` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_probe_1d_closed_file_undo_confirmation_no_corruption` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:341` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_probe_1e_inactive_open_bundle_cache_refreshed_on_replace_all` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:394` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_probe_1f_replace_options_matrix` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s09_replace_all_backups.py:435` — UNVERIFIED-DEAD: `TestP3S09ReplaceAllBackups.test_probe_2_collision_resistant_backups` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s10_xuat_integrity.py:320` — UNVERIFIED-DEAD: `TestP3S10XuatIntegrity.test_guard_1_xuat_line_parsing_and_value_escaping` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s10_xuat_integrity.py:346` — UNVERIFIED-DEAD: `TestP3S10XuatIntegrity.test_guard_2_sync_manager_registration_contracts` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s10_xuat_integrity.py:63` — UNVERIFIED-DEAD: `TestP3S10XuatIntegrity.test_probe_1_bug25_immutable_jp_key_and_conflict_preview_gate` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s10_xuat_integrity.py:266` — UNVERIFIED-DEAD: `TestP3S10XuatIntegrity.test_probe_2_bug26_find_and_update_atomic_write_preserves_bom_and_crlf` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:450` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_guard_1_mtl_engine_ngui_tagmasker_contract` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:459` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_guard_2_batch_translate_clean_run_lifecycle` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:98` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_probe_1_bug27_zero_after_idle_in_async_paths` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:138` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_probe_1b_bug27_stale_identity_guard_on_doc_switch` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:201` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_probe_1c_bug27_stale_identity_guard_on_source_edit` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:251` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_probe_1d_bug27_target_reresolved_by_box_uid_on_insertion` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:315` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_probe_1e_bug27_translator_assistant_stale_identity_guard` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:364` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_probe_1f_bug27_mtl_settings_connection_test_queue_delivery` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s11_mtl_threading.py:387` — UNVERIFIED-DEAD: `TestP3S11MTLThreading.test_probe_2_bug14_batch_cancel_tracks_batch_open_and_ends_once` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s12_lifecycle_security.py:104` — UNVERIFIED-DEAD: `TestP3S12LifecycleSecurity.test_01_logger_flush_barrier_and_app_teardown` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s12_lifecycle_security.py:178` — UNVERIFIED-DEAD: `TestP3S12LifecycleSecurity.test_02_dpapi_fail_closed_and_ciphertext_preservation` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s12_lifecycle_security.py:257` — UNVERIFIED-DEAD: `TestP3S12LifecycleSecurity.test_03_reload_from_disk_disposes_prior_env` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s12_lifecycle_security.py:319` — UNVERIFIED-DEAD: `TestP3S12LifecycleSecurity.test_04_deferred_startup_restore_after_deiconify` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s12_lifecycle_security.py:378` — UNVERIFIED-DEAD: `TestP3S12LifecycleSecurity.test_05_splash_images_sort_key_guards_non_numeric` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s12_lifecycle_security.py:411` — UNVERIFIED-DEAD: `TestP3S12LifecycleSecurity.test_06_regression_guard_performance_config` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s12_lifecycle_security.py:423` — UNVERIFIED-DEAD: `TestP3S12LifecycleSecurity.test_07_regression_guard_mtl_security` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s13_ribbon_shortcuts.py:328` — UNVERIFIED-DEAD: `TestP3S13RibbonShortcuts.test_guard_01_native_shortcuts_and_text_paste_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s13_ribbon_shortcuts.py:122` — UNVERIFIED-DEAD: `TestP3S13RibbonShortcuts.test_probe_01_bug28_ribbon_and_size_commit_targets` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s13_ribbon_shortcuts.py:200` — UNVERIFIED-DEAD: `TestP3S13RibbonShortcuts.test_probe_02_bug29_hyg07_shortcut_table_reconciliation` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s13_ribbon_shortcuts.py:287` — UNVERIFIED-DEAD: `TestP3S13RibbonShortcuts.test_probe_03_hyg03_ribbon_tooltips_and_fallbacks` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s14_toolbar_search_ui.py:52` — UNVERIFIED-DEAD: `TestP3S14ToolbarSearchUI.test_guard_01_core_ui_and_shortcuts_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s14_toolbar_search_ui.py:69` — UNVERIFIED-DEAD: `TestP3S14ToolbarSearchUI.test_probe_01_bug38_search_grid_alignment` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s14_toolbar_search_ui.py:121` — UNVERIFIED-DEAD: `TestP3S14ToolbarSearchUI.test_probe_02_feat01_scope_current_unmaps_path_widgets` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s14_toolbar_search_ui.py:168` — UNVERIFIED-DEAD: `TestP3S14ToolbarSearchUI.test_probe_03_feat02_feat03_player_ribbon_headers` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s14_toolbar_search_ui.py:240` — UNVERIFIED-DEAD: `TestP3S14ToolbarSearchUI.test_probe_04_bug39_feat04_responsive_rows_and_ngui_toggle` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s15_selection_drawer_open.py:303` — UNVERIFIED-DEAD: `TestP3S15SelectionDrawerOpen.test_guard_1_core_invariants_and_dialogue_commit` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s15_selection_drawer_open.py:75` — UNVERIFIED-DEAD: `TestP3S15SelectionDrawerOpen.test_probe_1_bug41_feat05_select_box_both_views_and_reserved_slot` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s15_selection_drawer_open.py:172` — UNVERIFIED-DEAD: `TestP3S15SelectionDrawerOpen.test_probe_2_feat06_collapsible_left_drawer` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s15_selection_drawer_open.py:223` — UNVERIFIED-DEAD: `TestP3S15SelectionDrawerOpen.test_probe_3_feat07_empty_state_and_batched_multi_open` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s16_misora_workspace.py:291` — UNVERIFIED-DEAD: `TestP3S16MisoraWorkspace.test_guard_1_s06_locks_and_s15_ui_contracts` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s16_misora_workspace.py:93` — UNVERIFIED-DEAD: `TestP3S16MisoraWorkspace.test_probe_1_save_misora_v1_schema_refs_state_locks_only` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s16_misora_workspace.py:168` — UNVERIFIED-DEAD: `TestP3S16MisoraWorkspace.test_probe_2_open_misora_restores_state_and_rejects_unmatched_locks` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s16_misora_workspace.py:235` — UNVERIFIED-DEAD: `TestP3S16MisoraWorkspace.test_probe_3_ub18_project_diff_and_cancel_abort` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s18_game_preview.py:88` — UNVERIFIED-DEAD: `TestP3S18GamePreview.test_01_probe_dialogue_preview_frame_bleed_restore_and_cstyle_sweep` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s18_game_preview.py:156` — UNVERIFIED-DEAD: `TestP3S18GamePreview.test_02_probe_all_script_preview_lightweight_frames_no_canvas` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s18_game_preview.py:185` — UNVERIFIED-DEAD: `TestP3S18GamePreview.test_03_guard_plain_text_preview_save_and_pixel_measure_intact` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s19_raw_commands_edit.py:192` — UNVERIFIED-DEAD: `TestP3S19RawCommandsEdit.test_guard_1_v2_codec_and_readonly_raw_contracts` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s19_raw_commands_edit.py:75` — UNVERIFIED-DEAD: `TestP3S19RawCommandsEdit.test_probe_1_edit_vo_cue_confirm_yes_remap_locks_and_undo` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s19_raw_commands_edit.py:133` — UNVERIFIED-DEAD: `TestP3S19RawCommandsEdit.test_probe_2_corrupted_v2_aborts_reverts_and_leaves_state_unchanged` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s19_raw_commands_edit.py:163` — UNVERIFIED-DEAD: `TestP3S19RawCommandsEdit.test_probe_3_confirm_no_leaves_document_unchanged` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s20_mtl_drawer_dialogue.py:227` — UNVERIFIED-DEAD: `TestP3S20MTLDrawerDialogue.test_guard_1_translator_assistant_dialog_import_and_queue_contract` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s20_mtl_drawer_dialogue.py:84` — UNVERIFIED-DEAD: `TestP3S20MTLDrawerDialogue.test_probe_1_mtl_drawer_tab_dialogue_stack_lock_whitespace_and_paid_confirm` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s20_mtl_drawer_dialogue.py:171` — UNVERIFIED-DEAD: `TestP3S20MTLDrawerDialogue.test_probe_2_mtl_drawer_stale_file_switch_discards_result` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s21_mtl_drawer_all_script.py:226` — UNVERIFIED-DEAD: `TestP3S21MTLDrawerAllScript.test_guard_1_dialogue_mode_and_mtl_engine_contract` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s21_mtl_drawer_all_script.py:99` — UNVERIFIED-DEAD: `TestP3S21MTLDrawerAllScript.test_probe_1_all_script_mode_exact_2_text_widgets_and_5_static_tags` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s21_mtl_drawer_all_script.py:165` — UNVERIFIED-DEAD: `TestP3S21MTLDrawerAllScript.test_probe_2_translate_all_and_apply_all_lock_uid_and_whitespace` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s22_import_xuat.py:349` — UNVERIFIED-DEAD: `TestP3S22ImportXUAT.test_guard_1_s10_s06_s21_contracts` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s22_import_xuat.py:126` — UNVERIFIED-DEAD: `TestP3S22ImportXUAT.test_probe_1_xuat_index_strict_unescape_norm_and_o1` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s22_import_xuat.py:175` — UNVERIFIED-DEAD: `TestP3S22ImportXUAT.test_probe_2_import_dialog_paired_3x50_readonly_and_duplicates` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s22_import_xuat.py:269` — UNVERIFIED-DEAD: `TestP3S22ImportXUAT.test_probe_3_pre_apply_prompt_atomic_undo_and_no_xuat_pruning` (method) — token count: 1 (includes definition)
+- `tests/test_phase1_manual_verification.py:205` — UNVERIFIED-DEAD: `TestPageView.test_multibox_paste_undo_redo_save_reload` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:82` — UNVERIFIED-DEAD: `TestPhase2Required.test_28_box_copy_paste_insert_produces_new_boxes_and_speakers` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:120` — UNVERIFIED-DEAD: `TestPhase2Required.test_29_meta_payload_routes_to_box0` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:146` — UNVERIFIED-DEAD: `TestPhase2Required.test_30_ctrl_z_undoes_whole_multi_box_insert` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:172` — UNVERIFIED-DEAD: `TestPhase2Required.test_31_ctrl_h_does_not_mutate_dialogue_buffer` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:197` — UNVERIFIED-DEAD: `TestPhase2Required.test_32_ctrl_t_does_not_mutate_dialogue_buffer` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:224` — UNVERIFIED-DEAD: `TestPhase2Required.test_33_box0_save_leaves_dialogue_byte_identical` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:255` — UNVERIFIED-DEAD: `TestPhase2Required.test_34_undo_to_saved_revision_clears_dirty` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:314` — UNVERIFIED-DEAD: `TestPhase2Required.test_35_stale_internal_box_snapshot_discarded` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:353` — UNVERIFIED-DEAD: `TestPhase2Required.test_36_shortcut_wrap_persists_and_undos` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:394` — UNVERIFIED-DEAD: `TestPhase2Required.test_37_size_insertion_persists_and_undos` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:464` — UNVERIFIED-DEAD: `TestPhase2RequiredNoFixture.test_38_on_box_copy_emits_csif` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:482` — UNVERIFIED-DEAD: `TestPhase2RequiredNoFixture.test_39_revision_dirty_tracking` (method) — token count: 1 (includes definition)
+- `tests/test_phase2_required.py:511` — UNVERIFIED-DEAD: `TestPhase2RequiredNoFixture.test_40_safe_clipboard_retry_on_tclerror` (method) — token count: 1 (includes definition)
+- `tests/test_phase3_performance_config.py:33` — UNVERIFIED-DEAD: `TestPhase3PerformanceAndConfig.test_01_core_import_does_not_load_unitypy` (method) — token count: 1 (includes definition)
+- `tests/test_phase3_performance_config.py:47` — UNVERIFIED-DEAD: `TestPhase3PerformanceAndConfig.test_02_unitypy_lazy_load_under_lock` (method) — token count: 1 (includes definition)
+- `tests/test_phase3_performance_config.py:54` — UNVERIFIED-DEAD: `TestPhase3PerformanceAndConfig.test_03_logger_async_background_writer` (method) — token count: 1 (includes definition)
+- `tests/test_phase3_performance_config.py:82` — UNVERIFIED-DEAD: `TestPhase3PerformanceAndConfig.test_04_config_corrupt_preserves_bak_recovery_copy` (method) — token count: 1 (includes definition)
+- `tests/test_phase3_performance_config.py:109` — UNVERIFIED-DEAD: `TestPhase3PerformanceAndConfig.test_05_clean_committed_config_has_no_machine_paths` (method) — token count: 1 (includes definition)
+- `tests/test_phase3_performance_config.py:125` — UNVERIFIED-DEAD: `TestPhase3PerformanceAndConfig.test_06_misora_bat_has_no_unitypy_probe_loops` (method) — token count: 1 (includes definition)
+- `tests/test_phase4_import_export_preview.py:81` — UNVERIFIED-DEAD: `TestPhase4ImportExportPreview.test_01_version_unification` (method) — token count: 1 (includes definition)
+- `tests/test_phase4_import_export_preview.py:120` — UNVERIFIED-DEAD: `TestPhase4ImportExportPreview.test_02_tooltip_lifecycle_safe` (method) — token count: 1 (includes definition)
+- `tests/test_phase4_import_export_preview.py:160` — UNVERIFIED-DEAD: `TestPhase4ImportExportPreview.test_03_csif_export` (method) — token count: 1 (includes definition)
+- `tests/test_phase4_import_export_preview.py:191` — UNVERIFIED-DEAD: `TestPhase4ImportExportPreview.test_04_csif_import_and_preview_dialog` (method) — token count: 1 (includes definition)
+- `tests/test_phase4_import_export_preview.py:243` — UNVERIFIED-DEAD: `TestPhase4ImportExportPreview.test_05_menu_interchange_bindings_and_roundtrip` (method) — token count: 1 (includes definition)
+- `tests/test_phase5_mtl_security_preview.py:93` — UNVERIFIED-DEAD: `TestPhase5MTLSecurityPreview.test_01_ngui_tags_central_and_tagmasker` (method) — token count: 1 (includes definition)
+- `tests/test_phase5_mtl_security_preview.py:139` — UNVERIFIED-DEAD: `TestPhase5MTLSecurityPreview.test_02_security_dpapi_and_redaction` (method) — token count: 1 (includes definition)
+- `tests/test_phase5_mtl_security_preview.py:171` — UNVERIFIED-DEAD: `TestPhase5MTLSecurityPreview.test_03_tls_verification_enforced` (method) — token count: 1 (includes definition)
+- `tests/test_phase5_mtl_security_preview.py:180` — UNVERIFIED-DEAD: `TestPhase5MTLSecurityPreview.test_04_deepl_usage_connection_test` (method) — token count: 1 (includes definition)
+- `tests/test_phase5_mtl_security_preview.py:201` — UNVERIFIED-DEAD: `TestPhase5MTLSecurityPreview.test_05_translation_lock_operations` (method) — token count: 1 (includes definition)
+- `tests/test_phase5_mtl_security_preview.py:254` — UNVERIFIED-DEAD: `TestPhase5MTLSecurityPreview.test_06_rendered_char_counter_and_overflow` (method) — token count: 1 (includes definition)
+- `tests/test_phase5_mtl_security_preview.py:277` — UNVERIFIED-DEAD: `TestPhase5MTLSecurityPreview.test_07_find_replace_buttons_alignment_and_icons` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s17_pixel_rulers.py:90` — UNVERIFIED-DEAD: `TestS17PixelRulers.test_01_probe_pixel_measure_rulers_and_overflow` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s17_pixel_rulers.py:154` — UNVERIFIED-DEAD: `TestS17PixelRulers.test_02_guard_measure_line_lengths_intact` (method) — token count: 1 (includes definition)
+- `tests/test_s1_open_file_safety.py:72` — UNVERIFIED-DEAD: `TestS1OpenFileSafety.test_1_failed_bundle_load_preserves_document_a` (method) — token count: 1 (includes definition)
+- `tests/test_s1_open_file_safety.py:109` — UNVERIFIED-DEAD: `TestS1OpenFileSafety.test_2_invalid_utf8_real_bytes_preserves_document_a` (method) — token count: 1 (includes definition)
+- `tests/test_s1_open_file_safety.py:140` — UNVERIFIED-DEAD: `TestS1OpenFileSafety.test_3_malformed_v2_parse_failure_preserves_document_a` (method) — token count: 1 (includes definition)
+- `tests/test_s1_open_file_safety.py:161` — UNVERIFIED-DEAD: `TestS1OpenFileSafety.test_4_successful_load_regression` (method) — token count: 1 (includes definition)
+- `tests/test_s1_open_file_safety.py:187` — UNVERIFIED-DEAD: `TestS1OpenFileSafety.test_5_pending_edit_flush_on_fresh_cache_and_failure` (method) — token count: 1 (includes definition)
+- `tests/test_s1_open_file_safety.py:240` — UNVERIFIED-DEAD: `TestS1OpenFileSafety.test_6_failed_open_keeps_save_target_a` (method) — token count: 1 (includes definition)
+- `tests/test_s1_open_file_safety.py:254` — UNVERIFIED-DEAD: `TestS1OpenFileSafety.test_7_continuous_view_box0_edit_flush_on_switch` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s23_dead_code_cleanup.py:139` — UNVERIFIED-DEAD: `TestS23DeadCodeAndLabels.test_guard_update_gutter_clean_intact` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s23_dead_code_cleanup.py:124` — UNVERIFIED-DEAD: `TestS23DeadCodeAndLabels.test_probe_hyg08_ai_prompt_csif_wording` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s23_dead_code_cleanup.py:79` — UNVERIFIED-DEAD: `TestS23DeadCodeAndLabels.test_probe_hyg08_dead_methods_removed` (method) — token count: 1 (includes definition)
+- `tests/test_p3_s23_dead_code_cleanup.py:95` — UNVERIFIED-DEAD: `TestS23DeadCodeAndLabels.test_probe_hyg08_picker_hyphen_label_and_no_cwd_log` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:100` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_01_cross_file_false_clean_clobber` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:155` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_02_true_noop_keyrelease_prevention` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:234` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_03_on_save_returns_true_and_scopes_clean` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:273` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_04_on_save_returns_false_on_primary_write_failure` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:296` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_05_on_save_returns_false_on_bundle_save_failure` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:321` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_06_on_save_returns_false_on_presave_failure_and_no_doc` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:350` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_07_on_save_xuat_failure_keeps_true_retains_modified_boxes` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:394` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_08_cache_hit_title_dock_parity` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:436` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_09_representative_mutation_paths_mark_per_doc_dirty` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:553` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_10_per_document_undo_to_saved_state_checkpoint_isolation` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:633` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_11_guard_single_document_lifecycle_and_reload_isolation` (method) — token count: 1 (includes definition)
+- `tests/test_s2_dirty_contract.py:707` — UNVERIFIED-DEAD: `TestS2DirtyContract.test_12_plain_text_cache_content_and_fingerprint_sync` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:75` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_01_close_clean_file_no_prompt` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:88` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_02_close_dirty_save_chosen_succeeds` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:105` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_03_close_dirty_save_chosen_fails` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:120` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_04_close_dirty_discard_chosen` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:135` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_05_close_dirty_cancel_chosen` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:149` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_06_checkpoint_pruned_on_close` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:160` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_07_app_exit_all_clean_no_prompts` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:171` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_08_app_exit_saves_dirty_doc_on_save` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:185` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_09_app_exit_cancel_aborts_exit` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:197` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_10_app_exit_discard_allows_exit` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:211` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_11_app_exit_save_fail_aborts_exit` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:224` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_12_atomic_write_no_tmp_left` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:233` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_13_atomic_write_failure_leaves_original` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:244` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_14_close_all_files_stops_on_cancel` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:263` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_15_app_exit_multiple_dirty_files_saved` (method) — token count: 1 (includes definition)
+- `tests/test_s3_document_close.py:281` — UNVERIFIED-DEAD: `TestS3DocumentClose.test_16_app_exit_multi_file_cancel_aborts` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:346` — UNVERIFIED-DEAD: `TestS4FocusSafety.test_07_focus_continuous_box_missing_idx_safe` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:357` — UNVERIFIED-DEAD: `TestS4FocusSafety.test_07b_focus_continuous_box_minus1_safe` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:254` — UNVERIFIED-DEAD: `TestS4ReEntrancy.test_06_suppress_events_reset_after_render_exception` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:304` — UNVERIFIED-DEAD: `TestS4RibbonGuard.test_05_ribbon_cut_on_stale_card_does_not_raise` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:312` — UNVERIFIED-DEAD: `TestS4RibbonGuard.test_05b_ribbon_copy_on_stale_card_does_not_raise` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:320` — UNVERIFIED-DEAD: `TestS4RibbonGuard.test_05c_ribbon_paste_on_stale_card_does_not_raise` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:328` — UNVERIFIED-DEAD: `TestS4RibbonGuard.test_05d_get_card_text_widget_returns_txt_dialogue_on_missing_idx` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:335` — UNVERIFIED-DEAD: `TestS4RibbonGuard.test_05e_get_card_text_widget_returns_txt_dialogue_on_dead_widget` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:180` — UNVERIFIED-DEAD: `TestS4StaleCardRegistry.test_01_card_registry_cleared_after_close_to_empty` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:209` — UNVERIFIED-DEAD: `TestS4StaleCardRegistry.test_02_card_registry_cleared_on_plain_text_switch` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:372` — UNVERIFIED-DEAD: `TestS4SuppressGuard.test_08_card_focus_in_during_suppress_is_noop` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:390` — UNVERIFIED-DEAD: `TestS4SuppressGuard.test_08b_card_text_edited_during_suppress_is_noop` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:412` — UNVERIFIED-DEAD: `TestS4ViewToggle.test_03_toggle_to_continuous_preserves_active_box` (method) — token count: 1 (includes definition)
+- `tests/test_s4_view_model_sync.py:441` — UNVERIFIED-DEAD: `TestS4ViewToggle.test_04_toggle_to_page_preserves_active_box` (method) — token count: 1 (includes definition)
+- `tests/test_s5_bulk_replace_safety.py:149` — UNVERIFIED-DEAD: `TestS5BulkDeltaAtomicAndSync.test_01_bulk_delta_undo_uses_atomic_write` (method) — token count: 1 (includes definition)
+- `tests/test_s5_bulk_replace_safety.py:163` — UNVERIFIED-DEAD: `TestS5BulkDeltaAtomicAndSync.test_02_bulk_delta_redo_uses_atomic_write` (method) — token count: 1 (includes definition)
+- `tests/test_s5_bulk_replace_safety.py:177` — UNVERIFIED-DEAD: `TestS5BulkDeltaAtomicAndSync.test_03_bulk_delta_undo_syncs_open_documents_cache` (method) — token count: 1 (includes definition)
+- `tests/test_s5_bulk_replace_safety.py:202` — UNVERIFIED-DEAD: `TestS5BulkDeltaAtomicAndSync.test_04_bulk_delta_redo_syncs_open_documents_cache` (method) — token count: 1 (includes definition)
+- `tests/test_s5_bulk_replace_safety.py:230` — UNVERIFIED-DEAD: `TestS5BulkDeltaRollback.test_05_bulk_delta_transaction_rollback_on_write_failure` (method) — token count: 1 (includes definition)
+- `tests/test_s5_bulk_replace_safety.py:267` — UNVERIFIED-DEAD: `TestS5ReplaceAllSafety.test_06_replace_all_text_uses_atomic_write` (method) — token count: 1 (includes definition)
+- `tests/test_s5_bulk_replace_safety.py:285` — UNVERIFIED-DEAD: `TestS5ReplaceAllSafety.test_07_replace_all_syncs_open_documents_cache` (method) — token count: 1 (includes definition)
+- `tests/test_s5_bulk_replace_safety.py:310` — UNVERIFIED-DEAD: `TestS5ReplaceAllSafety.test_08_replace_all_backup_created_before_atomic_write` (method) — token count: 1 (includes definition)
+- `tests/test_s6_threading_decoupling.py:152` — UNVERIFIED-DEAD: `TestS6BatchTranslateQueueDecoupling.test_03_batch_translate_worker_does_not_mutate_undo_journal` (method) — token count: 1 (includes definition)
+- `tests/test_s6_threading_decoupling.py:189` — UNVERIFIED-DEAD: `TestS6BatchTranslateQueueDecoupling.test_04_batch_translate_worker_does_not_mutate_story_document` (method) — token count: 1 (includes definition)
+- `tests/test_s6_threading_decoupling.py:225` — UNVERIFIED-DEAD: `TestS6BatchTranslateQueueDecoupling.test_05_batch_translate_applies_edits_on_main_thread` (method) — token count: 1 (includes definition)
+- `tests/test_s6_threading_decoupling.py:252` — UNVERIFIED-DEAD: `TestS6BatchTranslateQueueDecoupling.test_06_batch_translate_cancellation_stops_worker_and_ends_batch` (method) — token count: 1 (includes definition)
+- `tests/test_s6_threading_decoupling.py:283` — UNVERIFIED-DEAD: `TestS6BatchTranslateQueueDecoupling.test_07_batch_translate_worker_handles_translation_exception` (method) — token count: 1 (includes definition)
+- `tests/test_s6_threading_decoupling.py:315` — UNVERIFIED-DEAD: `TestS6BatchTranslateQueueDecoupling.test_08_batch_translate_closes_batch_in_finally` (method) — token count: 1 (includes definition)
+- `tests/test_s6_threading_decoupling.py:97` — UNVERIFIED-DEAD: `TestS6SearchSnapshotDecoupling.test_01_search_uses_immutable_document_snapshots` (method) — token count: 1 (includes definition)
+- `tests/test_s6_threading_decoupling.py:127` — UNVERIFIED-DEAD: `TestS6SearchSnapshotDecoupling.test_02_search_queue_always_posts_finished_in_finally` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:202` — UNVERIFIED-DEAD: `TestS7AppUndoAndSpeaker.test_05_app_multi_document_undo_isolation` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:254` — UNVERIFIED-DEAD: `TestS7AppUndoAndSpeaker.test_06_app_edit_menu_sync_per_file` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:273` — UNVERIFIED-DEAD: `TestS7AppUndoAndSpeaker.test_07_speaker_commit_never_passes_none_text_multi_segment` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:299` — UNVERIFIED-DEAD: `TestS7AppUndoAndSpeaker.test_08_speaker_commit_noop_guard` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:314` — UNVERIFIED-DEAD: `TestS7AppUndoAndSpeaker.test_09_speaker_commit_box0_protection` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:329` — UNVERIFIED-DEAD: `TestS7AppUndoAndSpeaker.test_10_speaker_commit_unified_delegation` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:81` — UNVERIFIED-DEAD: `TestS7JournalUnit.test_01_journal_per_file_stacks_isolated` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:113` — UNVERIFIED-DEAD: `TestS7JournalUnit.test_02_journal_per_file_revisions` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:142` — UNVERIFIED-DEAD: `TestS7JournalUnit.test_03_journal_prune_file` (method) — token count: 1 (includes definition)
+- `tests/test_s7_undo_speaker_safety.py:160` — UNVERIFIED-DEAD: `TestS7JournalUnit.test_04_journal_backward_compatibility_parameterless` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:122` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_01_safe_grab_release_helper` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:138` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_02_dnd_settings_dialog_grab_and_protocols` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:162` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_03_append_speaker_attribute_dialog_grab_and_escape` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:179` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_04_insert_ruby_dialog_grab_and_wm_delete` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:196` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_05_paths_dialog_grab_and_escape` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:213` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_06_script_paste_preview_dialog_escape_and_wm_delete` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:231` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_07_mtl_settings_dialog_vars_and_escape` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:247` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_08_ai_prompt_settings_dialog_vars_and_escape` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:263` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_09_translator_assistant_dialog_escape` (method) — token count: 1 (includes definition)
+- `tests/test_s8a_dialog_grab_safety.py:276` — UNVERIFIED-DEAD: `TestS8aDialogGrabSafety.test_10_batch_translate_dialog_wm_delete_and_vars` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:76` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_01_set_status_updates_label_and_contrast` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:88` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_02_set_status_timeout_auto_reset` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:100` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_03_show_toast_basic_display_and_dismissal` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:112` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_04_show_toast_syncs_status_bar` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:121` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_05_toast_queue_sequential_processing` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:141` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_06_toast_click_to_dismiss` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:158` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_07_report_callback_exception_surfaces_toast_and_status` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:172` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_08_toast_geometry_above_action_bar` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:187` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_09_destroy_cancels_all_timers_cleanly` (method) — token count: 1 (includes definition)
+- `tests/test_s8b1_notification_manager.py:204` — UNVERIFIED-DEAD: `TestS8b1NotificationManager.test_10_coalesce_duplicate_toasts` (method) — token count: 1 (includes definition)
+- `tests/test_s8b2_memory_guards.py:89` — UNVERIFIED-DEAD: `TestS8b2MemoryGuards.test_01_dispose_unity_env_breaks_circular_refs` (method) — token count: 1 (includes definition)
+- `tests/test_s8b2_memory_guards.py:105` — UNVERIFIED-DEAD: `TestS8b2MemoryGuards.test_02_save_bundle_story_disposes_check_env` (method) — token count: 1 (includes definition)
+- `tests/test_s8b2_memory_guards.py:131` — UNVERIFIED-DEAD: `TestS8b2MemoryGuards.test_03_search_engine_disposes_bundle_environments` (method) — token count: 1 (includes definition)
+- `tests/test_s8b2_memory_guards.py:154` — UNVERIFIED-DEAD: `TestS8b2MemoryGuards.test_04_close_file_disposes_environment` (method) — token count: 1 (includes definition)
+- `tests/test_s8b2_memory_guards.py:168` — UNVERIFIED-DEAD: `TestS8b2MemoryGuards.test_05_replace_all_disposes_environments` (method) — token count: 1 (includes definition)
+- `tests/test_s8b2_memory_guards.py:198` — UNVERIFIED-DEAD: `TestS8b2MemoryGuards.test_06_icon_cache_prunes_dead_widgets` (method) — token count: 1 (includes definition)
+- `tests/test_s8b2_memory_guards.py:218` — UNVERIFIED-DEAD: `TestS8b2MemoryGuards.test_07_icon_cache_bounds_maximum_capacity` (method) — token count: 1 (includes definition)
+- `tests/test_s8b2_memory_guards.py:233` — UNVERIFIED-DEAD: `TestS8b2MemoryGuards.test_08_color_picker_resets_parent_and_buffers` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:83` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_01_detect_utf8_with_bom` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:93` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_02_detect_utf8_without_bom` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:103` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_03_detect_utf16_le_and_be_bom` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:125` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_04_detect_cp932_japanese` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:136` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_05_strict_decode_raises_on_corrupt_bytes` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:143` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_06_encode_with_metadata_preserves_bom_and_crlf` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:159` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_07_open_file_strips_bom_and_remembers_encoding` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:185` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_08_replace_all_preserves_cp932_without_corrupting` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:213` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_09_replace_all_preserves_utf8_bom` (method) — token count: 1 (includes definition)
+- `tests/test_s8b3_encoding_detection.py:235` — UNVERIFIED-DEAD: `TestS8b3EncodingDetection.test_10_search_engine_finds_cp932_matches` (method) — token count: 1 (includes definition)
+- `tests/test_s8b4_ui_polishing.py:58` — UNVERIFIED-DEAD: `TestS8b4UIPolishing.test_01_dpi_startup_helper_callable` (method) — token count: 1 (includes definition)
+- `tests/test_s8b4_ui_polishing.py:66` — UNVERIFIED-DEAD: `TestS8b4UIPolishing.test_02_ast_eyedropper_no_runtime_dpi_mutation` (method) — token count: 1 (includes definition)
+- `tests/test_s8b4_ui_polishing.py:97` — UNVERIFIED-DEAD: `TestS8b4UIPolishing.test_03_paned_window_minsizes` (method) — token count: 1 (includes definition)
+- `tests/test_s8b4_ui_polishing.py:124` — UNVERIFIED-DEAD: `TestS8b4UIPolishing.test_04_dock_collapse_toggle_cycle` (method) — token count: 1 (includes definition)
+- `tests/test_s8b4_ui_polishing.py:154` — UNVERIFIED-DEAD: `TestS8b4UIPolishing.test_05_icon_buttons_fallback_text` (method) — token count: 1 (includes definition)
+- `tests/test_s8b4_ui_polishing.py:190` — UNVERIFIED-DEAD: `TestS8b4UIPolishing.test_06_icon_buttons_tooltips` (method) — token count: 1 (includes definition)
+- `tests/test_s8b4_ui_polishing.py:221` — UNVERIFIED-DEAD: `TestS8b4UIPolishing.test_07_theme_contrast_calculations` (method) — token count: 1 (includes definition)
+- `tests/test_s8b4_ui_polishing.py:235` — UNVERIFIED-DEAD: `TestS8b4UIPolishing.test_08_side_drawer_responsive_constraints` (method) — token count: 1 (includes definition)
+- `tests/test_s9a_search_unicode.py:29` — UNVERIFIED-DEAD: `TestS9aSearchUnicode.test_01_halfwidth_katakana_voiced_sound_marks` (method) — token count: 1 (includes definition)
+- `tests/test_s9a_search_unicode.py:47` — UNVERIFIED-DEAD: `TestS9aSearchUnicode.test_02_halfwidth_katakana_semivoiced_sound_marks` (method) — token count: 1 (includes definition)
+- `tests/test_s9a_search_unicode.py:62` — UNVERIFIED-DEAD: `TestS9aSearchUnicode.test_03_fullwidth_combining_voiced_sound_marks` (method) — token count: 1 (includes definition)
+- `tests/test_s9a_search_unicode.py:79` — UNVERIFIED-DEAD: `TestS9aSearchUnicode.test_04_fullwidth_combining_semivoiced_sound_marks` (method) — token count: 1 (includes definition)
+- `tests/test_s9a_search_unicode.py:95` — UNVERIFIED-DEAD: `TestS9aSearchUnicode.test_05_span_length_matches_normalized_text_length` (method) — token count: 1 (includes definition)
+- `tests/test_s9a_search_unicode.py:116` — UNVERIFIED-DEAD: `TestS9aSearchUnicode.test_06_norm_search_equivalence` (method) — token count: 1 (includes definition)
+- `tests/test_s9b_replace_all_bundle_safety.py:58` — UNVERIFIED-DEAD: `TestS9bReplaceAllBundleSafety.test_01_bundle_candidate_discovery_extracts_dialogue` (method) — token count: 1 (includes definition)
+- `tests/test_s9b_replace_all_bundle_safety.py:94` — UNVERIFIED-DEAD: `TestS9bReplaceAllBundleSafety.test_02_bundle_multi_file_replace_all_records_undo_delta` (method) — token count: 1 (includes definition)
+- `tests/test_s9b_replace_all_bundle_safety.py:158` — UNVERIFIED-DEAD: `TestS9bReplaceAllBundleSafety.test_03_bundle_rollback_on_write_failure` (method) — token count: 1 (includes definition)
+- `tests/test_s9c_workspace_safety.py:55` — UNVERIFIED-DEAD: `TestS9cWorkspaceSafety.test_01_multiple_folders_drop_notifies_user` (method) — token count: 1 (includes definition)
+- `tests/test_s9c_workspace_safety.py:82` — UNVERIFIED-DEAD: `TestS9cWorkspaceSafety.test_02_offscreen_geometry_sanitized_to_screen_bounds` (method) — token count: 1 (includes definition)
+- `tests/test_s9c_workspace_safety.py:104` — UNVERIFIED-DEAD: `TestS9cWorkspaceSafety.test_03_undo_coalesce_cross_source_isolation` (method) — token count: 1 (includes definition)
+- `tests/test_s9c_workspace_safety.py:159` — UNVERIFIED-DEAD: `TestS9cWorkspaceSafety.test_04_default_config_template_clean` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:185` — UNVERIFIED-DEAD: `TestScriptCodec.test_apply_sparse_rejects_out_of_range` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:157` — UNVERIFIED-DEAD: `TestScriptCodec.test_apply_to_document_insert` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:170` — UNVERIFIED-DEAD: `TestScriptCodec.test_apply_to_document_replace_no_op` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:77` — UNVERIFIED-DEAD: `TestScriptCodec.test_blank_lines_inside_bodies` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:104` — UNVERIFIED-DEAD: `TestScriptCodec.test_code_fence_stripping` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:97` — UNVERIFIED-DEAD: `TestScriptCodec.test_crlf_and_bom_normalization` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:51` — UNVERIFIED-DEAD: `TestScriptCodec.test_csif_roundtrip_lossless` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:70` — UNVERIFIED-DEAD: `TestScriptCodec.test_eof_without_trailing_newline` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:84` — UNVERIFIED-DEAD: `TestScriptCodec.test_escaped_at_at` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:117` — UNVERIFIED-DEAD: `TestScriptCodec.test_metadata_rejected_after_dialogue` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:145` — UNVERIFIED-DEAD: `TestScriptCodec.test_serialize_contiguous_vs_sparse` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:35` — UNVERIFIED-DEAD: `TestScriptCodec.test_sniff_format` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:122` — UNVERIFIED-DEAD: `TestScriptCodec.test_sparse_addressing_and_rejections` (method) — token count: 1 (includes definition)
+- `tests/test_script_codec.py:44` — UNVERIFIED-DEAD: `TestScriptCodec.test_speaker_sanitization` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:63` — UNVERIFIED-DEAD: `TestT01DefectProbes.test_probe_1_state1_startup_zero_docs_no_dual_pack` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:77` — UNVERIFIED-DEAD: `TestT01DefectProbes.test_probe_2_state4_deferred_restore_splash_two_docs` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:98` — UNVERIFIED-DEAD: `TestT01DefectProbes.test_probe_3_withdrawn_open_file_unpacks_empty_state` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:113` — UNVERIFIED-DEAD: `TestT01DefectProbes.test_probe_4_withdrawn_continuous_mode_open_file_unpacks_both` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:132` — UNVERIFIED-DEAD: `TestT01RegressionGuards.test_guard_1_state2_open_one_doc_box1_dialogue` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:146` — UNVERIFIED-DEAD: `TestT01RegressionGuards.test_guard_2_state3_two_open_docs_switch_and_close_one` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:163` — UNVERIFIED-DEAD: `TestT01RegressionGuards.test_guard_3_state5_close_last_doc_restores_empty_state` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:179` — UNVERIFIED-DEAD: `TestT01RegressionGuards.test_guard_4_state6_close_last_doc_from_continuous_view` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:196` — UNVERIFIED-DEAD: `TestT01RegressionGuards.test_guard_5_state7_view_toggles_and_mutual_exclusion` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:213` — UNVERIFIED-DEAD: `TestT01RegressionGuards.test_guard_6_top_view_ordering_and_clean_scroll_x` (method) — token count: 1 (includes definition)
+- `tests/test_t01_empty_state_overlay.py:225` — UNVERIFIED-DEAD: `TestT01RegressionGuards.test_guard_7_pack_only_invariant` (method) — token count: 1 (includes definition)
+- `tests/test_t02_next_tooltip.py:40` — UNVERIFIED-DEAD: `TestT02DefectProbes.test_probe_1_overflow_tooltip_uses_54d_and_dual_font_wording` (method) — token count: 1 (includes definition)
+- `tests/test_t02_next_tooltip.py:48` — UNVERIFIED-DEAD: `TestT02DefectProbes.test_probe_2_update_char_overflow_indicator_docstring` (method) — token count: 1 (includes definition)
+- `tests/test_t02_next_tooltip.py:53` — UNVERIFIED-DEAD: `TestT02DefectProbes.test_probe_3_get_ruler_measure_font_docstring` (method) — token count: 1 (includes definition)
+- `tests/test_t02_next_tooltip.py:58` — UNVERIFIED-DEAD: `TestT02DefectProbes.test_probe_4_draw_single_pixel_ruler_docstring` (method) — token count: 1 (includes definition)
+- `tests/test_t02_next_tooltip.py:67` — UNVERIFIED-DEAD: `TestT02RegressionGuards.test_guard_1_dialogue_max_constants` (method) — token count: 1 (includes definition)
+- `tests/test_t02_next_tooltip.py:71` — UNVERIFIED-DEAD: `TestT02RegressionGuards.test_guard_2_overflow_label_initial_text_is_dynamic` (method) — token count: 1 (includes definition)
+- `tests/test_t02_next_tooltip.py:76` — UNVERIFIED-DEAD: `TestT02RegressionGuards.test_guard_3_btn_next_tooltip_unchanged` (method) — token count: 1 (includes definition)
+- `tests/test_t02_next_tooltip.py:82` — UNVERIFIED-DEAD: `TestT02RegressionGuards.test_guard_4_btn_prev_tooltip_unchanged` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:78` — UNVERIFIED-DEAD: `TestT04DefectProbes.test_probe_1_line4_gets_line_overflow_tag_in_dialogue` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:88` — UNVERIFIED-DEAD: `TestT04DefectProbes.test_probe_2_line5_gets_line_overflow_tag_in_dialogue` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:98` — UNVERIFIED-DEAD: `TestT04DefectProbes.test_probe_3_boundary_54d_numerator_shows_gt_prefix` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:129` — UNVERIFIED-DEAD: `TestT04DefectProbes.test_probe_4_line4_with_width_overflow_highlights_full_line` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:142` — UNVERIFIED-DEAD: `TestT04RegressionGuards.test_guard_1_width_overflow_still_tagged` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:154` — UNVERIFIED-DEAD: `TestT04RegressionGuards.test_guard_2_gutter_overflow_line4_still_tagged` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:163` — UNVERIFIED-DEAD: `TestT04RegressionGuards.test_guard_3_all_script_cards_zero_overflow` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:177` — UNVERIFIED-DEAD: `TestT04RegressionGuards.test_guard_4_preview_zero_overflow` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:188` — UNVERIFIED-DEAD: `TestT04RegressionGuards.test_guard_5_quick_edit_zero_overflow` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:199` — UNVERIFIED-DEAD: `TestT04RegressionGuards.test_guard_6_box0_immune` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:212` — UNVERIFIED-DEAD: `TestT04RegressionGuards.test_guard_7_header_label_muted_at_54d_no_width_overflow` (method) — token count: 1 (includes definition)
+- `tests/test_t04_overflow_line4_numerator.py:230` — UNVERIFIED-DEAD: `TestT04RegressionGuards.test_guard_8_line3_no_overflow_tag` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:71` — UNVERIFIED-DEAD: `TestT08aDefectProbes.test_probe_1_right_edge_clamp` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:81` — UNVERIFIED-DEAD: `TestT08aDefectProbes.test_probe_2_bottom_edge_flip` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:92` — UNVERIFIED-DEAD: `TestT08aDefectProbes.test_probe_3_left_edge_clamp` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:101` — UNVERIFIED-DEAD: `TestT08aDefectProbes.test_probe_4_top_edge_clamp` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:111` — UNVERIFIED-DEAD: `TestT08aDefectProbes.test_probe_5_multi_monitor_negative` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:122` — UNVERIFIED-DEAD: `TestT08aDefectProbes.test_probe_6_work_area_win32_prototypes_and_negative_monitor` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:172` — UNVERIFIED-DEAD: `TestT08aDefectProbes.test_probe_7_work_area_fallback_on_win32_failure_and_non_win32` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:219` — UNVERIFIED-DEAD: `TestT08aRegressionGuards.test_guard_1_center_screen_standard_position` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:229` — UNVERIFIED-DEAD: `TestT08aRegressionGuards.test_guard_2_tooltip_text_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_t08a_tooltip_clamping.py:237` — UNVERIFIED-DEAD: `TestT08aRegressionGuards.test_guard_3_hide_tip_destroys_cleanly` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:444` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_guard_1_cmd_id_35_32_and_story_ast_roundtrip` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:462` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_guard_2_translate_async_signature_backward_compat` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:484` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_guard_3_existing_config_paths_and_misora_ext_unchanged` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:106` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_probe_1_search_cancel_event_bounded_queue_and_walk_abort` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:194` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_probe_2_mtl_translate_all_bounded_workers_backpressure_and_shared_ssl` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:255` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_probe_3_close_and_reload_prune_all_mtl_and_jp_caches_no_repopulate` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:307` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_probe_4_load_bundle_error_disposes_env_and_success_keeps_live_env` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:337` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_probe_5_save_bundle_mkdir_failure_releases_is_saving` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:350` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_probe_6_logger_close_idempotent_full_queue_and_post_close_log` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:383` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_probe_7_bulk_delta_refreshes_active_doc_without_double_bundle_load` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s01_stability_remediation.py:424` — UNVERIFIED-DEAD: `TestV15S01StabilityRemediation.test_probe_8_rebrand_and_derived_version_1_4_1` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s02_fonts_ruler_metrics.py:244` — UNVERIFIED-DEAD: `TestV15S02FontsRulerMetrics.test_guard_1_ngui_tags_strip_and_ruby_base_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s02_fonts_ruler_metrics.py:252` — UNVERIFIED-DEAD: `TestV15S02FontsRulerMetrics.test_guard_2_box0_summary_stays_unmeasured` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s02_fonts_ruler_metrics.py:104` — UNVERIFIED-DEAD: `TestV15S02FontsRulerMetrics.test_probe_1_dialogue_font_presets_only_global_and_jp` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s02_fonts_ruler_metrics.py:125` — UNVERIFIED-DEAD: `TestV15S02FontsRulerMetrics.test_probe_2_custom_font_manager_discovers_and_reports_invalid` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s02_fonts_ruler_metrics.py:144` — UNVERIFIED-DEAD: `TestV15S02FontsRulerMetrics.test_probe_3_measure_font_uses_prefs_and_ruler_stays_constant` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s02_fonts_ruler_metrics.py:184` — UNVERIFIED-DEAD: `TestV15S02FontsRulerMetrics.test_probe_4_gutter_updates_font_size_on_pref_change` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s02_fonts_ruler_metrics.py:199` — UNVERIFIED-DEAD: `TestV15S02FontsRulerMetrics.test_probe_5_char_overflow_indicator_turns_red_and_no_max_label` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s02_fonts_ruler_metrics.py:224` — UNVERIFIED-DEAD: `TestV15S02FontsRulerMetrics.test_probe_6_measure_dialogue_metrics_fast_path_and_exact_index` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:363` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_guard_1_txt_continuous_plain_text_fallback_intact` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:380` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_guard_2_no_atlasadv_dependency_or_copyrighted_sprite` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:389` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_guard_3_cmd_id_35_32_and_adjacent_narration_separation_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:407` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_guard_4_ribbon_cut_persists_across_navigation` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:95` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_probe_1_no_third_window_leaked_in_all_script_and_preview` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:123` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_probe_2_all_script_technique_a_single_text_and_150_box_nav` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:183` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_probe_3_preview_clean_room_frames_and_narration_no_nameplate` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:222` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_probe_4_lossless_box_snapshot_replace_undo_redo_all_6_fields` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:300` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_probe_5_failed_replace_paste_leaves_document_uncorrupted` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s03_all_script_preview_paste.py:333` — UNVERIFIED-DEAD: `TestV15S03AllScriptPreviewPaste.test_probe_6_native_paste_box_insert_mode_preserves_full_snapshot` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s04_layout_drawer_controls.py:436` — UNVERIFIED-DEAD: `TestV15S04LayoutDrawerControls.test_guard_1_mtl_all_script_drawer_still_exact_2_text_widgets` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s04_layout_drawer_controls.py:462` — UNVERIFIED-DEAD: `TestV15S04LayoutDrawerControls.test_guard_2_shortcut_router_and_native_edit_keys_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s04_layout_drawer_controls.py:98` — UNVERIFIED-DEAD: `TestV15S04LayoutDrawerControls.test_probe_1_header_and_edit_group_layout_order` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s04_layout_drawer_controls.py:176` — UNVERIFIED-DEAD: `TestV15S04LayoutDrawerControls.test_probe_2_drawer_repeated_toggle_preserves_state_and_skips_expensive_rebuilds` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s04_layout_drawer_controls.py:285` — UNVERIFIED-DEAD: `TestV15S04LayoutDrawerControls.test_probe_3_search_tab_double_click_opens_find_bar` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s04_layout_drawer_controls.py:301` — UNVERIFIED-DEAD: `TestV15S04LayoutDrawerControls.test_probe_4_mtl_enabled_engines_moved_to_translator_menu` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s04_layout_drawer_controls.py:330` — UNVERIFIED-DEAD: `TestV15S04LayoutDrawerControls.test_probe_5_mtl_arrows_point_left_and_refresh_icon_loaded` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s04_layout_drawer_controls.py:368` — UNVERIFIED-DEAD: `TestV15S04LayoutDrawerControls.test_probe_6_checkbox_radio_contrast_both_themes` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s05_speaker_console_about.py:371` — UNVERIFIED-DEAD: `TestV15S05SpeakerConsoleAbout.test_guard_1_clearing_speaker_keeps_adjacent_narration_separate` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s05_speaker_console_about.py:390` — UNVERIFIED-DEAD: `TestV15S05SpeakerConsoleAbout.test_guard_2_no_second_tk_root_created` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s05_speaker_console_about.py:129` — UNVERIFIED-DEAD: `TestV15S05SpeakerConsoleAbout.test_probe_1_speaker_jump_cycles_occurrences_and_notifies` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s05_speaker_console_about.py:168` — UNVERIFIED-DEAD: `TestV15S05SpeakerConsoleAbout.test_probe_2_speaker_focus_into_popup_does_not_prematurely_commit_and_enforces_lock` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s05_speaker_console_about.py:225` — UNVERIFIED-DEAD: `TestV15S05SpeakerConsoleAbout.test_probe_3_speaker_autocomplete_filters_and_selects` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s05_speaker_console_about.py:263` — UNVERIFIED-DEAD: `TestV15S05SpeakerConsoleAbout.test_probe_4_console_toggle_removed_and_f12_unbound` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s05_speaker_console_about.py:273` — UNVERIFIED-DEAD: `TestV15S05SpeakerConsoleAbout.test_probe_5_support_me_sequential_gif_cleanup_missing_fallback_and_paypal` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s06_tools_word_wrap.py:361` — UNVERIFIED-DEAD: `TestV15S06ToolsWordWrap.test_guard_1_short_lines_and_speakers_untouched` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s06_tools_word_wrap.py:389` — UNVERIFIED-DEAD: `TestV15S06ToolsWordWrap.test_guard_2_no_csif_headers_or_empty_binary_args` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s06_tools_word_wrap.py:110` — UNVERIFIED-DEAD: `TestV15S06ToolsWordWrap.test_probe_1_wrap_ngui_tags_placeholders_malformed_and_whitespace` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s06_tools_word_wrap.py:136` — UNVERIFIED-DEAD: `TestV15S06ToolsWordWrap.test_probe_2_wrap_japanese_kinsoku_grapheme_clusters_and_existing_breaks` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s06_tools_word_wrap.py:168` — UNVERIFIED-DEAD: `TestV15S06ToolsWordWrap.test_probe_3_tools_menu_locks_single_undo_and_immutable_jp_keys` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s06_tools_word_wrap.py:243` — UNVERIFIED-DEAD: `TestV15S06ToolsWordWrap.test_probe_4_multisegment_box_wrap_preserves_segments` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s06_tools_word_wrap.py:276` — UNVERIFIED-DEAD: `TestV15S06ToolsWordWrap.test_probe_5_import_from_xuat_opt_in_wrap_default_off` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s06_tools_word_wrap.py:334` — UNVERIFIED-DEAD: `TestV15S06ToolsWordWrap.test_probe_6_large_200_box_document_runtime` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:711` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_guard_1_import_cancel_never_opens_cleanup_or_modifies_xuat` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:730` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_guard_2_strict_decode_rejects_corrupt_bytes_without_rewriting` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:96` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_probe_1_transactional_cleanup_preserves_bom_crlf_comments_and_linebreak_modes` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:186` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_probe_2_stale_source_sha256_aborts_before_modifying_disk` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:220` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_probe_3_mandatory_archive_encoding_contracts_and_irreversible_optout` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:361` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_probe_4_archive_first_and_partial_batch_failure_report` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:414` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_probe_5_duplicate_scope_and_conservative_uncertain_classification` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:517` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_probe_6_empty_file_detection_and_debug_safety_toggle` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s07_xuat_cleanup_archive.py:664` — UNVERIFIED-DEAD: `TestV15S07XuatCleanupArchive.test_probe_7_pure_core_boundary_no_tkinter_or_misora_import` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s08_release_gate_stress.py:402` — UNVERIFIED-DEAD: `TestV15S08ReleaseGateStress.test_guard_1_misora_workspace_v1_schema_and_stable_locks` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s08_release_gate_stress.py:442` — UNVERIFIED-DEAD: `TestV15S08ReleaseGateStress.test_guard_2_binary_cmd_35_32_and_empty_arg_sentinel_intact` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s08_release_gate_stress.py:96` — UNVERIFIED-DEAD: `TestV15S08ReleaseGateStress.test_stress_1_memory_leak_and_env_disposal_open_close_cycles` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s08_release_gate_stress.py:154` — UNVERIFIED-DEAD: `TestV15S08ReleaseGateStress.test_stress_2_search_cancel_race_and_thread_cleanup` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s08_release_gate_stress.py:230` — UNVERIFIED-DEAD: `TestV15S08ReleaseGateStress.test_stress_3_500_box_word_wrap_csif_and_binary_roundtrip` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s08_release_gate_stress.py:190` — UNVERIFIED-DEAD: `TestV15S08ReleaseGateStress.test_stress_3b_mtl_cancel_pending_futures_and_stale_rejection` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s08_release_gate_stress.py:263` — UNVERIFIED-DEAD: `TestV15S08ReleaseGateStress.test_stress_4_all_script_virtualized_pool_and_preview_bleed` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s08_release_gate_stress.py:377` — UNVERIFIED-DEAD: `TestV15S08ReleaseGateStress.test_stress_5_version_parity_and_no_hardcoded_duplicates` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:610` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_guard_1_dialogue_preview_remains_readonly_and_excluded_from_save` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:623` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_guard_2_adjacent_narration_separation_and_cmd_35_32_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:642` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_guard_3_translation_lock_cut_box_and_clear_skeleton` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:671` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_guard_4_post_autocomplete_select_focus_restoration` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:103` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_1_paste_replace_uses_selected_boxes_and_insert_box0` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:193` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_2_pin_speaker_captured_identity_and_no_wrap_boundaries` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:304` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_3_speaker_autocomplete_withdrawn_and_positioned_never_zero_zero` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:380` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_3b_speaker_autocomplete_full_list_and_editing` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:437` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_4_shared_54d_reference_pixel_contract_and_box0_immunity` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:483` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_5_dialogue_preview_pink_arrow_unclipped_and_continuous_border` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:515` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_5b_dialogue_preview_pink_actor_nameplate` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:554` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_6_console_toggle_completely_removed_and_legacy_config_tolerated` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s09_core_fixes_54d.py:588` — UNVERIFIED-DEAD: `TestV15S09CoreFixes54d.test_probe_7_mtl_apply_button_left_of_engine_name` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s10_all_script_quick_edit.py:557` — UNVERIFIED-DEAD: `TestV15S10AllScriptQuickEdit.test_guard_1_raw_commands_tab_name_and_binary_roundtrip_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s10_all_script_quick_edit.py:568` — UNVERIFIED-DEAD: `TestV15S10AllScriptQuickEdit.test_guard_2_multisegment_box_snapshot_immutable_jp_keys_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s10_all_script_quick_edit.py:117` — UNVERIFIED-DEAD: `TestV15S10AllScriptQuickEdit.test_probe_1_virtualized_pool_bounded_across_150_300_1000_boxes_and_recycling_safety` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s10_all_script_quick_edit.py:184` — UNVERIFIED-DEAD: `TestV15S10AllScriptQuickEdit.test_probe_2_pixel_exact_54d_card_geometry_header_voice_cue_and_no_red_markers` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s10_all_script_quick_edit.py:250` — UNVERIFIED-DEAD: `TestV15S10AllScriptQuickEdit.test_probe_3_internal_card_scroll_does_not_conflict_with_outer_list_scroll` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s10_all_script_quick_edit.py:313` — UNVERIFIED-DEAD: `TestV15S10AllScriptQuickEdit.test_probe_4_active_box_highlight_and_all_script_preview_removal` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s10_all_script_quick_edit.py:363` — UNVERIFIED-DEAD: `TestV15S10AllScriptQuickEdit.test_probe_5_quick_edit_raw_breaks_multisegment_binary_roundtrip_and_s09b_lock_parity` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11_xuat_archiving_progress.py:638` — UNVERIFIED-DEAD: `TestV15S11XuatArchivingProgress.test_guard_1_s07_sha256_stale_guard_and_mandatory_archive_first_intact` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11_xuat_archiving_progress.py:664` — UNVERIFIED-DEAD: `TestV15S11XuatArchivingProgress.test_guard_2_core_xuat_modules_remain_free_of_tkinter_and_misora_imports` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11_xuat_archiving_progress.py:129` — UNVERIFIED-DEAD: `TestV15S11XuatArchivingProgress.test_probe_1_async_archiving_worker_batched_treeview_and_stale_rejection` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11_xuat_archiving_progress.py:222` — UNVERIFIED-DEAD: `TestV15S11XuatArchivingProgress.test_probe_2_pre_import_archive_checkbox_default_on_and_unchecked_import_only` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11_xuat_archiving_progress.py:288` — UNVERIFIED-DEAD: `TestV15S11XuatArchivingProgress.test_probe_3_global_speaker_dictionary_completely_excluded_from_archiving` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11_xuat_archiving_progress.py:360` — UNVERIFIED-DEAD: `TestV15S11XuatArchivingProgress.test_probe_4_import_1line_metadata_unique_actors_no_box0_and_pixel_54d_width` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11_xuat_archiving_progress.py:563` — UNVERIFIED-DEAD: `TestV15S11XuatArchivingProgress.test_probe_5_unified_progress_controller_concurrent_isolation_and_reload_xuat_async` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11b_scanner_save_preview.py:540` — UNVERIFIED-DEAD: `TestV15S11bScannerSavePreview.test_guard_1_core_xuat_index_free_of_tkinter_and_misora_imports` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11b_scanner_save_preview.py:554` — UNVERIFIED-DEAD: `TestV15S11bScannerSavePreview.test_guard_2_dialogue_preview_readonly_non_save_and_box0_exemption_intact` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11b_scanner_save_preview.py:579` — UNVERIFIED-DEAD: `TestV15S11bScannerSavePreview.test_guard_3_project_diff_dialog_theme_fallback_no_keyerror` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11b_scanner_save_preview.py:108` — UNVERIFIED-DEAD: `TestV15S11bScannerSavePreview.test_probe_1_xuat_strict_en_text_roots_exclusions_and_canonical_metrics` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11b_scanner_save_preview.py:296` — UNVERIFIED-DEAD: `TestV15S11bScannerSavePreview.test_probe_2_ctrl_s_saves_project_and_bundle_patch_has_dedicated_shortcut` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11b_scanner_save_preview.py:501` — UNVERIFIED-DEAD: `TestV15S11bScannerSavePreview.test_probe_3_dialogue_preview_has_zero_red_blocks_while_editor_keeps_markers` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:504` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_guard_1_raw_commands_tab_name_and_box0_quick_edit_safety` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:526` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_guard_2_s08_stress_quick_edit_benchmark_compatibility` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:552` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_guard_3_quick_edit_pack_geometry_idempotent_across_box_switches` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:124` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_probe_1_quick_edit_uses_single_unified_textbox_with_box_clean_text` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:156` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_probe_2_manual_dialogue_vs_quick_edit_ast_and_binary_parity` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:223` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_probe_3_pre_mutation_snapshot_undo_restores_exact_4_segments_and_binary_roundtrip` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:320` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_probe_4_s09b_lock_parity_and_view_aware_sync_preserved` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:408` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_probe_5_external_mutation_flushes_without_sync_from_widget_overwrite` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11c_quick_edit_unified.py:444` — UNVERIFIED-DEAD: `TestV15S11cQuickEditUnified.test_probe_6_dialogue_edit_while_quick_edit_dirty_flushes_cleanly` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11d_import_ux_productivity.py:571` — UNVERIFIED-DEAD: `TestV15S11dImportUxProductivity.test_guard_1_import_document_identity_guard_and_prepass_actor_exclusion_intact` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11d_import_ux_productivity.py:604` — UNVERIFIED-DEAD: `TestV15S11dImportUxProductivity.test_guard_2_s11c_unified_quick_edit_and_s11b_strict_en_text_scanner_intact` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11d_import_ux_productivity.py:125` — UNVERIFIED-DEAD: `TestV15S11dImportUxProductivity.test_probe_1_import_mousewheel_over_labels_and_tristate_group_select_all` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11d_import_ux_productivity.py:260` — UNVERIFIED-DEAD: `TestV15S11dImportUxProductivity.test_probe_2_synopsis_multiline_import_and_archiving_progress_labels` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11d_import_ux_productivity.py:425` — UNVERIFIED-DEAD: `TestV15S11dImportUxProductivity.test_probe_3_select_all_box_excludes_box0_and_preserves_translation_lock` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11d_import_ux_productivity.py:482` — UNVERIFIED-DEAD: `TestV15S11dImportUxProductivity.test_probe_4_mtl_globe_copies_clipboard_opens_official_site_and_window_title_metadata` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:690` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_guard_1_headless_show_splash_false_and_single_source_version_parity` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:707` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_guard_2_s11d_s04_and_s8b4_invariants_intact` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:161` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_probe_1_q03_per_widget_word_wrap_contract` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:234` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_probe_2_q05_splash_lifecycle_waits_for_deferred_restore_and_pumps_ticks` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:345` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_probe_3_q13_priconneretl_and_cornelia_branding_splash_and_about` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:400` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_probe_4_q14_support_dialog_english_and_600px_gif` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:441` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_probe_5_q15_verified_icons_dpi_lanczos_and_3icon_selection_trio` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:579` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_probe_6_q16_main_menu_inventory_and_ngui_glossary_dedup` (method) — token count: 1 (includes definition)
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py:618` — UNVERIFIED-DEAD: `TestV15S11ePolishSplashMenuTooltips.test_probe_7_q17_complete_3_layer_tooltips` (method) — token count: 1 (includes definition)
+- `core/xunity_sync.py:188` — UNVERIFIED-DEAD: `XUnitySyncManager.clear_jp_keys` (method) — token count: 1 (includes definition)
+- `misora.py:1626` — UNVERIFIED-DEAD: `_ReplaceRowProxy.winfo_viewable` (method) — token count: 1 (includes definition)
+
+## 5. Potential Dead/Unused Standalone Scripts
+
+> Cross-checked against all `.py` imports, `.bat` files, `tests/**`, and docs. All items are `UNVERIFIED-DEAD`.
+
+*No findings.*
+
+## 6. Remaining `winfo_ismapped()` Calls in `misora.py`
+
+> Potential T-01-class visibility bugs.
+
+**5 finding(s):**
+
+- `misora.py:10778` — Remaining `winfo_ismapped()` call (potential T-01-class visibility bug): `if not self.cb_dialogue_select.winfo_ismapped():`
+- `misora.py:13756` — Remaining `winfo_ismapped()` call (potential T-01-class visibility bug): `if self.txt_dialogue.winfo_ismapped() and self.ruler_clean.winfo_ismapped():`
+- `misora.py:13767` — Remaining `winfo_ismapped()` call (potential T-01-class visibility bug): `(c.txt_body for c in vis_cards.values() if c and c.winfo_exists() and c.txt_body.winfo_ismapped()),`
+- `misora.py:13770` — Remaining `winfo_ismapped()` call (potential T-01-class visibility bug): `if first_txt is not None and self.ruler_cont.winfo_ismapped():`
+- `misora.py:23597` — Remaining `winfo_ismapped()` call (potential T-01-class visibility bug): `if not self.comp_frame.winfo_ismapped():`
+
+## 7. Broad `except` Blocks in Critical Paths
+
+> `except Exception: pass` or bare `except:` in save/export/exit/patch/sync/binary/undo paths.
+
+**233 finding(s):**
+
+- `misora.py:185` — `except Exception: pass` in function `_get_app_version`
+- `misora.py:195` — `except Exception: pass` in function `_get_app_version`
+- `misora.py:296` — `except Exception: pass` in function `on_enter`
+- `misora.py:1364` — `except Exception: pass` in critical-path function `_on_close`
+- `misora.py:1375` — `except Exception: pass` in function `safe_grab_release`
+- `misora.py:1492` — `except Exception: pass` in function `__init__`
+- `misora.py:2582` — `except Exception: pass` in function `report_callback_exception`
+- `misora.py:2622` — `except Exception: pass` in critical-path function `_on_app_exit`
+- `misora.py:2740` — `except Exception: pass` in function `destroy`
+- `misora.py:2860` — `except Exception: pass` in function `destroy`
+- `misora.py:3579` — `except Exception: pass` in function `set_status`
+- `misora.py:3592` — `except Exception: pass` in function `_reset_status`
+- `misora.py:3631` — `except Exception: pass` in function `show_toast`
+- `misora.py:3906` — `except Exception: pass` in function `_cleanup_drag_and_drop`
+- `misora.py:4381` — `except Exception: pass` in function `_apply_styles`
+- `misora.py:6919` — `except Exception: pass` in critical-path function `_sync_debug_menu_states`
+- `misora.py:7204` — `except Exception: pass` in function `_refresh_speaker_autocomplete`
+- `misora.py:7356` — `except Exception: pass` in function `_restore_speaker_entry_focus`
+- `misora.py:7547` — `except Exception: pass` in function `_update_gutter_clean`
+- `misora.py:7564` — `except Exception: pass` in function `_on_continuous_vscroll`
+- `misora.py:7571` — `except Exception: pass` in function `_highlight_secret_whitespace`
+- `misora.py:7703` — `except Exception: pass` in function `_on_dialogue_preview_configure`
+- `misora.py:9178` — `except Exception: pass` in function `_install_shortcuts_bindtag`
+- `misora.py:9436` — `except Exception: pass` in function `_show_csif_paste_chooser`
+- `misora.py:9443` — `except Exception: pass` in function `_show_csif_paste_chooser`
+- `misora.py:9591` — `except Exception: pass` in function `_flush_active_widget`
+- `misora.py:10494` — `except Exception: pass` in function `_on_card_text_edited`
+- `misora.py:10858` — `except Exception: pass` in function `on_text_cut`
+- `misora.py:10870` — `except Exception: pass` in function `on_text_copy`
+- `misora.py:10954` — `except Exception: pass` in function `_dirty_state_changed`
+- `misora.py:10979` — `except Exception: pass` in critical-path function `_record_saved_checkpoint`
+- `misora.py:11355` — `except Exception: pass` in function `_show_box_paste_mode_dialog`
+- `misora.py:11361` — `except Exception: pass` in function `_show_box_paste_mode_dialog`
+- `misora.py:12570` — `except Exception: pass` in function `_highlight_dialogue_matches`
+- `misora.py:12782` — `except Exception: pass` in function `_on_quick_edit_focus_out`
+- `misora.py:12877` — `except Exception: pass` in function `_on_quick_edit_changed`
+- `misora.py:13670` — `except Exception: pass` in function `_apply_overflow_highlights`
+- `misora.py:13695` — `except Exception: pass` in function `_apply_gutter_overflow_tag`
+- `misora.py:14639` — `except Exception: pass` in function `_process_search_queue`
+- `misora.py:15684` — `except Exception: pass` in function `_apply_delta`
+- `misora.py:16047` — `except Exception: pass` in critical-path function `_sync_edit_menu_states`
+- `misora.py:19735` — `except Exception: pass` in function `on_about`
+- `misora.py:19739` — `except Exception: pass` in function `on_about`
+- `misora.py:19862` — `except Exception: pass` in function `__init__`
+- `misora.py:19866` — `except Exception: pass` in function `__init__`
+- `misora.py:19993` — `except Exception: pass` in function `_cleanup_resources`
+- `misora.py:20004` — `except Exception: pass` in critical-path function `close`
+- `misora.py:20071` — `except Exception: pass` in function `__init__`
+- `misora.py:20326` — `except Exception: pass` in function `__init__`
+- `misora.py:21832` — `except Exception: pass` in critical-path function `_on_close`
+- `misora.py:287` — `except Exception: pass` in function `set_text`
+- `misora.py:311` — `except Exception: pass` in function `cancel_timer`
+- `misora.py:382` — `except Exception: pass` in function `hide_tip`
+- `misora.py:1323` — `except Exception: pass` in function `_stop_eyedropper`
+- `misora.py:1460` — `except Exception: pass` in function `_finish`
+- `misora.py:2084` — `except Exception: pass` in function `shutdown`
+- `misora.py:2099` — `except Exception: pass` in function `shutdown`
+- `misora.py:2522` — `except Exception: pass` in critical-path function `_close_splash_safely`
+- `misora.py:2651` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2726` — `except Exception: pass` in function `destroy`
+- `misora.py:2731` — `except Exception: pass` in function `destroy`
+- `misora.py:2746` — `except Exception: pass` in function `destroy`
+- `misora.py:2752` — `except Exception: pass` in function `destroy`
+- `misora.py:2758` — `except Exception: pass` in function `destroy`
+- `misora.py:2764` — `except Exception: pass` in function `destroy`
+- `misora.py:2771` — `except Exception: pass` in function `destroy`
+- `misora.py:2777` — `except Exception: pass` in function `destroy`
+- `misora.py:2783` — `except Exception: pass` in function `destroy`
+- `misora.py:2788` — `except Exception: pass` in function `destroy`
+- `misora.py:2794` — `except Exception: pass` in function `destroy`
+- `misora.py:2800` — `except Exception: pass` in function `destroy`
+- `misora.py:2815` — `except Exception: pass` in function `destroy`
+- `misora.py:2823` — `except Exception: pass` in function `destroy`
+- `misora.py:2867` — `except Exception: pass` in function `destroy`
+- `misora.py:3213` — `except Exception: pass` in function `_apply_theme_and_fonts_live`
+- `misora.py:3329` — `except Exception: pass` in function `walk`
+- `misora.py:7160` — `except Exception: pass` in function `_get_monitor_work_area`
+- `misora.py:7212` — `except Exception: pass` in critical-path function `_close_speaker_autocomplete`
+- `misora.py:7225` — `except Exception: pass` in critical-path function `_close_speaker_autocomplete`
+- `misora.py:7235` — `except Exception: pass` in function `_on_speaker_focus_in`
+- `misora.py:7366` — `except Exception: pass` in function `_on_speaker_focus_out`
+- `misora.py:7555` — `except Exception: pass` in critical-path function `_sync_continuous_gutter_scroll`
+- `misora.py:7656` — `except Exception: pass` in critical-path function `_sync_preview_toggle_availability`
+- `misora.py:7661` — `except Exception: pass` in critical-path function `_sync_preview_toggle_availability`
+- `misora.py:8089` — `except Exception: pass` in function `_insert_compiled_ngui_text`
+- `misora.py:9083` — `except Exception: pass` in function `_on_toggle_continuous_view`
+- `misora.py:9322` — `except Exception: pass` in function `_choose`
+- `misora.py:10484` — `except Exception: pass` in function `_on_card_text_edited`
+- `misora.py:10504` — `except Exception: pass` in function `_on_card_text_edited`
+- `misora.py:10535` — `except Exception: pass` in function `_clear_card_registry`
+- `misora.py:10558` — `except Exception: pass` in function `_clear_card_registry`
+- `misora.py:10569` — `except Exception: pass` in function `_clear_card_registry`
+- `misora.py:10592` — `except Exception: pass` in function `_highlight_active_card_header`
+- `misora.py:10695` — `except Exception: pass` in function `_resize_cont_canvas`
+- `misora.py:10883` — `except Exception: pass` in function `on_text_paste`
+- `misora.py:11007` — `except Exception: pass` in function `_evaluate_checkpoints_for_op`
+- `misora.py:11855` — `except Exception: pass` in function `_recompute_as_box0_height`
+- `misora.py:12037` — `except Exception: pass` in function `_populate_as_card_body`
+- `misora.py:12059` — `except Exception: pass` in function `_bind_as_pool_card`
+- `misora.py:13247` — `except Exception: pass` in function `_on_dialogue_edited`
+- `misora.py:13647` — `except Exception: pass` in function `_apply_overflow_highlights`
+- `misora.py:13656` — `except Exception: pass` in function `_apply_overflow_highlights`
+- `misora.py:13680` — `except Exception: pass` in function `_apply_gutter_overflow_tag`
+- `misora.py:13758` — `except Exception: pass` in function `_redraw_pixel_rulers`
+- `misora.py:13776` — `except Exception: pass` in function `_redraw_pixel_rulers`
+- `misora.py:16032` — `except Exception: pass` in function `_apply_delta`
+- `misora.py:16094` — `except Exception: pass` in function `_set_left_panel_visible`
+- `misora.py:18131` — `except Exception: pass` in function `_cancel_mtl_all_batch`
+- `misora.py:18137` — `except Exception: pass` in function `_cancel_mtl_all_batch`
+- `misora.py:19083` — `except Exception: pass` in critical-path function `_refresh_xuat_index_async`
+- `misora.py:19219` — `except Exception: pass` in function `on_import_from_xuat`
+- `misora.py:19260` — `except Exception: pass` in critical-path function `_on_toggle_xuat_safety_backup`
+- `misora.py:19272` — `except Exception: pass` in function `_on_xuat_cleanup_settings_dialog`
+- `misora.py:19289` — `except Exception: pass` in function `on_clean_archive_xuat`
+- `misora.py:19621` — `except Exception: pass` in function `on_register_unity3d_association`
+- `misora.py:19640` — `except Exception: pass` in function `on_about`
+- `misora.py:19703` — `except Exception: pass` in critical-path function `_close_about`
+- `misora.py:19751` — `except Exception: pass` in function `on_support_me`
+- `misora.py:19975` — `except Exception: pass` in critical-path function `_close_gif_handle`
+- `misora.py:19981` — `except Exception: pass` in critical-path function `_close_gif_handle`
+- `misora.py:21364` — `except Exception: pass` in function `_on_press`
+- `misora.py:22348` — `except Exception: pass` in critical-path function `_start_async_scan`
+- `misora.py:22353` — `except Exception: pass` in critical-path function `_start_async_scan`
+- `misora.py:22555` — `except Exception: pass` in function `_populate_candidates`
+- `misora.py:22821` — `except Exception: pass` in critical-path function `_cancel_async_work`
+- `misora.py:22826` — `except Exception: pass` in critical-path function `_cancel_async_work`
+- `misora.py:22832` — `except Exception: pass` in critical-path function `_cancel_async_work`
+- `misora.py:23072` — `except Exception: pass` in function `_schedule_poll`
+- `misora.py:23102` — `except Exception: pass` in critical-path function `_on_close`
+- `misora.py:23113` — `except Exception: pass` in critical-path function `_on_save`
+- `misora.py:23413` — `except Exception: pass` in function `_schedule_poll`
+- `misora.py:23494` — `except Exception: pass` in critical-path function `_on_close`
+- `misora.py:23796` — `except Exception: pass` in function `_schedule_poll`
+- `misora.py:23808` — `except Exception: pass` in critical-path function `_on_close`
+- `misora.py:23815` — `except Exception: pass` in critical-path function `_on_close`
+- `misora.py:821` — `except Exception: pass` in function `__init__`
+- `misora.py:1271` — `except Exception: pass` in function `_poll_eyedropper`
+- `misora.py:2093` — `except Exception: pass` in function `shutdown`
+- `misora.py:2143` — `except Exception: pass` in function `_rpt`
+- `misora.py:2424` — `except Exception: pass` in function `__init__`
+- `misora.py:2620` — `except Exception: pass` in critical-path function `_on_app_exit`
+- `misora.py:2638` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2643` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2656` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2662` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2668` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2674` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2681` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2687` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2693` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2698` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2704` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2710` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2715` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2738` — `except Exception: pass` in function `destroy`
+- `misora.py:2809` — `except Exception: pass` in function `destroy`
+- `misora.py:2876` — `except Exception: pass` in function `destroy`
+- `misora.py:3341` — `except Exception: pass` in function `_apply_theme_and_fonts_live`
+- `misora.py:3468` — `except Exception: pass` in function `_apply_theme_and_fonts_live`
+- `misora.py:3562` — `except Exception: pass` in function `set_status`
+- `misora.py:3683` — `except Exception: pass` in function `_display_toast`
+- `misora.py:3697` — `except Exception: pass` in function `_dismiss_toast`
+- `misora.py:3903` — `except Exception: pass` in function `_cleanup_drag_and_drop`
+- `misora.py:3943` — `except Exception: pass` in function `_check_batch_safety`
+- `misora.py:9168` — `except Exception: pass` in function `_get_card_text_widget`
+- `misora.py:10995` — `except Exception: pass` in function `_evaluate_checkpoints_for_op`
+- `misora.py:11803` — `except Exception: pass` in function `_ensure_as_pool_capacity`
+- `misora.py:15420` — `except Exception: pass` in critical-path function `on_replace_all`
+- `misora.py:16337` — `except Exception: pass` in critical-path function `close_file`
+- `misora.py:19093` — `except Exception: pass` in critical-path function `_refresh_xuat_index_async`
+- `misora.py:21371` — `except Exception: pass` in function `_on_drag`
+- `misora.py:21382` — `except Exception: pass` in function `_on_wheel`
+- `misora.py:21391` — `except Exception: pass` in function `_on_shift_wheel`
+- `misora.py:21800` — `except Exception: pass` in function `_on_apply_import`
+- `misora.py:730` — `except Exception: pass` in function `init_process_dpi_awareness`
+- `misora.py:2070` — `except Exception: pass` in function `_refresh_display`
+- `misora.py:2148` — `except Exception: pass` in function `_rpt`
+- `misora.py:2440` — `except Exception: pass` in function `__init__`
+- `misora.py:2649` — `except Exception: pass` in function `_on_root_destroy`
+- `misora.py:2834` — `except Exception: pass` in function `destroy`
+- `misora.py:3100` — `except Exception: pass` in critical-path function `_save_user_prefs`
+- `misora.py:6567` — `except Exception: pass` in function `_on_cont_canvas_configure`
+- `misora.py:11034` — `except Exception: pass` in function `_evaluate_checkpoints_for_op`
+- `misora.py:11041` — `except Exception: pass` in function `_evaluate_checkpoints_for_op`
+- `misora.py:12505` — `except Exception: pass` in function `_focus_continuous_box`
+- `misora.py:18495` — `except Exception: pass` in critical-path function `_dispatch_loop`
+- `misora.py:19185` — `except Exception: pass` in function `_poll_xuat_index_queue`
+- `misora.py:3618` — `except Exception: pass` in function `show_toast`
+- `misora.py:9461` — `except Exception: pass` in function `_handle_editor_csif_paste`
+- `misora.py:11002` — `except Exception: pass` in function `_evaluate_checkpoints_for_op`
+- `misora.py:15673` — `except Exception: pass` in critical-path function `_restore_bundle_atomic`
+- `misora.py:2000` — `except Exception: pass` in function `drain_now`
+- `misora.py:15665` — `except Exception: pass` in critical-path function `_restore_bundle_atomic`
+- `misora.py:15966` — `except Exception: pass` in function `_apply_delta`
+- `misora.py:15999` — `except Exception: pass` in function `_apply_delta`
+- `core/bundle_io.py:85` — `except Exception: pass` in function `dispose_unity_env`
+- `core/bundle_io.py:166` — `except Exception: pass` in function `_get_raw_bytes`
+- `core/bundle_io.py:171` — `except Exception: pass` in function `_get_raw_bytes`
+- `core/bundle_io.py:322` — `except Exception: pass` in critical-path function `save_bundle_story`
+- `core/bundle_io.py:73` — `except Exception: pass` in function `dispose_unity_env`
+- `core/bundle_io.py:136` — `except Exception: pass` in critical-path function `load_bundle_story`
+- `core/font_manager.py:99` — `except Exception: pass` in function `_warn`
+- `core/font_manager.py:161` — `except Exception: pass` in function `_unload_loaded_paths`
+- `core/logger.py:105` — `except Exception: pass` in critical-path function `_file_writer_loop`
+- `core/logger.py:200` — `except Exception: pass` in function `log`
+- `core/logger.py:137` — `except Exception: pass` in critical-path function `close`
+- `core/logger.py:209` — `except Exception: pass` in function `log`
+- `core/logger.py:238` — `except Exception: pass` in critical-path function `_write_entry_to_file`
+- `core/mtl_engine.py:39` — `except Exception: pass` in function `_get_app_version`
+- `core/mtl_engine.py:302` — `except Exception: pass` in function `_translate_local`
+- `core/text_encoding.py:213` — `except Exception: pass` in critical-path function `write_atomic_encoded`
+- `core/xuat_cleanup.py:684` — `except Exception: pass` in function `classify_cleanup_candidates`
+- `core/xuat_cleanup.py:526` — `except Exception: pass` in function `_tick`
+- `core/xuat_cleanup.py:737` — `except Exception: pass` in critical-path function `_atomic_write_verified_bytes`
+- `core/xuat_cleanup.py:1025` — `except Exception: pass` in function `execute_cleanup`
+- `core/xuat_index.py:423` — `except Exception: pass` in function `_process_file`
+- `assets/icon.py:113` — `except Exception: pass` in function `apply_window_icon`
+- `assets/icon.py:85` — `except Exception: pass` in function `apply_window_icon`
+- `assets/icon.py:107` — `except Exception: pass` in function `apply_window_icon`
+- `assets/icon.py:123` — `except Exception: pass` in function `get_dpi_scale`
+- `assets/icon.py:132` — `except Exception: pass` in function `get_dpi_scale`
+- `assets/icon.py:154` — `except Exception: pass` in function `get_icon`
+- `assets/icon.py:186` — `except Exception: pass` in function `get_icon`
+- `assets/preview_frames.py:49` — `except Exception: pass` in function `_cache_get`
+- `assets/preview_frames.py:33` — `except Exception: pass` in function `_resolve_root`
+- `assets/splash.py:39` — `except Exception: pass` in function `_load_app_version`
+- `assets/splash.py:80` — `except Exception: pass` in function `__init__`
+- `assets/splash.py:212` — `except Exception: pass` in function `set_progress`
+- `assets/splash.py:230` — `except Exception: pass` in function `process_events`
+- `assets/splash.py:243` — `except Exception: pass` in critical-path function `close`
+- `assets/splash.py:196` — `except Exception: pass` in function `_load_artwork`
+- `assets/splash.py:248` — `except Exception: pass` in critical-path function `close`
+- `assets/splash.py:190` — `except Exception: pass` in function `_load_artwork`
+
+## 8. `after()` Tracking, Tk Variables & Worker Thread Sites
+
+> For `Tcl_AsyncDelete` and teardown leak audit.
+
+**96 finding(s):**
+
+- `misora.py` — after() call sites: 26, after_cancel() sites: 41 — audit for untracked cancel
+- `misora.py:926` — Tk Variable creation: `self.var_hex = tk.StringVar(master=self, value=self.stop_colors[0].upper())`
+- `misora.py:2207` — Tk Variable creation: `self.var_box0_title: tk.StringVar = tk.StringVar(master=self, value="")`
+- `misora.py:2208` — Tk Variable creation: `self.var_box0_subtitle: tk.StringVar = tk.StringVar(master=self, value="")`
+- `misora.py:2272` — Tk Variable creation: `self.var_select_box_mode: tk.BooleanVar = tk.BooleanVar(master=self, value=False)`
+- `misora.py:2318` — Tk Variable creation: `self._mtl_drawer_engine_vars[eng] = tk.BooleanVar(master=self, value=enabled)`
+- `misora.py:2337` — Tk Variable creation: `self.var_log_to_file = tk.BooleanVar(master=self, value=bool(dbg_cfg.get("log_to_file", False)))`
+- `misora.py:2338` — Tk Variable creation: `self.var_xuat_safety_backup = tk.BooleanVar(master=self, value=bool(self.xuat_safety_backup_enabled))`
+- `misora.py:2351` — Tk Variable creation: `self.var_log_level = tk.StringVar(master=self, value=str(dbg_cfg.get("level", "Info")))`
+- `misora.py:2352` — Tk Variable creation: `self.var_console_autoscroll = tk.BooleanVar(master=self, value=True)`
+- `misora.py:2357` — Tk Variable creation: `self.var_log_categories[cat] = tk.BooleanVar(master=self, value=enabled)`
+- `misora.py:3985` — Tk Variable creation: `var_filter = tk.BooleanVar(master=dlg, value=getattr(self, "dnd_filter_binary", True))`
+- `misora.py:4001` — Tk Variable creation: `var_batch = tk.StringVar(master=dlg, value=str(getattr(self, "dnd_batch_threshold", 10)))`
+- `misora.py:4010` — Tk Variable creation: `var_size = tk.StringVar(master=dlg, value=str(getattr(self, "dnd_size_threshold_mb", 25.0)))`
+- `misora.py:4714` — Tk Variable creation: `self.var_continuous_view = tk.BooleanVar(master=self, value=False)`
+- `misora.py:4715` — Tk Variable creation: `self.var_preview_compiled = tk.BooleanVar(master=self, value=False)`
+- `misora.py:4716` — Tk Variable creation: `self.var_show_ngui_ribbon = tk.BooleanVar(master=self, value=getattr(self, "_saved_show_ngui_ribbon", False))`
+- `misora.py:4717` — Tk Variable creation: `self.var_show_left_panel = tk.BooleanVar(master=self, value=True)`
+- `misora.py:4819` — Tk Variable creation: `self.var_show_line_numbers = tk.BooleanVar(master=self, value=self.show_line_numbers)`
+- `misora.py:4826` — Tk Variable creation: `self.var_show_column_ruler = tk.BooleanVar(master=self, value=self.show_column_ruler)`
+- `misora.py:5158` — Tk Variable creation: `self.search_var = tk.StringVar(master=self)`
+- `misora.py:5197` — Tk Variable creation: `self.replace_var = tk.StringVar(master=self)`
+- `misora.py:5231` — Tk Variable creation: `self.var_case = tk.BooleanVar(master=self, value=False)`
+- `misora.py:5232` — Tk Variable creation: `self.var_regex = tk.BooleanVar(master=self, value=False)`
+- `misora.py:5233` — Tk Variable creation: `self.var_ignore_ws = tk.BooleanVar(master=self, value=True)`
+- `misora.py:5234` — Tk Variable creation: `self.var_inc_bundles = tk.BooleanVar(master=self, value=True)`
+- `misora.py:5235` — Tk Variable creation: `self.var_inc_text = tk.BooleanVar(master=self, value=True)`
+- `misora.py:5252` — Tk Variable creation: `self.scope_var = tk.StringVar(master=self, value="project")`
+- `misora.py:5282` — Tk Variable creation: `self.folder_path_var = tk.StringVar(master=self, value="")`
+- `misora.py:5608` — Tk Variable creation: `self.var_dialogue_box_sel = tk.BooleanVar(master=self, value=False)`
+- `misora.py:5792` — Tk Variable creation: `self.speaker_var = tk.StringVar(master=self)`
+- `misora.py:7415` — Tk Variable creation: `var_attr = tk.StringVar(master=dlg, value="（サマー）")`
+- `misora.py:8188` — Tk Variable creation: `self.var_font_family = tk.StringVar(master=self, value=preset_init)`
+- `misora.py:8228` — Tk Variable creation: `self.var_custom_font = tk.StringVar(master=self, value=custom_init)`
+- `misora.py:8259` — Tk Variable creation: `self.var_dlg_font_sz = tk.IntVar(master=self, value=int(self.prefs["dialogue_font_size"]))`
+- `misora.py:8260` — Tk Variable creation: `self.var_raw_font_sz = tk.IntVar(master=self, value=int(self.prefs["raw_font_size"]))`
+- `misora.py:8261` — Tk Variable creation: `self.var_ui_font_sz = tk.IntVar(master=self, value=int(self.prefs["ui_font_size"]))`
+- `misora.py:8297` — Tk Variable creation: `self.var_preset = tk.StringVar(master=self, value=self._detect_active_preset_name())`
+- `misora.py:8352` — Tk Variable creation: `hvar = tk.StringVar(master=self, value=t[key])`
+- `misora.py:8392` — Tk Variable creation: `self.var_glossary_filter = tk.StringVar(master=self)`
+- `misora.py:8871` — Tk Variable creation: `var_base = tk.StringVar(master=dlg, value=selected_base)`
+- `misora.py:8888` — Tk Variable creation: `var_ruby = tk.StringVar(master=dlg)`
+- `misora.py:9111` — Tk Variable creation: `self.var_sync_xuat = tk.BooleanVar(master=self, value=True)`
+- `misora.py:16814` — Tk Variable creation: `skip_var = tk.BooleanVar(master=dlg, value=False)`
+- `misora.py:17026` — Tk Variable creation: `var_use_default_bak = tk.BooleanVar(master=dlg, value=(self.backup_folder is None))`
+- `misora.py:17330` — Tk Variable creation: `self.var_mtl_all_engine = tk.StringVar(master=self, value=default_eng)`
+- `misora.py:20055` — Tk Variable creation: `self.var_apply_speakers = tk.BooleanVar(master=self, value=has_speakers)`
+- `misora.py:20056` — Tk Variable creation: `self.var_apply_metadata = tk.BooleanVar(master=self, value=has_meta)`
+- `misora.py:20057` — Tk Variable creation: `self.var_auto_word_wrap = tk.BooleanVar(master=self, value=False)`
+- `misora.py:20316` — Tk Variable creation: `self.var_scope = tk.StringVar(master=self, value=default_scope)`
+- `misora.py:20317` — Tk Variable creation: `self.var_preserve_breaks = tk.BooleanVar(master=self, value=True)`
+- `misora.py:20493` — Tk Variable creation: `self.var_archive_xuat = tk.BooleanVar(master=self, value=True)`
+- `misora.py:20494` — Tk Variable creation: `self.var_auto_word_wrap = tk.BooleanVar(master=self, value=False)`
+- `misora.py:20962` — Tk Variable creation: `var_skip = tk.BooleanVar(master=self, value=is_locked)`
+- `misora.py:20989` — Tk Variable creation: `var_scope = tk.StringVar(master=self, value="This Box")`
+- `misora.py:21860` — Tk Variable creation: `self.var_archive_dir = tk.StringVar(master=self, value=str(self.app._get_xuat_archive_dir()))`
+- `misora.py:21861` — Tk Variable creation: `self.var_archive_ext = tk.StringVar(`
+- `misora.py:21865` — Tk Variable creation: `self.var_strategy = tk.StringVar(`
+- `misora.py:22037` — Tk Variable creation: `self.var_duplicate_scope = tk.StringVar(master=self, value="selected_only")`
+- `misora.py:22038` — Tk Variable creation: `self.var_linebreak_policy = tk.StringVar(master=self, value="remove_line_break")`
+- `misora.py:22039` — Tk Variable creation: `self.var_archive_strategy = tk.StringVar(`
+- `misora.py:22043` — Tk Variable creation: `self.var_archive_dir = tk.StringVar(master=self, value=str(self.app._get_xuat_archive_dir()))`
+- `misora.py:22044` — Tk Variable creation: `self.var_archive_ext = tk.StringVar(`
+- `misora.py:22048` — Tk Variable creation: `self.var_allow_unarchived = tk.BooleanVar(master=self, value=False)`
+- `misora.py:22049` — Tk Variable creation: `self.var_include_applied = tk.BooleanVar(master=self, value=True)`
+- `misora.py:22901` — Tk Variable creation: `self.var_engine = tk.StringVar(master=self, value=self.app.mtl_config.active_engine)`
+- `misora.py:22910` — Tk Variable creation: `self.var_src = tk.StringVar(master=self, value=self.app.mtl_config.src_lang)`
+- `misora.py:22914` — Tk Variable creation: `self.var_tgt = tk.StringVar(master=self, value=self.app.mtl_config.tgt_lang)`
+- `misora.py:22928` — Tk Variable creation: `self.var_deepl_key = tk.StringVar(master=self, value=self.app.mtl_config.deepl_api_key)`
+- `misora.py:22931` — Tk Variable creation: `self.var_show_key = tk.BooleanVar(master=self, value=False)`
+- `misora.py:22938` — Tk Variable creation: `self.var_deepl_pro = tk.BooleanVar(master=self, value=self.app.mtl_config.deepl_use_pro)`
+- `misora.py:22955` — Tk Variable creation: `self.var_local_url = tk.StringVar(master=self, value=self.app.mtl_config.local_mtl_url)`
+- `misora.py:22967` — Tk Variable creation: `self.var_llm_url = tk.StringVar(master=self, value=self.app.mtl_config.llm_base_url)`
+- `misora.py:22974` — Tk Variable creation: `self.var_llm_model = tk.StringVar(master=self, value=self.app.mtl_config.llm_model)`
+- `misora.py:22979` — Tk Variable creation: `self.var_llm_key = tk.StringVar(master=self, value=self.app.mtl_config.llm_api_key)`
+- `misora.py:22987` — Tk Variable creation: `self.var_protect = tk.BooleanVar(master=self, value=self.app.mtl_config.protect_tags)`
+- `misora.py:22990` — Tk Variable creation: `self.var_xuat_cache = tk.BooleanVar(master=self, value=self.app.mtl_config.use_xuat_cache)`
+- `misora.py:22996` — Tk Variable creation: `self.var_timeout = tk.DoubleVar(master=self, value=self.app.mtl_config.timeout_sec)`
+- `misora.py:23179` — Tk Variable creation: `self.var_include_hdr = tk.BooleanVar(master=self, value=self.app.mtl_config.ai_prompt_include_header)`
+- `misora.py:23190` — Tk Variable creation: `self.var_include_spk = tk.BooleanVar(master=self, value=self.app.mtl_config.ai_prompt_include_speaker)`
+- `misora.py:23328` — Tk Variable creation: `self.var_engine = tk.StringVar(master=self, value=self.app.mtl_config.active_engine)`
+- `misora.py:23742` — Tk Variable creation: `self.var_engine = tk.StringVar(master=self, value=self.app.mtl_config.active_engine)`
+- `misora.py:23750` — Tk Variable creation: `self.var_scope = tk.StringVar(master=self, value="untranslated")`
+- `misora.py:23759` — Tk Variable creation: `self.var_delay = tk.DoubleVar(master=self, value=0.3)`
+- `misora.py:14403` — Worker thread creation site: `t = threading.Thread(`
+- `misora.py:18473` — Worker thread creation site: `executor = concurrent.futures.ThreadPoolExecutor(max_workers=3, thread_name_prefix="MisoraMTLAll")`
+- `misora.py:18488` — Worker thread creation site: `executor.submit(_run_one, orig_text, req_meta)`
+- `misora.py:18500` — Worker thread creation site: `threading.Thread(target=_dispatch_loop, name="MisoraMTLDispatcher", daemon=True).start()`
+- `misora.py:19126` — Worker thread creation site: `t = threading.Thread(target=_worker, daemon=True)`
+- `misora.py:22454` — Worker thread creation site: `t = threading.Thread(target=_worker, daemon=True)`
+- `misora.py:23064` — Worker thread creation site: `t = threading.Thread(target=worker, daemon=True)`
+- `misora.py:23644` — Worker thread creation site: `threading.Thread(target=worker, daemon=True).start()`
+- `misora.py:23905` — Worker thread creation site: `threading.Thread(target=worker, daemon=True).start()`
+- `core/logger.py:81` — Worker thread creation site: `self._writer_thread = threading.Thread(`
+- `core/mtl_engine.py:409` — Worker thread creation site: `t = threading.Thread(target=worker, daemon=True)`
+- `core/xuat_index.py:505` — Worker thread creation site: `t = threading.Thread(target=worker, daemon=True)`
+
+## Summary
+
+| Check | Count |
+|---|---:|
+| Duplicate Functions / Methods (Silent Shadowing) | 2 |
+| Unreachable Statements | 0 |
+| Mutable Default Arguments | 0 |
+| Zero-Caller Dead-Code Candidates | 501 |
+| Potential Dead/Unused Standalone Scripts | 0 |
+| Remaining `winfo_ismapped()` Calls in `misora.py` | 5 |
+| Broad `except` Blocks in Critical Paths | 233 |
+| `after()` Tracking, Tk Variables & Worker Thread Sites | 96 |
+
+---
+*End of AST static report.*

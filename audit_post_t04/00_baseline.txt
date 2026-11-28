@@ -1,0 +1,58 @@
+MISORA POST-T-04 READ-ONLY DIAGNOSTIC SCAN — BASELINE SNAPSHOT
+================================================================
+Scan initiated: 2026-11-28T23:55:00+07:00
+
+=== BRANCH ===
+main
+
+=== AUDIT_BASELINE_HEAD ===
+8affb7c53b6af6047ace423c7e4d830a978eb644
+
+=== GIT STATUS (must be empty) ===
+(empty — clean working tree)
+
+=== VERSION ===
+1.4.15
+
+=== SYMBOL INDEX CHECK ===
+CHECK PASS: docs/architecture/MISORA_SYMBOL_INDEX.md
+
+=== TEST COUNT ===
+countTestCases: 516
+
+=== PYTHON VERSION ===
+3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]
+
+=== OS VERSION ===
+Microsoft Windows NT 10.0.26100.0
+
+=== PRE PYC COUNT ===
+pre_pyc_count: 125
+
+================================================================
+ALL PREFLIGHT GATES PASS — proceeding to static scan.
+
+
+================================================================
+POST-SCAN INTEGRITY GATE (STEP 5) — 2026-11-29T00:01+07:00
+================================================================
+
+=== POST-SCAN GIT STATUS ===
+(empty — clean working tree — PASS)
+
+=== RUFF CACHE CHECK ===
+No .ruff_cache found in D:\Misora-Editor (clean — PASS)
+
+=== POST PYC COUNT ===
+post_pyc_count: 125
+
+=== PYC COUNT MATCH ===
+pre_pyc_count: 125 == post_pyc_count: 125 — PASS
+
+=== NEW __pycache__ DIRECTORIES ===
+All pre-existing (D:\Misora-Editor\__pycache__, assets, core, tests, tools,
+backups\Archives_20261121\_archive subdirs). No NEW directories created. PASS.
+
+================================================================
+ZERO-EDIT GATE: ALL CHECKS PASS
+================================================================

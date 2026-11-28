@@ -1,0 +1,2 @@
+PS D:\Misora-Editor> git rev-parse HEAD
+8affb7c53b6af6047ace423c7e4d830a978eb644
