@@ -96,11 +96,15 @@ git checkout 8b75b9e61728f4a5a78d06901b7e7e5006343122 -- PROJECT_STATE.md
 
 ---
 
-## 4. Manual Windows QA Checklist (`MANUAL-PENDING`)
+## 4. Manual Windows QA Checklist
+
+**Sign-off:** `v1.4.15` @ `3edf43e11b3479ac6ab1b20adb03a6e6ad8abfcd`, Windows 11 `10.0.26100.6725`, `1920x1080` 100% & 125% DPI, Project Lead.
 
 | ID | Check | DPI | Steps | Expected | Status |
 |----|-------|-----|-------|----------|--------|
-| **M-1** | Tooltip text at 100% DPI | 100% | Hover over `lbl_char_overflow` (`0/54d · 1/3L` indicator) for >350ms | Tooltip reads: `"Native 54d x 3 dialogue rule: <= 54 digit-widths without linebreak AND < 3 linebreaks (<= 3 lines)."` + `"\nLine widths measured in the active editor font against a fixed reference boundary calibrated to the in-game box (NGUI tags excluded)."` | `MANUAL-PENDING` |
-| **M-2** | Tooltip text at 125% DPI | 125% | Same as M-1 | Same expected text as M-1 | `MANUAL-PENDING` |
-| **M-3** | Next/Prev tooltips unaffected | 100% | Hover over Next button, then Prev button | `"Next Dialogue Box (Alt+Right / Alt+Down)"` / `"Previous Dialogue Box (Alt+Left / Alt+Up)"` unchanged | `MANUAL-PENDING` |
-| **M-4** | Label text dynamic update | 100% | Type >54 characters in dialogue; verify label turns red and shows `>54/54d` | Label updates correctly; tooltip unchanged | `MANUAL-PENDING` |
+| **M-1** | Tooltip text at 100% DPI | 100% | Hover over `lbl_char_overflow` (`0/54d · 1/3L` indicator) for >350ms | Tooltip reads: `"Native 54d x 3 dialogue rule: <= 54 digit-widths without linebreak AND < 3 linebreaks (<= 3 lines)."` + `"\nLine widths measured in the active editor font against a fixed reference boundary calibrated to the in-game box (NGUI tags excluded)."` | `[pass]` |
+| **M-2** | Tooltip text at 125% DPI | 125% | Same as M-1 | Same expected text as M-1 | `[pass]` |
+| **M-3** | Next/Prev tooltips unaffected | 100% | Hover over Next button, then Prev button | `"Next Dialogue Box (Alt+Right / Alt+Down)"` / `"Previous Dialogue Box (Alt+Left / Alt+Up)"` unchanged | `[pass]` |
+| **M-4** | Label text dynamic update | 100% | Type >54 characters in dialogue; verify label turns red and shows `>54/54d` | Label updates correctly; tooltip unchanged. **Observed:** label shows red `54/54d · 1/3L`. M-1/M-2 tooltip shows `54d x 3`; M-4 label shows `54/54d · 1/3L`. | `[pass]` |
+
+**N-C:** `misora.py` has 23,912 logical lines and 23,911 CRLF line terminators (the final line has no trailing terminator).
