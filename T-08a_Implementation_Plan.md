@@ -1,15 +1,15 @@
-# T-08a Implementation Plan (Rev 2) — `BUG-UI-TOOLTIP-CLIP-01` ToolTip Screen-Edge Clipping
+# T-08a Implementation Plan (Rev 3) — `BUG-UI-TOOLTIP-CLIP-01` ToolTip Screen-Edge Clipping
 
 **Task:** T-08a (split from T-08/`BUG-39`/`FEAT-04`)
-**Revision:** Rev 2 (addresses all 6 Gemini review hold items prior to GPT-6 / Qwen review)
-**Evidence:** `CONFIRMED` + `ROOT-CAUSE: NEEDS-CODE-VERIFY` → upgraded to `ROOT-CAUSE: SOURCE-OBSERVED` by this plan
+**Revision:** Rev 3 (addresses GPT-6 blockers W1 & W2, design notes W3, and Qwen execution notes E-1..E-4; Qwen CLEARED on Rev 2)
+**Evidence:** `CONFIRMED` + `ROOT-CAUSE: SOURCE-OBSERVED`
 **Lifecycle:** `ACTIVE`
 **Version:** `1.4.15` (UNCHANGED — no version promotion authorized)
 **Branch:** `main`
 
 > [!IMPORTANT]
 > This plan is **READ-ONLY** and authorizes **ZERO file modifications** inside `D:\Misora-Editor`.
-> Implementation requires independent review and explicit Project Lead `Proceed`.
+> Implementation requires final clearance and explicit Project Lead `Proceed`.
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## 2. Verbatim ToolTip Source Audit & Import / Test-Compatibility Verification
 
-### 2.1 Module-Level Imports Verified in `misora.py` (Read-Only)
+### 2.1 Module-Level Imports & Windows `ctypes` Prototype Verification (Read-Only)
 
 | Symbol | Exact `file:line` | Scope | Notes |
 |---|---|---|---|
@@ -46,12 +46,15 @@
 | `Optional`, `Tuple` | `misora.py:33` | Unconditional module scope | `from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union` |
 | `wintypes` | `misora.py:42-44` | **Conditional** (`if sys.platform == "win32":`) | `from ctypes import wintypes` |
 
-Because `wintypes` at `misora.py:44` is conditionally imported inside `if sys.platform == "win32":`, the new `_get_work_area()` helper explicitly performs `from ctypes import wintypes as _wt` inside `if sys.platform == "win32":` + `try/except`, ensuring `NameError` can **never** occur or trigger silent fallback even if module-scope `wintypes` were absent.
+Because `wintypes` at `misora.py:44` is conditionally imported inside `if sys.platform == "win32":`, `_get_work_area()` explicitly performs `from ctypes import wintypes as _wt` inside `if sys.platform == "win32":`. Live Windows Python 3.12 probe verified:
+- `hasattr(wintypes, "HMONITOR") == True`, `HANDLE == True`, `POINT == True`, `DWORD == True`, `BOOL == True`.
+- `ctypes.WinDLL("user32", use_last_error=True)` returns a dedicated `WinDLL` instance (`user32 is ctypes.windll.user32 == False`), so setting explicit `argtypes`/`restype` inside `_get_work_area()` never mutates the shared `ctypes.windll.user32` object used elsewhere in `misora.py`.
+- `MonitorFromPoint(POINT(100, 100), 2)` returned `65719` and `GetMonitorInfoW(hmon, byref(mi))` returned `1` with `rcWork = (0, 0, 1920, 1050)`.
 
-### 2.2 Complete `ToolTip` class — `misora.py:202–295`
+### 2.2 Complete `ToolTip` class (`misora.py:202–295`) & `create_tooltip` (`misora.py:298–300`)
 
 ```python
-# misora.py:202-295  (verbatim at 9fa26637)
+# misora.py:202-300  (verbatim at 9fa26637)
 class ToolTip:
     """Robust hover tooltip for Tkinter widgets with delayed display and safe lifecycle (Part C.5 / TOOLTIP-LIFECYCLE)."""
 
@@ -146,31 +149,23 @@ class ToolTip:
             except Exception:
                 pass
             self.tip_window = None
-```
 
-### 2.3 `create_tooltip` function — `misora.py:298–300`
 
-```python
-# misora.py:298-300
 def create_tooltip(widget: tk.Widget, text: str, delay_ms: int = 350) -> ToolTip:
     """Convenience helper to attach a hover tooltip to a widget."""
     return ToolTip(widget, text, delay_ms=delay_ms)
 ```
 
-### 2.4 Existing `_get_monitor_work_area` (`misora.py:7043–7078`) & Speaker Popup Usage (`misora.py:7102–7116`)
+### 2.3 Existing `_get_monitor_work_area` (`misora.py:7043–7078`) & DPI Awareness (`misora.py:620–642`)
 
-`MisoraApp._get_monitor_work_area(self, x: int, y: int)` (`misora.py:7043–7078`) uses `MonitorFromPoint(..., 2)` (`MONITOR_DEFAULTTONEAREST`) and `GetMonitorInfoW(..., byref(mi))` (`mi.rcWork`), falling back to `(0, 0, winfo_screenwidth(), winfo_screenheight())`. Its only caller is `MisoraApp._refresh_speaker_autocomplete()` (`misora.py:7109–7112`), which clamps the speaker dropdown to `[work_left, work_right - w]` and `[work_top, work_bottom - h]`.
+- `MisoraApp._get_monitor_work_area(self, x: int, y: int)` (`misora.py:7043–7078`) serves `MisoraApp._refresh_speaker_autocomplete()` (`misora.py:7109–7112`).
+- `init_process_dpi_awareness()` (`misora.py:620–642`) runs once before Tk root creation. Per `AGENTS.md` §7, DPI awareness MUST NOT be mutated at runtime.
 
-### 2.5 DPI Awareness — `misora.py:620–642` (READ-ONLY — NEVER MODIFY)
+### 2.4 `S11e` & `T-02` Tooltip Test Compatibility Verification
 
-`init_process_dpi_awareness()` runs once before Tk root creation. Per `AGENTS.md` §7, DPI awareness MUST NOT be mutated at runtime. The fix only reads monitor work-area geometry and never calls any `SetProcessDpi*` APIs.
-
-### 2.6 `S11e` & `T-02` Tooltip Test Compatibility Verification
-
-Read-only inspection of `tests/test_v15_s11e_polish_splash_menu_tooltips.py` and `tests/test_t02_next_tooltip.py`:
-- `tests/test_v15_s11e_polish_splash_menu_tooltips.py` inspects `w._tooltip`, `w._tooltip.text`, and `w._tooltip.delay_ms` (`L535`, `L537`, `L618–L685`). It never mocks `tk.Toplevel`, `withdraw`, `deiconify`, or `update_idletasks` globally or on `ToolTip`, and never invokes `ToolTip.show_tip()` (`withdraw`/`update_idletasks` in `S11e` are called only on `self.app`, `app2`, `app3`, `app_g`, `dlg`, and `dlg_fb`).
-- `tests/test_t02_next_tooltip.py` only inspects `self.app.lbl_char_overflow._tooltip.text`, `self.app.btn_next._tooltip.text`, and `self.app.btn_prev._tooltip.text` (`L41`, `L78`, `L84`).
-- Therefore, calling `tw.withdraw()` → `tw.update_idletasks()` → `tw.wm_geometry(...)` → `tw.deiconify()` on `ToolTip.tip_window` inside `ToolTip.show_tip()` introduces **zero conflict** with either suite.
+- `tests/test_v15_s11e_polish_splash_menu_tooltips.py` inspects `w._tooltip`, `w._tooltip.text`, and `w._tooltip.delay_ms` (`L535`, `L537`, `L618–L685`). It never mocks `tk.Toplevel`, `withdraw`, `deiconify`, or `update_idletasks` globally or on `ToolTip`, and never invokes `ToolTip.show_tip()`.
+- `tests/test_t02_next_tooltip.py` only inspects `lbl_char_overflow._tooltip.text`, `btn_next._tooltip.text`, and `btn_prev._tooltip.text` (`L41`, `L78`, `L84`).
+- Zero conflict with either suite.
 
 ---
 
@@ -179,17 +174,15 @@ Read-only inspection of `tests/test_v15_s11e_polish_splash_menu_tooltips.py` and
 ### 3.1 Source-Level Root Cause — `SOURCE-OBSERVED`
 
 `ToolTip.show_tip()` (`misora.py:260–285`) has three defects:
-1. **No screen/work-area clamping (`L265–266, L269`):** Sets `x = self.widget.winfo_rootx() + 8` and `y = self.widget.winfo_rooty() + self.widget.winfo_height() + 4`, applying `tw.wm_geometry(f"+{x}+{y}")` unchecked against any monitor boundary.
-2. **Dimensions unmeasured before positioning (`L269` before `L270–282`):** `wm_geometry()` is called before `tk.Label` is constructed and packed, so `tw.winfo_reqwidth()` and `tw.winfo_reqheight()` are unknown at positioning time.
-3. **No monitor work-area query:** `ToolTip` is a standalone top-level class (`L202`) without access to `MisoraApp._get_monitor_work_area` (`L7043`).
+1. **No screen/work-area clamping (`L265–266, L269`):** Sets `x = self.widget.winfo_rootx() + 8` and `y = self.widget.winfo_rooty() + self.widget.winfo_height() + 4`, applying `tw.wm_geometry(f"+{x}+{y}")` unchecked against monitor bounds.
+2. **Dimensions unmeasured before positioning (`L269` before `L270–282`):** `wm_geometry()` is called before `tk.Label` is constructed and packed.
+3. **No monitor work-area query:** `ToolTip` is a standalone class (`L202`) without access to `MisoraApp._get_monitor_work_area` (`L7043`).
 
 ### 3.2 Read-Only Runtime Probe Output (Genuine `MisoraApp` + Windows Tk 8.6)
 
 **Probe 1 — Genuine `MisoraApp` (`CONFIG_PATH` patched to temp dir, `restore_session=False, show_splash=False`):**
 ```
 === ToolTip text: 'Native 54d x 3 dialogue rule: <= 54 digit-widths without linebreak AND < 3 linebreaks (<= 3 lines).\nLine widths measured'
-=== Widget: .!panedwindow.!frame2.!panedwindow.!frame.!frame.!label3
-=== Screen: 1920x1080
 === Monitor work area: left=0, top=0, right=1920, bottom=1050
 === Tooltip reqwidth=702, reqheight=34
 === SIMULATION: Widget at x=1870, tooltip at x=1878, tip_w=702 -> right edge overflow = 660px
@@ -198,84 +191,95 @@ Read-only inspection of `tests/test_v15_s11e_polish_splash_menu_tooltips.py` and
 
 **Probe 2 — Windows Tk 8.6 Negative-Coordinate & `update_idletasks()` Behavior (`py -3.12 -B -c`):**
 ```
-geom1: '76x23+-704+50'
-x1: -704
-y1: 50
-geom2: '76x23+-1500+200'
-x2: -1500
-y2: 200
-geom3: '76x23+100+-50'
-x3: 100
-y3: -50
+geom1: '76x23+-704+50'  x1: -704  y1: 50
+geom2: '76x23+-1500+200' x2: -1500 y2: 200
+geom3: '76x23+100+-50'  x3: 100   y3: -50
 ```
+
 **Probe 3 — Live `misora.ToolTip.show_tip()` Pre-Patch Reading Timing (`py -3.12 -B -c`):**
 ```
 BEFORE update_idletasks: wm_geometry= '1x1+-92+74' winfo_x= 0 winfo_y= 0 reqw= 200
 AFTER  update_idletasks: wm_geometry= '523x34+-92+74' winfo_x= -92 winfo_y= 74 reqw= 523
 TOP-LEFT unclamped: wm_geometry= '523x34+-12+-6' winfo_x= -12 winfo_y= -6 reqw= 523 reqh= 34
 ```
-**Deterministic assertion rule derived from Probes 2 & 3:**
-- Windows Tk 8.6 preserves negative `wm_geometry(f"+{x}+{y}")` coordinates (both `+-704+50` and `+100+-50`) without single-monitor OS snapping.
-- However, BEFORE `tw.update_idletasks()` is called on a newly created pre-patch `Toplevel`, `tw.winfo_x()` / `tw.winfo_y()` return `0, 0` and `tw.winfo_reqwidth()` returns default `200`.
-- Calling `tip.tip_window.update_idletasks()` inside tests immediately after `tip.show_tip()` ensures `winfo_x()`, `winfo_y()`, `winfo_reqwidth()`, and `winfo_reqheight()` are 100% populated and deterministic in BOTH pre-patch and post-patch runs on single-monitor Windows machines.
+Calling `tip.tip_window.update_idletasks()` inside tests immediately after `tip.show_tip()` makes `winfo_x()`, `winfo_y()`, `winfo_reqwidth()`, and `winfo_reqheight()` 100% deterministic in both pre-patch and post-patch runs, including negative multi-monitor coordinates on single-monitor machines.
 
 ### 3.3 Why `MisoraApp._get_monitor_work_area` (`misora.py:7043`) Is Left Untouched
 
-`MisoraApp._get_monitor_work_area` (`misora.py:7043–7078`) already serves `MisoraApp._refresh_speaker_autocomplete()` (`misora.py:7109`) cleanly. Leaving `MisoraApp._get_monitor_work_area` untouched keeps the T-08a diff strictly scoped to lines `199–362` of `misora.py` with **zero regression risk** to speaker autocomplete (`misora.py:7043–7116`).
+`MisoraApp._get_monitor_work_area` (`misora.py:7043–7078`) already serves `MisoraApp._refresh_speaker_autocomplete()` (`misora.py:7109`). Leaving it untouched keeps the T-08a diff strictly scoped to lines `199–376` of `misora.py` with zero regression risk to speaker autocomplete.
 
 ---
 
 ## 4. Minimal Root-Cause Fix Design
 
-### 4.1 Standalone Helper `_get_work_area()` — Inserted Before `class ToolTip`
+### 4.1 Standalone Helper `_get_work_area()` — Explicit `ctypes` Prototypes & Clean Failure vs Fallback Distinction
 
 ```python
 def _get_work_area(x: int, y: int, fallback_widget: Optional[tk.Widget] = None) -> Tuple[int, int, int, int]:
     """Return (work_left, work_top, work_right, work_bottom) for the monitor containing (x, y).
 
-    Uses Win32 MonitorFromPoint/GetMonitorInfoW on Windows for accurate multi-monitor
-    work-area bounds (excluding taskbar). Falls back to Tk screen dimensions on
-    non-Windows platforms or on error. ZERO changes to DPI awareness (Rule 23).
+    Uses Win32 MonitorFromPoint/GetMonitorInfoW on Windows with explicit ctypes
+    prototypes (use_last_error=True) for taskbar-excluded multi-monitor bounds.
+    Falls back to Tk primary screen dimensions (not per-monitor/taskbar-excluded)
+    when non-Windows, Win32 DLL is unavailable, or Win32 API returns failure.
+    ZERO changes to DPI awareness (Rule 23).
     """
     if sys.platform == "win32":
+        from ctypes import wintypes as _wt
+
+        class _RECT(ctypes.Structure):
+            _fields_ = [
+                ("left", _wt.LONG),
+                ("top", _wt.LONG),
+                ("right", _wt.LONG),
+                ("bottom", _wt.LONG),
+            ]
+
+        class _MONITORINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", _wt.DWORD),
+                ("rcMonitor", _RECT),
+                ("rcWork", _RECT),
+                ("dwFlags", _wt.DWORD),
+            ]
+
         try:
-            from ctypes import wintypes as _wt
+            user32 = ctypes.WinDLL("user32", use_last_error=True)
+        except OSError:
+            user32 = None
 
-            class _RECT(ctypes.Structure):
-                _fields_ = [
-                    ("left", ctypes.c_long),
-                    ("top", ctypes.c_long),
-                    ("right", ctypes.c_long),
-                    ("bottom", ctypes.c_long),
-                ]
+        if user32 is not None:
+            hmonitor_type = getattr(_wt, "HMONITOR", _wt.HANDLE)
+            monitor_from_point = user32.MonitorFromPoint
+            monitor_from_point.argtypes = [_wt.POINT, _wt.DWORD]
+            monitor_from_point.restype = hmonitor_type
 
-            class _MONITORINFO(ctypes.Structure):
-                _fields_ = [
-                    ("cbSize", ctypes.c_ulong),
-                    ("rcMonitor", _RECT),
-                    ("rcWork", _RECT),
-                    ("dwFlags", ctypes.c_ulong),
-                ]
+            get_monitor_info = user32.GetMonitorInfoW
+            get_monitor_info.argtypes = [hmonitor_type, ctypes.POINTER(_MONITORINFO)]
+            get_monitor_info.restype = _wt.BOOL
 
             pt = _wt.POINT(int(x), int(y))
-            hmon = ctypes.windll.user32.MonitorFromPoint(pt, 2)  # MONITOR_DEFAULTTONEAREST
+            hmon = monitor_from_point(pt, 2)  # MONITOR_DEFAULTTONEAREST = 2
             if hmon:
                 mi = _MONITORINFO()
                 mi.cbSize = ctypes.sizeof(_MONITORINFO)
-                if ctypes.windll.user32.GetMonitorInfoW(hmon, ctypes.byref(mi)):
+                if get_monitor_info(hmon, ctypes.byref(mi)):
                     r = mi.rcWork
                     return (int(r.left), int(r.top), int(r.right), int(r.bottom))
-        except Exception:
-            pass
     try:
         if fallback_widget is not None:
             sw = int(fallback_widget.winfo_screenwidth() or 1920)
             sh = int(fallback_widget.winfo_screenheight() or 1080)
             return (0, 0, sw, sh)
-    except Exception:
+    except (tk.TclError, ValueError, TypeError, AttributeError):
         pass
     return (0, 0, 1920, 1080)
 ```
+
+**Win32 failure/unavailable vs signature-error distinction (GPT-6 W1):**
+- Only `OSError` when loading `ctypes.WinDLL("user32", use_last_error=True)` (unavailable DLL) and falsy API returns (`hmon == 0` / `GetMonitorInfoW(...) == 0`) trigger fallback.
+- There is **no** blanket `except Exception: pass` around prototype configuration or Win32 invocation, so `ctypes.ArgumentError`, `TypeError`, or `AttributeError` on `MonitorFromPoint`/`GetMonitorInfoW` are **never silently masked**.
+- Tk fallback is narrowed to `(tk.TclError, ValueError, TypeError, AttributeError)`.
 
 ### 4.2 Modified `ToolTip.show_tip()` — Full 4-Edge Clamping & Bottom Flip
 
@@ -336,12 +340,11 @@ def _get_work_area(x: int, y: int, fallback_widget: Optional[tk.Widget] = None) 
             self.hide_tip()
 ```
 
-### 4.3 Edge-Case Coverage
+### 4.3 Explicit Edge-Case, Oversized-Tooltip, and Fallback Guarantees (GPT-6 W3)
 
-- **Right overflow:** Clamped to `work_right - tip_w - margin`.
-- **Left overflow (or tooltip wider than monitor):** Clamped to `work_left + margin` (works identically for negative `work_left` such as `-1920`).
-- **Bottom overflow:** Flips above widget (`widget_y - tip_h - 4`); if widget is below `work_bottom` so flipped `y` still overflows bottom, clamped to `work_bottom - tip_h - margin`; then if `y < work_top + margin` (short screen or widget above top edge), clamped to `work_top + margin`.
-- **Top overflow:** Clamped to `work_top + margin` even when no bottom overflow occurred (e.g., `widget_y = -20`).
+- **All 4 edges enforced:** Right (`work_right - tip_w - margin`), Left (`work_left + margin`), Bottom (flip above widget, then post-flip clamp `work_bottom - tip_h - margin`), and Top (`work_top + margin`). Multi-monitor negative coordinates (e.g., `[-1920, 0)`) are handled symmetrically without clamping to `0`.
+- **Oversized tooltips (`tip_w > (work_right - work_left) - 2 * margin`):** **Left-clamped** (`x = work_left + margin` runs after right-clamp) rather than dynamically adding `wraplength` + re-measurement, preserving the author's exact single-line / explicit-`\n` layout (`lbl_char_overflow` is `702px` wide, fitting 100%, 125%, and 150% DPI at `1920x1080` and `1366x768`).
+- **Fallback honesty:** On non-Windows platforms or when Win32 `MonitorFromPoint`/`GetMonitorInfoW` returns failure or `WinDLL` raises `OSError`, the Tk fallback (`winfo_screenwidth()` / `winfo_screenheight()`, or `(0, 0, 1920, 1080)`) returns **primary screen dimensions only** — it is **not** full taskbar-excluded or multi-monitor work area. Only the Windows Win32 `MonitorFromPoint` + `GetMonitorInfoW` (`rcWork`) path provides per-monitor taskbar-excluded work area.
 - **Preserved contracts:** `setattr(self.widget, "_tooltip", self)`, `delay_ms = 350`, `set_text()`, `hide_tip()`, and label styling/text remain untouched.
 
 ---
@@ -353,53 +356,67 @@ Generated directly against `misora.py` at `9fa266375caf0994e49c9ed5ce8b7b1203b28
 ```diff
 --- a/misora.py
 +++ b/misora.py
-@@ -199,6 +199,53 @@
+@@ -199,6 +199,67 @@
  __version__ = _get_app_version()
  
  
 +def _get_work_area(x: int, y: int, fallback_widget: Optional[tk.Widget] = None) -> Tuple[int, int, int, int]:
 +    """Return (work_left, work_top, work_right, work_bottom) for the monitor containing (x, y).
 +
-+    Uses Win32 MonitorFromPoint/GetMonitorInfoW on Windows for accurate multi-monitor
-+    work-area bounds (excluding taskbar). Falls back to Tk screen dimensions on
-+    non-Windows platforms or on error. ZERO changes to DPI awareness (Rule 23).
++    Uses Win32 MonitorFromPoint/GetMonitorInfoW on Windows with explicit ctypes
++    prototypes (use_last_error=True) for taskbar-excluded multi-monitor bounds.
++    Falls back to Tk primary screen dimensions (not per-monitor/taskbar-excluded)
++    when non-Windows, Win32 DLL is unavailable, or Win32 API returns failure.
++    ZERO changes to DPI awareness (Rule 23).
 +    """
 +    if sys.platform == "win32":
++        from ctypes import wintypes as _wt
++
++        class _RECT(ctypes.Structure):
++            _fields_ = [
++                ("left", _wt.LONG),
++                ("top", _wt.LONG),
++                ("right", _wt.LONG),
++                ("bottom", _wt.LONG),
++            ]
++
++        class _MONITORINFO(ctypes.Structure):
++            _fields_ = [
++                ("cbSize", _wt.DWORD),
++                ("rcMonitor", _RECT),
++                ("rcWork", _RECT),
++                ("dwFlags", _wt.DWORD),
++            ]
++
 +        try:
-+            from ctypes import wintypes as _wt
++            user32 = ctypes.WinDLL("user32", use_last_error=True)
++        except OSError:
++            user32 = None
 +
-+            class _RECT(ctypes.Structure):
-+                _fields_ = [
-+                    ("left", ctypes.c_long),
-+                    ("top", ctypes.c_long),
-+                    ("right", ctypes.c_long),
-+                    ("bottom", ctypes.c_long),
-+                ]
++        if user32 is not None:
++            hmonitor_type = getattr(_wt, "HMONITOR", _wt.HANDLE)
++            monitor_from_point = user32.MonitorFromPoint
++            monitor_from_point.argtypes = [_wt.POINT, _wt.DWORD]
++            monitor_from_point.restype = hmonitor_type
 +
-+            class _MONITORINFO(ctypes.Structure):
-+                _fields_ = [
-+                    ("cbSize", ctypes.c_ulong),
-+                    ("rcMonitor", _RECT),
-+                    ("rcWork", _RECT),
-+                    ("dwFlags", ctypes.c_ulong),
-+                ]
++            get_monitor_info = user32.GetMonitorInfoW
++            get_monitor_info.argtypes = [hmonitor_type, ctypes.POINTER(_MONITORINFO)]
++            get_monitor_info.restype = _wt.BOOL
 +
 +            pt = _wt.POINT(int(x), int(y))
-+            hmon = ctypes.windll.user32.MonitorFromPoint(pt, 2)  # MONITOR_DEFAULTTONEAREST
++            hmon = monitor_from_point(pt, 2)  # MONITOR_DEFAULTTONEAREST = 2
 +            if hmon:
 +                mi = _MONITORINFO()
 +                mi.cbSize = ctypes.sizeof(_MONITORINFO)
-+                if ctypes.windll.user32.GetMonitorInfoW(hmon, ctypes.byref(mi)):
++                if get_monitor_info(hmon, ctypes.byref(mi)):
 +                    r = mi.rcWork
 +                    return (int(r.left), int(r.top), int(r.right), int(r.bottom))
-+        except Exception:
-+            pass
 +    try:
 +        if fallback_widget is not None:
 +            sw = int(fallback_widget.winfo_screenwidth() or 1920)
 +            sh = int(fallback_widget.winfo_screenheight() or 1080)
 +            return (0, 0, sw, sh)
-+    except Exception:
++    except (tk.TclError, ValueError, TypeError, AttributeError):
 +        pass
 +    return (0, 0, 1920, 1080)
 +
@@ -407,7 +424,7 @@ Generated directly against `misora.py` at `9fa266375caf0994e49c9ed5ce8b7b1203b28
  class ToolTip:
      """Robust hover tooltip for Tkinter widgets with delayed display and safe lifecycle (Part C.5 / TOOLTIP-LIFECYCLE)."""
  
-@@ -262,11 +309,9 @@
+@@ -262,11 +323,9 @@
          if self.tip_window or not self.text or not self.widget_exists():
              return
          try:
@@ -420,7 +437,7 @@ Generated directly against `misora.py` at `9fa266375caf0994e49c9ed5ce8b7b1203b28
              label = tk.Label(
                  tw,
                  text=self.text,
-@@ -281,6 +326,36 @@
+@@ -281,6 +340,36 @@
              )
              label.pack(ipadx=1)
              self._label = label
@@ -461,17 +478,17 @@ Generated directly against `misora.py` at `9fa266375caf0994e49c9ed5ce8b7b1203b28
 
 ### Exact Line-Count & Diff Math:
 - Pre-edit `misora.py`: `23,912` logical lines (`23,911` CRLF terminators, `bare_LF == 0`, `bare_CR == 0`)
-- Added lines: `+78` (`+47` for `_get_work_area` + 2 blank lines; `+1` `tw.withdraw()`; `+30` measurement + 4-edge clamping + `deiconify()`)
-- Deleted lines: `-3` (old `x = ...`, `y = ...`, `tw.wm_geometry(...)`)
-- Net delta: `+75` lines
-- Exact post-edit `misora.py`: **`23,987` logical lines** (`23,986` CRLF terminators, `bare_LF == 0`, `bare_CR == 0`)
-- Exact `git diff HEAD --numstat -- misora.py`: **`78	3	misora.py`**
+- Added lines: `+92` (`+61` for `_get_work_area` + 2 blank lines; `+1` `tw.withdraw()`; `+30` measurement + 4-edge clamping + `deiconify()`)
+- Deleted lines: `-3`
+- Net delta: `+89` lines
+- Exact post-edit `misora.py`: **`24,001` logical lines** (`24,000` CRLF terminators, `bare_LF == 0`, `bare_CR == 0`)
+- Exact `git diff HEAD --numstat -- misora.py`: **`92	3	misora.py`**
 
 ### Exact Verification Gates:
-- **Pre-apply (`V-1`):** `git -C D:\Misora-Editor apply --check <patch_file>` → `exit 0` (already verified in Rev 2 planning)
+- **Pre-apply (`V-1`):** `git -C D:\Misora-Editor apply --check <patch_file>` → `exit 0` (already verified in Rev 3 planning)
 - **Post-edit (`V-1` / whitespace):** `git -C D:\Misora-Editor diff HEAD --check` → `exit 0` (empty output)
-- **Post-edit (`V-2` / numstat):** `git -C D:\Misora-Editor diff HEAD --numstat -- misora.py` → `78	3	misora.py`
-- **Post-edit (`C-5` / EOL):** `splitlines(True) == 23,987`, `CRLF == 23,986`, `bare_LF == 0`, `bare_CR == 0`
+- **Post-edit (`V-2` / numstat):** `git -C D:\Misora-Editor diff HEAD --numstat -- misora.py` → `92	3	misora.py`
+- **Post-edit (`C-5` / EOL):** `splitlines(True) == 24,001`, `CRLF == 24,000`, `bare_LF == 0`, `bare_CR == 0`
 
 ---
 
@@ -481,10 +498,10 @@ Generated directly against `misora.py` at `9fa266375caf0994e49c9ed5ce8b7b1203b28
 
 | File | Scope | Notes |
 |---|---|---|
-| `misora.py` | Add `_get_work_area()` before `ToolTip`; update `ToolTip.show_tip()` ONLY | `78	3	misora.py`; `23,987` logical lines |
-| `tests/test_t08a_tooltip_clamping.py` | **NEW** — stdlib `unittest` (`8` tests: `5` Probes + `3` Guards) | Zero `pytest`, zero `.unity3d`, zero `skipTest()`, `CONFIG_PATH` & `messagebox` patched to temp dir, clean `app.destroy()` + `shutil.rmtree` |
-| `docs/project/OPEN_ISSUES.md` | T-08a row ONLY | Record automated TDD `502` baseline / `8/8 PASS`; Windows QA `M-1..M-6` stays `MANUAL-PENDING`; Lifecycle stays `ACTIVE`; N-4 `--check` note |
-| `PROJECT_STATE.md` | Test count & T-08a section ONLY | Exact `502 = 459 PASS + 35 SKIP + 6 FAIL + 2 ERROR`, N-4 transient `--check` note, stay `<= 15,360` bytes |
+| `misora.py` | Add `_get_work_area()` before `ToolTip`; update `ToolTip.show_tip()` ONLY | `92	3	misora.py`; `24,001` logical lines |
+| `tests/test_t08a_tooltip_clamping.py` | **NEW** — stdlib `unittest` (`10` tests: `7` Probes + `3` Guards) | Zero `pytest`, zero `.unity3d`, zero `skipTest()`, `CONFIG_PATH` & `messagebox` patched to temp dir, clean `app.destroy()` + `shutil.rmtree` |
+| `docs/project/OPEN_ISSUES.md` | T-08a row ONLY (Qwen E-1 preservation rule) | Update T-08a row to record `BUG-UI-TOOLTIP-CLIP-01` (`ToolTip.show_tip()` + `_get_work_area()`) automated TDD `10/10 PASS` (within `504 = 461 PASS + 35 SKIP + 6 FAIL + 2 ERROR`) and Windows QA `M-1..M-6` `MANUAL-PENDING`; **explicitly preserve the existing main-window off-screen report (`_deferred_restore()` / `sanitize_window_geometry` at 100% DPI) as an open sub-item/note inside the T-08a row**; keep Lifecycle `ACTIVE`; include N-4 transient `--check` note |
+| `PROJECT_STATE.md` | Test count & T-08a section ONLY | Exact `504 = 461 PASS + 35 SKIP + 6 FAIL + 2 ERROR`, N-4 transient `--check` note, stay `<= 15,360` bytes |
 
 ### Strictly FORBIDDEN / READ-ONLY:
 
@@ -494,29 +511,32 @@ Generated directly against `misora.py` at `9fa266375caf0994e49c9ed5ce8b7b1203b28
 
 ## 7. Zero-`.pyc` Windows-Safe TDD Verification Plan
 
-### 7.1 Test File Design: `tests/test_t08a_tooltip_clamping.py` (`8` tests total)
+### 7.1 Test File Design: `tests/test_t08a_tooltip_clamping.py` (`10` tests total)
 
 **Pre-patch `AttributeError` Prevention & Deterministic Coordinate Reading:**
-- Every Probe (`test_probe_1..test_probe_5`) and `test_guard_1` mocks `misora._get_work_area` using **`mock.patch.object(misora, "_get_work_area", create=True, ...)`** (or `unittest.mock.patch("misora._get_work_area", ..., create=True)`). Because `create=True` is mandatory, running the test file pre-patch when `misora._get_work_area` does not yet exist will **NEVER** raise `AttributeError`, guaranteeing `FAILED (failures=5)` with **`0 errors`**.
-- Immediately after calling `tip.show_tip()`, every test calls **`tip.tip_window.update_idletasks()`** before reading `tip_w = tip.tip_window.winfo_reqwidth()`, `tip_h = tip.tip_window.winfo_reqheight()`, `x = tip.tip_window.winfo_x()`, and `y = tip.tip_window.winfo_y()` (verified in §3.2 Probe 3).
+- Probes 1–5 and Guard 1 mock `misora._get_work_area` using **`mock.patch.object(misora, "_get_work_area", create=True, ...)`** so pre-patch execution never raises `AttributeError`.
+- Probes 6–7 test `misora._get_work_area` directly and obtain it via `fn = getattr(misora, "_get_work_area", None); self.assertIsNotNone(fn, "_get_work_area not implemented")` so pre-patch execution raises `AssertionError` (counted as `FAIL`, **0 errors**).
+- Probes 1–5 and Guard 1 call **`tip.tip_window.update_idletasks()`** immediately after `tip.show_tip()` before reading `winfo_reqwidth()`, `winfo_reqheight()`, `winfo_x()`, and `winfo_y()`.
 
-**7.1.1 Defect Probes (`5` tests — MUST FAIL pre-patch with `0` errors, PASS post-patch):**
+**7.1.1 Defect Probes (`7` tests — MUST FAIL pre-patch with `0` errors, PASS post-patch):**
 
-| ID | Setup (on genuine `MisoraApp.lbl_char_overflow._tooltip`) | Assertions | Pre-patch | Post-patch |
+| ID | Setup | Assertions | Pre-patch | Post-patch |
 |---|---|---|---|---|
-| `test_probe_1_right_edge_clamp` | `_get_work_area -> (0, 0, 1920, 1050)`, `winfo_rootx -> 1800`, `winfo_rooty -> 100`, `winfo_height -> 20` | `x + tip_w <= 1918` and `x >= 2` | FAIL | PASS |
-| `test_probe_2_bottom_edge_flip` | `_get_work_area -> (0, 0, 1920, 1050)`, `winfo_rootx -> 200`, `winfo_rooty -> 1020`, `winfo_height -> 25` | `y < 1020` (flipped above widget) and `y + tip_h <= 1048` and `y >= 2` | FAIL | PASS |
-| `test_probe_3_left_edge_clamp` | `_get_work_area -> (0, 0, 1920, 1050)`, `winfo_rootx -> -20`, `winfo_rooty -> 200`, `winfo_height -> 20` | `x >= 2` | FAIL | PASS |
-| `test_probe_4_top_edge_clamp` | `_get_work_area -> (0, 0, 1920, 1050)`, `winfo_rootx -> 200`, `winfo_rooty -> -20`, `winfo_height -> 10` | `y >= 2` and `y + tip_h <= 1048` | FAIL | PASS |
-| `test_probe_5_multi_monitor_negative` | `_get_work_area -> (-1920, 0, 0, 1050)`, `winfo_rootx -> -100`, `winfo_rooty -> 100`, `winfo_height -> 20` | `x >= -1918`, `x + tip_w <= -2`, and `x < 0` (stays inside left secondary monitor; never jumps to `0`) | FAIL | PASS |
+| `test_probe_1_right_edge_clamp` | `_get_work_area(create=True) -> (0, 0, 1920, 1050)`, `winfo_rootx -> 1800`, `winfo_rooty -> 100`, `winfo_height -> 20` | `x + tip_w <= 1918` and `x >= 2` | FAIL | PASS |
+| `test_probe_2_bottom_edge_flip` | `_get_work_area(create=True) -> (0, 0, 1920, 1050)`, `winfo_rootx -> 200`, `winfo_rooty -> 1020`, `winfo_height -> 25` | `y < 1020`, `y + tip_h <= 1048`, `y >= 2` | FAIL | PASS |
+| `test_probe_3_left_edge_clamp` | `_get_work_area(create=True) -> (0, 0, 1920, 1050)`, `winfo_rootx -> -20`, `winfo_rooty -> 200`, `winfo_height -> 20` | `x >= 2` | FAIL | PASS |
+| `test_probe_4_top_edge_clamp` | `_get_work_area(create=True) -> (0, 0, 1920, 1050)`, `winfo_rootx -> 200`, `winfo_rooty -> -20`, `winfo_height -> 10` | `y >= 2` and `y + tip_h <= 1048` | FAIL | PASS |
+| `test_probe_5_multi_monitor_negative` | `_get_work_area(create=True) -> (-1920, 0, 0, 1050)`, `winfo_rootx -> -100`, `winfo_rooty -> 100`, `winfo_height -> 20` | `x >= -1918`, `x + tip_w <= -2`, and `x < 0` | FAIL | PASS |
+| `test_probe_6_work_area_win32_prototypes_and_negative_monitor` | `fn = getattr(misora, "_get_work_area", None)`; assert not None; mock `sys.platform == "win32"` and `ctypes.WinDLL("user32", use_last_error=True)` with fake `MonitorFromPoint` returning `0x1234` and `GetMonitorInfoW` setting `rcWork = (-1920, 0, 0, 1040)` | `WinDLL("user32", use_last_error=True)` called; explicit `argtypes`/`restype` set on both `MonitorFromPoint` (`[POINT, DWORD]` -> `HMONITOR/HANDLE`) and `GetMonitorInfoW` (`[hmonitor_type, POINTER(_MONITORINFO)]` -> `BOOL`); returns `(-1920, 0, 0, 1040)` | FAIL | PASS |
+| `test_probe_7_work_area_fallback_on_win32_failure_and_non_win32` | `fn = getattr(misora, "_get_work_area", None)`; assert not None; mock `fallback_widget` (`winfo_screenwidth() -> 1280`, `winfo_screenheight() -> 720`); test: (a) `MonitorFromPoint` returns `0`, (b) `GetMonitorInfoW` returns `0`, (c) `WinDLL` raises `OSError`, (d) `sys.platform == "linux"` | All 4 cases return `(0, 0, 1280, 720)`; `fallback_widget=None` on `"linux"` returns `(0, 0, 1920, 1080)`; `TypeError`/`ArgumentError` is NOT swallowed when raised by Win32 call | FAIL | PASS |
 
 **7.1.2 Regression Guards (`3` tests — MUST PASS both pre-patch AND post-patch; N-3 Guard Re-Label Rule):**
 
 | ID | Setup | Assertions | Pre | Post |
 |---|---|---|---|---|
-| `test_guard_1_center_screen_standard_position` | `_get_work_area(create=True) -> (0, 0, 1920, 1050)`, `winfo_rootx -> 500`, `winfo_rooty -> 300`, `winfo_height -> 22` | `x == 508` and `y == 326` (`widget_y + widget_h + 4`) | PASS | PASS |
+| `test_guard_1_center_screen_standard_position` | `_get_work_area(create=True) -> (0, 0, 1920, 1050)`, `winfo_rootx -> 500`, `winfo_rooty -> 300`, `winfo_height -> 22` | `x == 508` and `y == 326` | PASS | PASS |
 | `test_guard_2_tooltip_text_preserved` | Inspect `self.app.lbl_char_overflow._tooltip.text` | Contains `"54"`, `"digit-widths"`, `"active editor font"`, `"fixed reference boundary"` | PASS | PASS |
-| `test_guard_3_hide_tip_destroys_cleanly` | Call `show_tip()`, verify `tip_window` exists (`winfo_exists()`), call `hide_tip()` | `tip_window is None` and no `TclError` | PASS | PASS |
+| `test_guard_3_hide_tip_destroys_cleanly` | Call `show_tip()`, verify `tip_window.winfo_exists()`, call `hide_tip()` | `tip_window is None` and no `TclError` | PASS | PASS |
 
 ### 7.2 Broad BOM-Safe In-Memory Compile Check & Zero-`.pyc` Guard
 
@@ -535,20 +555,20 @@ for py_file in (
 ```
 Plus verify `pre_pyc_count == post_pyc_count` across `D:\Misora-Editor`.
 
-### 7.3 Exact Locked Discovery & Execution Arithmetic (`N = 8`, `P = 5`)
+### 7.3 Exact Locked Discovery & Execution Arithmetic (`N = 10`, `P = 7`)
 
 | Phase | Total | PASS | SKIP | FAIL | ERROR |
 |---|---:|---:|---:|---:|---:|
 | Baseline (`9fa26637`) | `494` | `451` | `35` | `6` | `2` |
-| Pre-patch `tests/test_t08a_tooltip_clamping.py` | `8` | `3` | `0` | `5` | `0` |
-| Post-patch `tests/test_t08a_tooltip_clamping.py` | `8` | `8` | `0` | `0` | `0` |
+| Pre-patch `tests/test_t08a_tooltip_clamping.py` | `10` | `3` | `0` | `7` | `0` |
+| Post-patch `tests/test_t08a_tooltip_clamping.py` | `10` | `10` | `0` | `0` | `0` |
 | Post-patch `tests/test_t02_next_tooltip.py` | `8` | `8` | `0` | `0` | `0` |
 | Post-patch `tests/test_v15_s11e_polish_splash_menu_tooltips.py` | `9` | `9` | `0` | `0` | `0` |
-| **Post-patch full `discover -s tests -v`** | **`502`** | **`459`** | **`35`** | **`6`** | **`2`** |
+| **Post-patch full `discover -s tests -v`** | **`504`** | **`461`** | **`35`** | **`6`** | **`2`** |
 
-- Any discovery count other than `502` (`494 + 8`) is a hard **STOP**.
-- Pre-patch T-08a run MUST report **`Ran 8 tests ... FAILED (failures=5)`** with **`0 errors`**.
-- Post-patch full suite MUST report exact **`502 = 459 PASS + 35 SKIP + 6 FAIL + 2 ERROR`** (`+8 PASS`, `0` new failures/errors/skips).
+- Any discovery count other than **`504`** (`494 + 10`) is a hard **STOP**.
+- Pre-patch T-08a run MUST report **`Ran 10 tests ... FAILED (failures=7)`** with **`0 errors`**.
+- Post-patch full suite MUST report exact **`504 = 461 PASS + 35 SKIP + 6 FAIL + 2 ERROR`** (`+10 PASS`, `0` new failures/errors/skips).
 
 ---
 
@@ -581,8 +601,8 @@ py -3.12 -B -c "data=open('misora.py','rb').read(); print('lines:', len(data.dec
 | **M-2** | Same as M-1 | `125%` | Maximized | Tooltip fully visible, clamped inside right screen edge | `MANUAL-PENDING` |
 | **M-3** | Hover bottom-bar widget (e.g., Save/Revert) near screen bottom | `100%` | Maximized | Tooltip flips above widget, fully visible | `MANUAL-PENDING` |
 | **M-4** | Hover widget near left/top edge of screen | `100%` | Windowed | Tooltip clamped inside left/top work-area bounds, not clipped | `MANUAL-PENDING` |
-| **M-5** | Multi-monitor: hover tooltip-bearing widget on secondary monitor (if available) | Any | Any | Tooltip stays within secondary monitor bounds, never jumps to primary | `MANUAL-PENDING` |
-| **M-6** | Operator sign-off | — | — | M-1..M-5 pass, zero visual regressions in tooltip appearance/timing | `MANUAL-PENDING` |
+| **M-5** | Multi-monitor: hover tooltip-bearing widget on secondary monitor (**if only 1 monitor is present during QA, MUST be marked `NOT RUN` / `UNVERIFIED`, never `PASS`**) | Any | Any | Tooltip stays within secondary monitor bounds, never jumps to primary | `MANUAL-PENDING` |
+| **M-6** | Operator sign-off | — | — | M-1..M-4 pass (and M-5 verified or explicitly `NOT RUN` on single-monitor setups), zero visual regressions | `MANUAL-PENDING` |
 
 ---
 
@@ -592,15 +612,15 @@ Adding module-level `_get_work_area()` to `misora.py` makes `docs/architecture/M
 
 ---
 
-## 11. Plan Verification (Live Verified at Rev 2 Write)
+## 11. Plan Verification (Live Verified at Rev 3 Write)
 
 | Check | Result |
 |---|---|
-| `git -C D:\Misora-Editor status --short --untracked-files=all` | **Empty (0 modified, 0 untracked)** — verified after writing Rev 2 |
-| `git -C D:\Misora-Editor apply --check t08a.patch` | **`exit 0`** (provisional patch applies cleanly to `misora.py` @ `9fa26637`) |
+| `git -C D:\Misora-Editor status --short --untracked-files=all` | **Empty (0 modified, 0 untracked)** |
+| `git -C D:\Misora-Editor apply --check t08a_rev3.patch` | **`exit 0`** (`92	3	misora.py`, `24,001` logical lines) |
 | Written path | `D:\Reference\Misora-Reference\T-08a_Implementation_Plan.md` |
 | SHA-256 | Reported in final response (computed immediately after writing this file) |
 
 ---
 
-**STOP — WAITING FOR INDEPENDENT REVIEW**
+**STOP — WAITING FOR FINAL CLEARANCE**

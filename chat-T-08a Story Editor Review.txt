@@ -1,0 +1,151 @@
+### USER
+# MISORA: STORY EDITOR — CONTEXT RE-HYDRATION & INDEPENDENT REVIEW OF T-08a (REV 2)
+
+You are resuming your role as **Qwen (Assistant A — Independent Technical Reviewer)** for the **Misora: Story Editor** project in a fresh session.
+
+## 1. Collaboration Model & Review Discipline
+- **Team:** Project Lead (Cornelia — sole authority to grant `Proceed`, commit, and push), Antigravity (IDE planner/executor; zero commit/push authority), Gemini (Coordinator/Reviewer), GPT-6 (Independent Reviewer), and **Qwen (Independent Reviewer)**.
+- **Your Mode:** Strictly **READ-ONLY** technical review. Do not author implementation code or claim local command execution. Browse the GitHub repositories directly to verify facts, symbols, line numbers, diffs, arithmetic, and guardrails, and state your verification boundaries honestly.
+- **Ruling Output:** End with a clear verdict: **`CLEARED FOR PROCEED`**, **`CONDITIONAL`**, or **`HOLD`**.
+
+## 2. Repositories to Browse on GitHub (Standard GitHub URLs)
+1. **Editor Repo:** https://github.com/ImaterialC/Misora-Editor (`main` @ HEAD `9fa266375caf0994e49c9ed5ce8b7b1203b28f3c`)
+2. **Reference Repo:** https://github.com/ImaterialC/Misora-Reference (`main`)
+
+## 3. ENV-01 Layered Context Loading (Follow Strictly — Do Not Load `docs/archive/`)
+Please browse and verify from `ImaterialC/Misora-Editor` (`main` @ `9fa266375caf0994e49c9ed5ce8b7b1203b28f3c`):
+- **Layer 0 (Always):** `AGENTS.md`, `PROJECT_STATE.md`
+- **Layer 1 (Task-Specific):** `docs/ai/CONTEXT_ROUTER.md`, `docs/project/OPEN_ISSUES.md`, `docs/architecture/MISORA_SYMBOL_INDEX.md`
+- **Layer 2 (Targeted Source & Tests for T-08a ONLY):**
+  * `misora.py` around lines `1–50` (imports), `195–305` (`ToolTip` & `create_tooltip`), `620–645` (`init_process_dpi_awareness`), and `7040–7120` (`_get_monitor_work_area` & speaker autocomplete popup)
+  * `tests/test_t02_next_tooltip.py` and `tests/test_v15_s11e_polish_splash_menu_tooltips.py`
+- **Layer 3 (Archives):** Do NOT load `docs/archive/`.
+
+And from `ImaterialC/Misora-Reference` (`main`):
+- **Artifact under review:** `T-08a_Implementation_Plan.md` (Rev 2)
+
+## 4. Verified Project State Summary (Re-Confirm Against GitHub)
+- **Product Version Lock:** `1.4.15` (root `__init__.py` authoritative; UNCHANGED). `v1.5.0` remains `CANCELLED / NOT RELEASED / VERSION PROMOTION NOT AUTHORIZED`.
+- **Completed Slices:**
+  * `ENV-01`: Context Hygiene Kit v2 (historical baseline `648cb52...`).
+  * `T-01` (`BUG-UI-EMPTY-STATE-01`): Closed `HISTORICAL-REFERENCE` (Windows M-1..M-12 PASS).
+  * `T-02` (`u-08`, stale `50x3` tooltip on `lbl_char_overflow`): Closed `HISTORICAL-REFERENCE` (Windows M-1..M-4 PASS).
+  * `DOCS-01`: Docs-only closeout & ledger/AGENTS sync committed at `9fa266375caf0994e49c9ed5ce8b7b1203b28f3c` (0 `.py` changes; `AGENTS.md` §7 updated `50 -> 54 digit-widths`).
+- **Test Baseline (`9fa26637`):** `494 = 451 PASS + 35 SKIP + 6 FAIL + 2 ERROR` (`35 SKIP + 3 FAIL + 2 ERROR` from missing proprietary `storydata_1001005.unity3d` fixture; `3` pre-existing non-fixture hygiene failures).
+- **`misora.py` Baseline (`9fa26637`):** `23,912` logical lines, `23,911` CRLF line terminators (`bare_LF == 0`, `bare_CR == 0`), `MISORA_SYMBOL_INDEX.md --check` PASS.
+- **Consensus Option A Roadmap (Planning Order Only — NOT Implementation-Authorized):**
+  Phase 0 `DOCS-01` (done) -> **Phase 1a `T-08a` (current review)** -> Phase 1b `T-04` -> Phase 2a `T-03` & 2b `T-10` (one shared visual-state contract, two slices) -> Phase 3 `T-08b`/`T-08`/`T-09` -> Phase 4 `T-05`/`T-06`/`T-06b` -> Phase 5 `T-07` -> Phase 6 Track B (`T-11` -> `T-13`, `T-12`, `T-14`) & Test Hygiene.
+
+## 5. Current Review Task — `T-08a_Implementation_Plan.md` (Rev 2)
+`T-08a` (`BUG-UI-TOOLTIP-CLIP-01`) addresses confirmed right-edge tooltip clipping on `lbl_char_overflow` (100% & 125% DPI maximized, exacerbated by T-02's longer 2-line tooltip) and general screen-edge overflow in `ToolTip.show_tip()`.
+
+Gemini placed Rev 1 on HOLD for 6 items (top-edge & post-flip clamping, pre-patch `AttributeError` guard with `create=True` + live negative-coord Tk probe, conditional `wintypes` import & `S11e` test compatibility, exact diff/line-count math, locked `N=8 / P=5` arithmetic & `removeprefix(bom)`, and N-C line-count precision). All 6 were resolved in Rev 2, and **Gemini ruled `CLEARED FOR PROCEED`**.
+
+Please independently inspect `T-08a_Implementation_Plan.md` (Rev 2) in `ImaterialC/Misora-Reference` against live `ImaterialC/Misora-Editor` @ `9fa266375caf0994e49c9ed5ce8b7b1203b28f3c` and audit:
+1. Live source symbols, line numbers, imports (`ctypes`/`wintypes`), and DPI Rule 23 compliance (zero runtime DPI awareness mutation).
+2. 4-edge clamping + bottom flip-above + multi-monitor negative-coordinate correctness and `withdraw() -> update_idletasks() -> wm_geometry -> deiconify()` safety against `S11e` & `T-02` suites.
+3. Exact diff & line-count math (`78	3	misora.py`, `23,912 -> 23,987` logical lines, pure CRLF).
+4. Zero-`.pyc` TDD plan (`494 + 8 = 502`, pre-patch `FAILED (failures=5)` with `0 errors`, post-patch `502 = 459 PASS + 35 SKIP + 6 FAIL + 2 ERROR`, `raw.removeprefix(bom)`).
+5. Strict 4-file ownership matrix, 4-file rollback pinned to `9fa266375caf0994e49c9ed5ce8b7b1203b28f3c` (no `reset --hard`), N-4 transient `--check` handling, and `M-1..M-6` Windows QA checklist.
+
+Issue your independent ruling (`CLEARED FOR PROCEED` / `CONDITIONAL` / `HOLD`) and list any blockers or non-blocking execution notes.
+
+### ASSISTANT
+Resuming as **Qwen — Independent Technical Reviewer** for Misora: Story Editor. I'll re-hydrate context strictly per ENV-01 layering (no `docs/archive/`), then audit the T-08a Rev 2 plan against the pinned Editor commit. Starting with Layer 0 and locating the artifact in the Reference repo.
+I've loaded Layer 0. One immediate observation: `PROJECT_STATE.md` at `9fa26637` still says "Last reconciled … HEAD `3edf43e…`" — I'll verify the commit chain to see whether that's the parent-commit reference convention or a stale line. Now loading Layer 1 and the Rev 2 plan.
+Layer 0/1 loaded. Confirmed that the Editor's HEAD is `9fa26637` (DOCS-01, docs only), and the Reference plan's latest commit is `439a89b` (Rev 2). Already noticed one point that should be checked: in the ledger's T-08a entry, the scope is described as "window position / screen edge clamping," but in the review task it's tooltip clipping — going to check how Rev 2 defines the scope. Currently fetching the plan body and the live source.
+The sandbox call timed out; let me retry with a lighter request and fall back to the web extractor if needed.
+The sandbox can reach `api.github.com` but not `raw.githubusercontent.com`. I'll pull file contents through the GitHub API instead.
+# QWEN — INDEPENDENT TECHNICAL REVIEW: T-08a IMPLEMENTATION PLAN (REV 2)
+
+**Artifact:** `ImaterialC/Misora-Reference` @ `439a89b6192470b7cb39657f59a1fb0aeb8ccc55` — `T-08a_Implementation_Plan.md` (blob `29e5f82f…`, 30,606 bytes, 607 lines)
+**Baseline:** `ImaterialC/Misora-Editor` @ `9fa266375caf0994e49c9ed5ce8b7b1203b28f3c` (confirmed live HEAD; commit message matches DOCS-01 docs-only claim)
+
+---
+
+## 0. Verification Boundary (stated honestly)
+
+- I fetched pinned-SHA file content via the GitHub API (contents/blobs/trees/commits endpoints) and performed **static** verification in a Python sandbox: line slicing, verbatim block comparison, hunk-by-hunk patch simulation against the git blob, `compile()` syntax check, and clamp-arithmetic simulation. **I did not run Tk, the test suite, `git apply`, or any command against a Windows worktree.**
+- The git blob stores `misora.py` **LF-normalized** (`.gitattributes`: `*.py text`); the plan's CRLF counts describe the **Windows working-tree checkout**. Both representations are verified consistent (see §3 below). Working-tree `git apply --check exit 0` and the Probe 1–3 runtime transcripts remain **REPORTED** by the planner; my simulation confirms their static basis, and the executor's V-1 gate re-proves application on the actual CRLF worktree.
+- `img1..img5` screenshots: links only; no image content reached my session. Visual CONFIRMED status rests on the Project Lead operator record and GPT-6's image inspection, not my re-verification.
+- ENV-01 discipline honored: Layers 0/1/2 loaded exactly as scoped; **`docs/archive/` NOT loaded**.
+
+## 1. Context Re-Hydration — Re-Confirmed Against GitHub
+
+| Item | Result |
+|---|---|
+| Editor HEAD | `9fa26637…` = `DOCS-01: Close T-02 QA, sync ledgers & Option A roadmap, fix AGENTS.md §7 50->54 (docs-only, 0 .py)` ✅ |
+| DOCS-01 diff | Exactly 3 files: `AGENTS.md +1/−1`, `PROJECT_STATE.md +13/−18`, `OPEN_ISSUES.md +39/−15`; **0 `.py`** ✅ |
+| Version lock | `__init__.py` @ `9fa26637` = `__version__ = "1.4.15"` ✅; v1.5.0 CANCELLED / NOT AUTHORIZED per Layer 0 ✅ |
+| AGENTS.md §7 line 40 | Verbatim match to plan preflight: `"Native overflow: 54 digit-widths or 3+ hard linebreaks (4+ lines)…"` ✅ (5,100 B ≤ 6,144 cap) |
+| OPEN_ISSUES.md line 32 | Contains the T-08a row `(split from T-08/BUG-39/FEAT-04)` ✅ — **but see E-1 on row wording** |
+| PROJECT_STATE.md | 5,414 B ≤ 15,360 cap; 494 baseline, T-01/T-02 HISTORICAL-REFERENCE, T-08a next / NOT AUTHORIZED ✅ |
+| Symbol index | `MISORA_SYMBOL_INDEX.md` Indexed Source Revision = `fb6088e…` (last `.py` commit; DOCS-01 changed 0 `.py`) → baseline `--check PASS` claim coherent ✅. Index rows match live source: `ToolTip@202`, `show_tip@260`, `create_tooltip@298`, `init_process_dpi_awareness@620`, `_get_monitor_work_area@7043` ✅ |
+
+## 2. Audit Item 1 — Symbols, Lines, Imports, DPI Rule 23: **PASS**
+
+- `ctypes@15`, `sys@24`, `Optional/Tuple@33` unconditional; `wintypes@44` inside `if sys.platform == "win32":` (42–44) — **exactly as plan §2.1 claims**. The helper's local `from ctypes import wintypes as _wt` inside platform-gate + `try/except` is therefore correct and `NameError`-proof.
+- Plan §2.2 verbatim `ToolTip` block (94 lines) vs live `misora.py:202–295`: **zero mismatches**. `create_tooltip@298–300` ✅. `show_tip@260–285`; unclamped `x/y@265–266`; premature `wm_geometry@269` before Label construction `@270–281` — root cause §3.1 is genuinely **SOURCE-OBSERVED**, satisfying GPT-6's earlier demand for source proof before root-cause promotion.
+- `init_process_dpi_awareness@620–642`, sole call `@23897` in `main()` **before** `MisoraApp(...)` `@23907` ✅. All `SetProcessDpi*` calls confined to 629–640. **Added diff lines contain zero `SetProcess*` calls** — only `user32.MonitorFromPoint` / `user32.GetMonitorInfoW` (read-only queries). **Rule 23 compliant.**
+- `_get_monitor_work_area@7043–7078` has **exactly one caller** (`@7109`, speaker autocomplete clamp `7102–7116`) — leaving it untouched is verified zero-regression scoping. New name `_get_work_area` has **0 existing occurrences** (no collision; also confirms pre-patch `create=True` necessity). Helper inserted at new line 202, before `class ToolTip` (new 249) — AGENTS §3 "helpers precede callers" ✅. `show_tip` is referenced only by the `after()` timer; `ToolTip` is instantiated only via `create_tooltip` (98 call sites) — uniform propagation, no alternate paths.
+
+## 3. Audit Items 2 & 3 — Clamp Correctness, Suite Safety, Exact Diff Math: **PASS**
+
+**Patch simulation against the live blob (all three hunks, every context/delete line matched exactly):**
+
+| Hunk | Header | Context | +/− | Declared old/new | Match |
+|---|---|---|---|---|---|
+| 1 | `@@ -199,6 +199,53 @@` | 6 | +47/−0 | 6/53 | ✅ |
+| 2 | `@@ -262,11 +309,9 @@` | 8 | +1/−3 | 11/9 | ✅ |
+| 3 | `@@ -281,6 +326,36 @@` | 6 | +30/−0 | 6/36 | ✅ |
+
+- Totals **+78/−3 → `78	3	misora.py`** ✅; breakdown 45 helper lines + 2 blanks + 1 `withdraw()` + 30 measurement/clamp lines = 78 ✅. New-start offsets internally consistent (309 = 262+47; 326 = 281+47−2) ✅.
+- **23,912 → 23,987 logical lines** (net +75) ✅; EOF untouched (`    main()`, no trailing newline) → **23,986 CRLF terminators, bare_LF = bare_CR = 0** at checkout ✅. Pre-edit working-tree bytes 1,076,301 (blob) + 23,911 = **1,100,212** — matches plan preflight exactly ✅.
+- Added lines: **no trailing whitespace, no tabs** → `git diff --check` clean ✅. Simulated post-patch source **`compile()` OK** ✅.
+- **4-edge clamp + flip arithmetic (static simulation, tip 702×34):** probe_1 right `1808→1216`, probe_2 bottom-flip `1049→982`, probe_3 left `−12→2`, probe_4 top `−6→2`, probe_5 negative-monitor `−92→−704` (stays `< 0`, never jumps to primary). **All 5 probes FAIL pre-patch / PASS post-patch; guard_1 exact `(508, 326)` PASS both** — the plan's locked FAIL/PASS matrix reproduces exactly. Post-flip bottom re-check + final top clamp handle the widget-below-bottom and above-top cases; left-clamp precedence for oversized tooltips is documented (§4.3).
+- **`withdraw() → update_idletasks() → wm_geometry → deiconify()` safety:** independently verified against both suites. S11e (739 lines, **9 tests**): **0 hits** for `show_tip`, `Toplevel`, `deiconify`; `withdraw`/`update_idletasks` only on `self.app/app2/app3/app_g/dlg/dlg_fb`; all 21 `patch.object` targets are CONFIG_PATH/messagebox/splash/dialog methods — **nothing mocks Tk geometry machinery**. `probe_7@618–685` inspects only `_tooltip` existence/`.text`/`.delay_ms == 350` (preserved). T-02 (**8 tests**) inspects only `_tooltip.text` @ **41/78/84** — exactly as plan §2.6 claims. **Zero conflict.** The withdraw-measure-position-deiconify sequence is the same idiom already used by the speaker popup (`update_idletasks@7103`, `geometry+deiconify@7112–7113`).
+
+## 4. Audit Item 4 — Zero-`.pyc` TDD Arithmetic: **PASS**
+
+- `N=8` (5 Probes + 3 Guards), `P=5`: pre-patch `8 = 3 PASS + 5 FAIL + 0 ERROR` ✅ (simulation + verified absence of `_get_work_area` pre-patch makes `create=True` both necessary and sufficient; post-`show_tip` `update_idletasks()` neutralizes the Probe-3 pre-map `0,0 / reqw=200` read-timing hazard).
+- **494 + 8 = 502**; **451 + 8 = 459**; **459 + 35 + 6 + 2 = 502** ✅. S11e `9/9` and T-02 `8/8` row counts match actual test-method counts ✅. Hard-STOP on any discovery count ≠ 502 ✅. New filename `tests/test_t08a_tooltip_clamping.py` is **unique** (63 existing test files, no `t08a`) and matches discovery pattern ✅. Harness (CONFIG_PATH temp patch, messagebox mock, `restore_session=False, show_splash=False`, destroy + rmtree) mirrors the proven T-02 harness ✅.
+- `raw.removeprefix(bom)`: `bytes.removeprefix` (Python ≥ 3.9; runner is `py -3.12`) ✅; `misora.py` is BOM-free (no-op safeguard) ✅; in-memory `compile()` writes no `.pyc` ✅; `core/*.py` (17) and `assets/*.py` (4) are **flat** — the non-recursive globs cover everything, matching the symbol generator's own pathspec ✅. `-B` + `pre_pyc_count == post_pyc_count` guard present ✅.
+
+## 5. Audit Item 5 — Ownership, Rollback, N-4, QA: **PASS**
+
+- **4-file matrix** exact: `misora.py` (helper + `show_tip` only), NEW test file, `OPEN_ISSUES.md` T-08a row only, `PROJECT_STATE.md` test-count/T-08a section only. Forbidden set matches AGENTS ENV-01 read-only paths plus `AGENTS.md`, `docs/archive/**`, symbol index + generator ✅.
+- **Rollback:** 3 path-scoped `git checkout 9fa26637… -- <file>` + `Remove-Item` of the new test = exact 4-file inverse; **no `reset --hard`/`clean`/blanket checkout** ✅. Since pinned SHA == pre-commit HEAD, index stays clean → `status` empty, `494`, `23912 / 23911` expectations all correct ✅.
+- **N-4:** verified against `tools/generate_symbol_index.py` — it indexes `tree.body` module-level defs, so `_get_work_area` **will** make the index transiently stale; it also refuses dirty indexed sources, so `--check` is non-zero both during execution and post-commit until regeneration. Deferral to Project Lead post-commit matches the T-02 precedent (`3edf43e` regeneration commit) and the commit-authority model ✅. (Nested `_RECT`/`_MONITORINFO` are function-local and not indexed — consistent.)
+- **M-1..M-6** cover right-edge 100%/125% maximized, bottom flip (btn_revert exists with tooltip per S11e Layer 1), left/top windowed, multi-monitor, operator sign-off — all `MANUAL-PENDING`, lifecycle `ACTIVE` ✅.
+
+## 6. Gemini's 6 Rev-1 HOLD Items — Independently Confirmed Resolved in Rev 2
+
+1. Top-edge & post-flip clamping → present, simulation-verified (probe_4, flip re-check) ✅
+2. Pre-patch `AttributeError` guard (`create=True`) + live negative-coord Tk probe → §7.1 + §3.2 Probes 2/3 ✅
+3. Conditional `wintypes` + S11e compatibility → §2.1/§2.6, verified against live imports and both suites ✅
+4. Exact diff/line-count math → §5, hunk-exact ✅
+5. Locked `N=8 / P=5` + `removeprefix(bom)` → §7.2/7.3 ✅
+6. N-C line-count precision → preflight (`splitlines(True)`, final line 23,912 unterminated) + C-5 gate ✅
+
+## 7. Blockers & Execution Notes
+
+**Blockers: NONE.**
+
+**Binding execution notes (apply during execution; no Rev 3 required):**
+
+- **E-1 — LEDGER ROW RECONCILIATION (primary note).** The committed `OPEN_ISSUES.md` T-08a row (line 32) still describes the **original main-window symptom** ("window opens partially off-screen (title bar clipped)… suspected `_deferred_restore()`/initial geometry"), while this plan's verified scope is **tooltip-only** (`BUG-UI-TOOLTIP-CLIP-01`, `ToolTip.show_tip()`), consistent with the Option A consensus ("Phase 1a T-08a — tooltip boundary handling"). The plan's preflight only checks the row's *existence*. When executing the owned T-08a-row update, the executor **must** (a) rewrite the description to the tooltip-clamp scope actually fixed, and (b) **explicitly retain the main-window off-screen report as an OPEN, unaddressed sub-item** (`NEEDS-REPRO` / `NEEDS-CODE-VERIFY` against `_deferred_restore()` / `sanitize_window_geometry@645/2333`) pending Project Lead triage — a CONFIRMED report must not silently evaporate behind an `8/8 PASS` record. Any split into a new row is a Project Lead ledger action beyond this charter. Apply the same tooltip wording within the owned `PROJECT_STATE.md` T-08a section.
+- **E-2 — V-1 on the real worktree.** My hunk simulation is against the LF-normalized blob; the planner's `apply --check exit 0` is REPORTED. Re-run V-1/V-2/C-5 on the Windows CRLF checkout exactly as gated; any EOL mismatch is a STOP, not a `--ignore-whitespace` workaround.
+- **E-3 — Runner discipline.** Keep `py -3.12 -B` on every discovery/execution invocation (as in preflight/rollback) and enforce the `pre_pyc_count == post_pyc_count` guard; pre-patch run must read literally `Ran 8 tests … FAILED (failures=5)` with `0 errors`.
+- **E-4 — Dashboard self-consistency.** `PROJECT_STATE.md` "Last reconciled … HEAD `3edf43e`" is the pre-DOCS-01 reference; keep the owned test-count/T-08a edits internally consistent (502 baseline stated as total discovered, not 502 passing; 35 SKIP + 6 FAIL + 2 ERROR debt preserved verbatim).
+
+**Non-blocking nits:** §3.3's prose bound "lines 199–362" is one line generous (last hunk ends at new 361; 362 is the untouched `hide_tip` def) — cosmetic, no gate affected. The helper omits the `hasattr(ctypes, "windll")` check the existing method has — harmless under the platform gate + `try/except`. `MonitorFromPoint` default restype/by-value POINT matches the existing codebase idiom. Degenerate oversized-tooltip precedence (left/top wins) is documented and acceptable.
+
+---
+
+## 8. RULING
+
+All five audit dimensions pass exact, line-level independent verification; all six Gemini hold items are genuinely resolved; the fix is minimal, Rule-23-compliant, suite-safe, and arithmetically locked. The single substantive risk (ledger wording drift, E-1) is correctable **within the already-owned allowlist** at execution time.
+
+**`CLEARED FOR PROCEED`** — with binding execution notes E-1..E-4.
+
+Authorization reminder: this clearance is a review opinion only. Implementation, commit, and push remain **exclusively Project Lead (Cornelia)** authority; Antigravity executes with zero commit/push rights; version stays `1.4.15`; the Option A roadmap remains planning-order only. No files were edited and no commands were run against either worktree by me this turn.
