@@ -1,9 +1,10 @@
-# T-02 Implementation Plan — Stale Overflow Tooltip String (Rev 2)
+# T-02 Implementation Plan — Stale Overflow Tooltip String (Rev 3)
 
 **Task:** T-02 (legacy ref `u-08`)  
 **Product version:** `1.4.15` (root `__init__.py` authoritative; UNCHANGED)  
-**Prepared:** 2026-11-28 · Rev 2  
+**Prepared:** 2026-11-28 · Rev 3  
 **Rev 1 reviewers:** GPT-6 (CONDITIONAL APPROVE), Qwen (CONDITIONAL APPROVE)  
+**Rev 2 reviewers:** Qwen (CLEARED FOR PROCEED), GPT-6 (APPROVED 9/9 technical areas; baseline HEAD update requested)  
 **Status:** STOP — WAITING FOR FINAL CLEARANCE
 
 ---
@@ -13,7 +14,8 @@
 | Rev | Date | Summary |
 |-----|------|---------|
 | 1 | 2026-11-28 | Initial plan. SHA-256 `E27D3455...` |
-| 2 | 2026-11-28 | Addresses GPT-6 Blockers 1-2, Recs 1-4 and Qwen F-1..F-5. Fixed method names `_get_ruler_measure_font` (§3.2 Change 2, Probe 3), `_draw_single_pixel_ruler` (§3.2 Change 4, Probe 4). Clarified tooltip line 5578 measurement semantics (dual-font: active editor font for rendered widths, locked Nunito Bold for 54d boundary). Removed unnecessary `f` prefix from line 5578. Replaced `gc.get_objects()` with `widget._tooltip.text` (confirmed `ToolTip.__init__` stores via `setattr(self.widget, "_tooltip", self)` at `misora.py:212`). Fixed rollback to cover all 4 authorized files with safe pre-edit HEAD gate. Replaced Unix-only `wc -l`/`file`/`xxd` with Python 3.12 one-liners. Added exact post-T-02 full-suite breakdown `494 = 451 PASS + 35 SKIP + 6 FAIL + 2 ERROR`. |
+| 2 | 2026-11-28 | Addresses GPT-6 Blockers 1-2, Recs 1-4 and Qwen F-1..F-5. Fixed method names `_get_ruler_measure_font` (§3.2 Change 2, Probe 3), `_draw_single_pixel_ruler` (§3.2 Change 4, Probe 4). Aligned tooltip line 5578 to describe dual-font measurement (`active editor font` line widths against `fixed reference boundary`), removed unnecessary `f` prefix, replaced `gc.get_objects()` with `widget._tooltip.text`, updated rollback across all 4 authorized files, replaced Unix-only checks with Python 3.12 one-liners, added exact post-T-02 full-suite breakdown `494 = 451 PASS + 35 SKIP + 6 FAIL + 2 ERROR`. SHA-256 `A1AFBD51...` |
+| 3 | 2026-11-28 | Baseline HEAD reconciliation after T-01 M-1..M-12 closeout commit (`8b75b9e61728f4a5a78d06901b7e7e5006343122`). Updated §1 Preflight Transcript, noted `misora.py` byte-identity between `33b6f7d` and `8b75b9e6` in §2.5/§2.7, and updated §6 rollback HEAD gate/restore target to `8b75b9e61728f4a5a78d06901b7e7e5006343122`. Technical design, 5-line diff, 8-test TDD suite, and ownership matrix unchanged. |
 
 ---
 
@@ -27,10 +29,13 @@ D:/Misora-Editor
 main
 
 > git rev-parse HEAD
-33b6f7dc10dcb86b853aa71ab833864eeb843dfa
+8b75b9e61728f4a5a78d06901b7e7e5006343122
 
 > git status --short --untracked-files=all
 (empty — clean working tree)
+
+> py -3.12 -B -c "import __init__; print('__version__:', __init__.__version__)"
+__version__: 1.4.15
 
 > py -3.12 -B -c "import unittest; s=unittest.TestLoader().discover('tests'); print('countTestCases:', s.countTestCases())"
 countTestCases: 486
@@ -40,7 +45,7 @@ CHECK PASS: docs/architecture/MISORA_SYMBOL_INDEX.md
 EXIT_CODE: 0
 ```
 
-**Baseline verified:** branch `main`, HEAD `33b6f7d`, clean tree, 486 discovered tests, symbol index CHECK PASS.
+**Baseline verified:** branch `main`, HEAD `8b75b9e6`, product version `1.4.15`, clean tree, 486 discovered tests, symbol index CHECK PASS.
 
 ---
 
@@ -104,7 +109,7 @@ btn_prev: tooltip_text = 'Previous Dialogue Box (Alt+Left / Alt+Up)'
 PROBE COMPLETE
 ```
 
-**Runtime CONFIRMED:** `lbl_char_overflow` tooltip displays `"Native 50 x 3"` and `"<= 50 digit-widths"` at runtime on `v1.4.15`, HEAD `33b6f7d`. The Next/Prev button tooltips are correct and unaffected.
+**Runtime CONFIRMED:** `lbl_char_overflow` tooltip displays `"Native 50 x 3"` and `"<= 50 digit-widths"` at runtime on `v1.4.15`, historical reproduction HEAD `33b6f7d` (`misora.py` is byte-identical between `33b6f7d` and current baseline HEAD `8b75b9e6`, verified via `git diff --quiet 33b6f7d 8b75b9e6 -- misora.py` exit `0`). The Next/Prev button tooltips are correct and unaffected.
 
 ### 2.6 `ToolTip._tooltip` Attribute Verification
 
@@ -112,7 +117,7 @@ PROBE COMPLETE
 
 ### 2.7 Evidence Upgrade
 
-**T-02 evidence:** `REPORTED + NEEDS-REPRO` → **`CONFIRMED`** (runtime reproduction on `v1.4.15`, HEAD `33b6f7d`).
+**T-02 evidence:** `REPORTED + NEEDS-REPRO` → **`CONFIRMED`** (runtime reproduction on `v1.4.15`, historical HEAD `33b6f7d`; `misora.py` unchanged at current baseline HEAD `8b75b9e6`).
 
 ### 2.8 Adjacent Read-Only Notes
 
@@ -358,19 +363,19 @@ If any post-patch check fails:
 
 ```powershell
 # 0. Verify we are still on the correct commit (pre-edit HEAD)
-py -3.12 -B -c "import subprocess; h=subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(); assert h=='33b6f7dc10dcb86b853aa71ab833864eeb843dfa', f'HEAD mismatch: {h}'; print('HEAD OK:', h)"
+py -3.12 -B -c "import subprocess; h=subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(); assert h=='8b75b9e61728f4a5a78d06901b7e7e5006343122', f'HEAD mismatch: {h}'; print('HEAD OK:', h)"
 
 # 1. Revert misora.py (only file with committed baseline — targeted restore from HEAD)
-git checkout 33b6f7dc10dcb86b853aa71ab833864eeb843dfa -- misora.py
+git checkout 8b75b9e61728f4a5a78d06901b7e7e5006343122 -- misora.py
 
 # 2. Remove new test file (untracked — never committed)
 Remove-Item -Path tests\test_t02_next_tooltip.py -ErrorAction SilentlyContinue
 
 # 3. Revert docs/project/OPEN_ISSUES.md (restore from HEAD if modified)
-git checkout 33b6f7dc10dcb86b853aa71ab833864eeb843dfa -- docs/project/OPEN_ISSUES.md
+git checkout 8b75b9e61728f4a5a78d06901b7e7e5006343122 -- docs/project/OPEN_ISSUES.md
 
 # 4. Revert PROJECT_STATE.md (restore from HEAD if modified)
-git checkout 33b6f7dc10dcb86b853aa71ab833864eeb843dfa -- PROJECT_STATE.md
+git checkout 8b75b9e61728f4a5a78d06901b7e7e5006343122 -- PROJECT_STATE.md
 
 # 5. Verify clean state
 git status --short --untracked-files=all
